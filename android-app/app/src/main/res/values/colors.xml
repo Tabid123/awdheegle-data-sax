@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Najax Data Brand Colors -->
+    <color name="najax_purple">#3D0066</color>
+    <color name="najax_purple_dark">#2A0047</color>
+    <color name="najax_purple_light">#5C1A8C</color>
+    <color name="najax_lime">#C5F82A</color>
+    <color name="splash_background">#3D0066</color>
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+</resources>

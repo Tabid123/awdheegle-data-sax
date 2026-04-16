@@ -1,0 +1,39 @@
+{
+  "appId": "com.najax.data",
+  "appName": "Najax Data",
+  "webDir": "dist",
+  "server": {
+    "url": "https://ec842384-421c-4454-a974-f6d2d422a005.lovableproject.com?forceHideBadge=true",
+    "cleartext": true
+  },
+  "android": {
+    "captureInput": true,
+    "adjustMarginsForEdgeToEdge": "force"
+  },
+  "plugins": {
+    "Keyboard": {
+      "resize": "body",
+      "resizeOnFullScreen": false
+    },
+    "SplashScreen": {
+      "launchShowDuration": 2000,
+      "launchAutoHide": true,
+      "backgroundColor": "#3D0066",
+      "showSpinner": false,
+      "androidScaleType": "CENTER_CROP",
+      "splashFullScreen": true,
+      "splashImmersive": true
+    },
+    "StatusBar": {
+      "style": "LIGHT",
+      "backgroundColor": "#3D0066"
+    },
+    "NavigationBar": {
+      "backgroundColor": "#3D0066",
+      "style": "LIGHT"
+    },
+    "PushNotifications": {
+      "presentationOptions": ["badge", "sound", "alert"]
+    }
+  }
+}

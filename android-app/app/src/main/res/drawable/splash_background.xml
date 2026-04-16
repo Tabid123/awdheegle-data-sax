@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Background color - Najax Data brand purple -->
+    <item android:drawable="@color/splash_background" />
+    
+    <!-- Centered logo - fitted -->
+    <item
+        android:gravity="center"
+        android:width="180dp"
+        android:height="180dp">
+        <bitmap
+            android:gravity="center"
+            android:src="@drawable/splash_logo" />
+    </item>
+</layer-list>
