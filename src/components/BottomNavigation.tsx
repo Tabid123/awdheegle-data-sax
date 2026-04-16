@@ -50,15 +50,15 @@ export function BottomNavigation({ onNotificationsClick }: BottomNavigationProps
                 onClick={onClick}
                 className={`relative flex flex-col items-center justify-center rounded-xl px-5 py-2 transition-all duration-300 ${
                   active 
-                    ? 'bg-[#3D0066] shadow-md scale-105' 
+                    ? 'bg-[#1370F0] shadow-md scale-105' 
                     : 'hover:bg-muted'
                 }`}
               >
                 <Icon className={`w-6 h-6 transition-colors duration-300 ${
-                  active ? 'text-[#C5F82A]' : 'text-muted-foreground'
+                  active ? 'text-[#FFFFFF]' : 'text-muted-foreground'
                 }`} />
                 {active && (
-                  <div className="w-1 h-1 rounded-full bg-[#C5F82A] mt-1" />
+                  <div className="w-1 h-1 rounded-full bg-[#FFFFFF] mt-1" />
                 )}
                 {badge != null && badge > 0 && (
                   <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">

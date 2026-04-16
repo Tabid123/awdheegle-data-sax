@@ -139,7 +139,7 @@ export function SimpleAdminSidebar() {
         <div className="flex items-center gap-3">
           <img src={najaxLogo} alt="Logo" className="w-12 h-12 rounded-full border-2 border-blue-400" />
           <div>
-            <div className="text-white font-semibold text-base">Najax Data</div>
+            <div className="text-white font-semibold text-base">Awdheegle Data</div>
             <div className="flex items-center gap-1 text-xs text-blue-400">
               <span className="w-2 h-2 bg-green-400 rounded-full inline-block" />
               Owner

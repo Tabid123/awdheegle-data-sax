@@ -194,7 +194,7 @@ const SimpleAdminDetail = () => {
               <button onClick={() => setLanguage(isSo ? 'en' : 'so')} className="flex items-center gap-1 px-2 py-1.5 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-[11px] font-medium">
                 <Globe className="h-3 w-3" />{isSo ? '🇬🇧 EN' : '🇸🇴 SO'}
               </button>
-              <span className="text-[10px] text-gray-400">Najax Data v1.0</span>
+              <span className="text-[10px] text-gray-400">Awdheegle Data v1.0</span>
               <button onClick={toggleTheme} className="flex items-center gap-1 px-2 py-1.5 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-[11px] font-medium">
                 {theme === 'dark' ? <Sun className="h-3 w-3 text-yellow-500" /> : <Moon className="h-3 w-3 text-blue-500" />}
                 {theme === 'dark' ? 'Light' : 'Dark'}

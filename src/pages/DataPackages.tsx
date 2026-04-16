@@ -231,7 +231,7 @@ const DataPackages = () => {
     retry: false,
   });
 
-  const promotionalText = promotionalTextData || 'Najax Data ka iibso Internet adigoona qof wicin, waqti kasta, xitaa offline!';
+  const promotionalText = promotionalTextData || 'Awdheegle Data ka iibso Internet adigoona qof wicin, waqti kasta, xitaa offline!';
 
   const getFilteredPackages = () => {
     // If coming from category selection, filter by that category
@@ -426,7 +426,7 @@ const DataPackages = () => {
           </Button>
           <div className="text-center">
             <h1 className="text-lg font-bold">
-              {selectedCategoryId ? getSelectedCategoryName() : 'Najax Data'}
+              {selectedCategoryId ? getSelectedCategoryName() : 'Awdheegle Data'}
             </h1>
             <p className="text-white/80 text-sm">{providerName}</p>
           </div>

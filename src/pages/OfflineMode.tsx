@@ -181,7 +181,7 @@ const OfflineMode = () => {
 
       {/* Logo */}
       <div className="mb-6 mt-2">
-        <img alt="Najax Data" className="w-28 h-28 object-contain rounded-2xl" src={najaxLogo} />
+        <img alt="Awdheegle Data" className="w-28 h-28 object-contain rounded-2xl" src={najaxLogo} />
       </div>
 
       {/* Tagline */}

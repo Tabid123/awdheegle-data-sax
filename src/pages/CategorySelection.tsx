@@ -265,7 +265,7 @@ const CategorySelection = () => {
       <div 
         className="fixed top-0 left-0 right-0 z-50" 
         style={{
-          background: 'linear-gradient(135deg, #3D0066 0%, #2A0047 100%)',
+          background: 'linear-gradient(135deg, #1370F0 0%, #0B2447 100%)',
           paddingTop: 'var(--effective-safe-area-top, 0px)',
           boxSizing: 'border-box' as const
         }}
@@ -273,8 +273,8 @@ const CategorySelection = () => {
         <div className="text-white p-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
-              <ArrowLeft className="w-6 h-6 cursor-pointer hover:opacity-80 transition-opacity text-[#C5F82A]" onClick={() => navigate('/providers')} aria-label="Go back" />
-              <h1 className="text-lg font-bold text-[#C5F82A]">Najax Data - {providerName}</h1>
+              <ArrowLeft className="w-6 h-6 cursor-pointer hover:opacity-80 transition-opacity text-[#FFFFFF]" onClick={() => navigate('/providers')} aria-label="Go back" />
+              <h1 className="text-lg font-bold text-[#FFFFFF]">Awdheegle Data - {providerName}</h1>
             </div>
             <div className="flex items-center gap-2">
               <div className="flex gap-3 ml-2">

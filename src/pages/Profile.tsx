@@ -58,15 +58,15 @@ const Profile = () => {
 
   const handleShare = async () => {
     const shareData = {
-      title: 'Najax Data',
-      text: 'Soo degso Najax Data App - Internet bundles iibso si fudud!',
-      url: 'https://najaxdata.com'
+      title: 'Awdheegle Data',
+      text: 'Soo degso Awdheegle Data App - Internet bundles iibso si fudud!',
+      url: 'https://awdheegledata.com'
     };
     try {
       if (navigator.share) {
         await navigator.share(shareData);
       } else {
-        await navigator.clipboard.writeText('https://najaxdata.com');
+        await navigator.clipboard.writeText('https://awdheegledata.com');
         toast.success('Link waa la copy-gareeye!');
       }
     } catch (err) {}
@@ -85,7 +85,7 @@ const Profile = () => {
     },
     {
       icon: Star,
-      title: 'Qiimey Najax Data App',
+      title: 'Qiimey Awdheegle Data App',
       action: () => window.open('https://play.google.com/store/apps/details?id=app.lovable.5178b6a28d534275a37667022407be64', '_blank')
     },
     {
@@ -99,7 +99,7 @@ const Profile = () => {
     <div className="min-h-screen bg-background">
       <div 
         style={{ 
-          backgroundColor: '#3D0066',
+          backgroundColor: '#1370F0',
           paddingTop: 'calc(1rem + var(--effective-safe-area-top, 0px))',
           boxSizing: 'border-box' as const
         }} 

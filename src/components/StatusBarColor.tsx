@@ -11,14 +11,14 @@ const providerColors: Record<string, { light: string; dark: string }> = {
 };
 
 const pageColors: Record<string, { light: string; dark: string }> = {
-  '/': { light: '#3D0066', dark: '#3D0066' },
-  '/providers': { light: '#3D0066', dark: '#3D0066' },
+  '/': { light: '#1370F0', dark: '#1370F0' },
+  '/providers': { light: '#1370F0', dark: '#1370F0' },
   '/payment-success': { light: '#00c853', dark: '#00c853' },
-  '/admin/login': { light: '#3D0066', dark: '#3D0066' },
-  '/admin': { light: '#3D0066', dark: '#3D0066' },
-  '/history': { light: '#3D0066', dark: '#3D0066' },
-  '/profile': { light: '#3D0066', dark: '#3D0066' },
-  '/notifications': { light: '#3D0066', dark: '#3D0066' },
+  '/admin/login': { light: '#1370F0', dark: '#1370F0' },
+  '/admin': { light: '#1370F0', dark: '#1370F0' },
+  '/history': { light: '#1370F0', dark: '#1370F0' },
+  '/profile': { light: '#1370F0', dark: '#1370F0' },
+  '/notifications': { light: '#1370F0', dark: '#1370F0' },
 };
 
 export const StatusBarColor = () => {
