@@ -167,21 +167,20 @@ const Index = () => {
   // Show splash screen
   if (isChecking) {
     return (
-      <div className="fixed inset-0 bg-[#3D0066] flex flex-col items-center justify-center z-50">
-        <img 
-          src={najaxLogoSplash} 
-          alt="Najax Data" 
-          className="w-36 h-36 rounded-2xl animate-pulse"
+      <div className="fixed inset-0 bg-background flex flex-col items-center justify-center z-50">
+        <img
+          src={najaxLogoSplash}
+          alt="Awdheegle Data Services"
+          className="w-44 h-44 object-contain animate-pulse"
         />
-        <div className="w-10 h-10 mt-10 border-4 border-[#C5F82A]/30 border-t-[#C5F82A] rounded-full animate-spin" />
-        
-        {/* Skeleton loading - muuji kadib 4s splash, inta ping wali socoto */}
+        <div className="w-10 h-10 mt-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+
         {extendedSplashReached && connectivityChecking && !forceExit && (
           <div className="flex flex-col items-center mt-6">
-            <div className="w-48 h-2 bg-[#C5F82A]/20 rounded-full overflow-hidden">
-              <div className="h-full bg-[#C5F82A]/70 rounded-full animate-pulse" style={{width: '70%'}} />
+            <div className="w-48 h-2 bg-primary/15 rounded-full overflow-hidden">
+              <div className="h-full bg-primary/70 rounded-full animate-pulse" style={{width: '70%'}} />
             </div>
-            <p className="text-[#C5F82A]/70 text-xs mt-2">Xiriirka la hubinayo...</p>
+            <p className="text-muted-foreground text-xs mt-2">Xiriirka la hubinayo...</p>
           </div>
         )}
       </div>

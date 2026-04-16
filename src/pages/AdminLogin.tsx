@@ -133,19 +133,19 @@ const AdminLogin = () => {
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-4">
-          <div className="w-20 h-20 mx-auto">
-            <img 
-              src={najaxLogo} 
-              alt="Najax Data Logo"
-              className="w-full h-full object-cover rounded-2xl"
+          <div className="w-24 h-24 mx-auto flex items-center justify-center">
+            <img
+              src={najaxLogo}
+              alt="Awdheegle Data Services"
+              className="w-full h-full object-contain"
             />
           </div>
           <div className="flex items-center justify-center gap-2">
             <Shield className="h-6 w-6 text-primary" />
-            <CardTitle className="text-2xl">Admin Login</CardTitle>
+            <CardTitle className="text-2xl">Admin Sign In</CardTitle>
           </div>
           <CardDescription className="text-center">
-            Gal admin dashboard-ka
+            Awdheegle Data Services — Admin Dashboard
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
