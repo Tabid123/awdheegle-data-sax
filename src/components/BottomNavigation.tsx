@@ -40,7 +40,7 @@ export function BottomNavigation({ onNotificationsClick }: BottomNavigationProps
         contain: 'layout'
       }}
     >
-      <div className="mx-3 mb-2 rounded-2xl bg-background/95 backdrop-blur-lg border border-border shadow-[0_-4px_24px_rgba(61,0,102,0.15)]">
+      <div className="mx-3 mb-2 rounded-2xl bg-background/95 backdrop-blur-lg border border-border shadow-[0_-4px_24px_hsl(var(--primary)/0.15)]">
         <div className="flex justify-around items-center py-2 px-2">
           {navItems.map(({ icon: Icon, path, onClick, badge }) => {
             const active = isActive(path);
@@ -49,16 +49,16 @@ export function BottomNavigation({ onNotificationsClick }: BottomNavigationProps
                 key={path}
                 onClick={onClick}
                 className={`relative flex flex-col items-center justify-center rounded-xl px-5 py-2 transition-all duration-300 ${
-                  active 
-                    ? 'bg-[#3D0066] shadow-md scale-105' 
+                  active
+                    ? 'bg-primary shadow-md scale-105'
                     : 'hover:bg-muted'
                 }`}
               >
                 <Icon className={`w-6 h-6 transition-colors duration-300 ${
-                  active ? 'text-[#C5F82A]' : 'text-muted-foreground'
+                  active ? 'text-primary-foreground' : 'text-muted-foreground'
                 }`} />
                 {active && (
-                  <div className="w-1 h-1 rounded-full bg-[#C5F82A] mt-1" />
+                  <div className="w-1 h-1 rounded-full bg-primary-foreground mt-1" />
                 )}
                 {badge != null && badge > 0 && (
                   <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">

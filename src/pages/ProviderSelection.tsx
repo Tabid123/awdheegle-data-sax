@@ -117,7 +117,7 @@ const ProviderSelection = () => {
           queryFn: async () => {
             const { data, error } = await supabase.from('providers_config').select('promotional_text').eq('id', p.id).maybeSingle();
             if (error) throw error;
-            return data?.promotional_text || 'Najax Data ka iibso Internet adigoona qof wicin, waqti kasta!';
+            return data?.promotional_text || 'Awdheegle Data ka iibso Internet adigoona qof wicin, waqti kasta!';
           },
           staleTime: 10 * 60 * 1000
         });
@@ -216,16 +216,16 @@ const ProviderSelection = () => {
       <div 
         className="fixed top-0 left-0 right-0 z-50"
         style={{
-          background: 'linear-gradient(135deg, #3D0066 0%, #2A0047 100%)',
+          background: 'linear-gradient(135deg, #1370F0 0%, #0B2447 100%)',
           paddingTop: 'var(--effective-safe-area-top, 0px)',
           boxSizing: 'border-box' as const
         }}
       >
         <div className="p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src={najaxLogo} alt="Najax" className="w-9 h-9 rounded-xl" />
+            <img src={najaxLogo} alt="Awdheegle" className="w-9 h-9 rounded-xl" />
             <div>
-              <h1 className="text-base font-bold text-[#C5F82A] tracking-tight">Najax Data</h1>
+              <h1 className="text-base font-bold text-[#FFFFFF] tracking-tight">Awdheegle Data</h1>
               <p className="text-[10px] text-white/50 font-medium">Internet Marketplace</p>
             </div>
           </div>
@@ -313,12 +313,12 @@ const ProviderSelection = () => {
                   ? 'animate-bounce ring-2 ring-accent shadow-lg' 
                   : ''
               }`}
-              style={{ background: 'linear-gradient(145deg, #3D0066, #5B0099)' }}
+              style={{ background: 'linear-gradient(145deg, #1370F0, #0B2447)' }}
             >
-              <div className="w-12 h-12 bg-[#C5F82A]/20 rounded-full flex items-center justify-center">
-                <WifiOff className="w-6 h-6 text-[#C5F82A]" />
+              <div className="w-12 h-12 bg-[#FFFFFF]/20 rounded-full flex items-center justify-center">
+                <WifiOff className="w-6 h-6 text-[#FFFFFF]" />
               </div>
-              <span className="text-[#C5F82A] font-semibold text-sm">Offline</span>
+              <span className="text-[#FFFFFF] font-semibold text-sm">Offline</span>
             </button>
           </div>
         </div>
@@ -335,14 +335,14 @@ const ProviderSelection = () => {
         className={`fixed bottom-24 right-4 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-all duration-300 ${
           showContactSheet ? 'bg-destructive' : ''
         }`}
-        style={!showContactSheet ? { background: 'linear-gradient(135deg, #3D0066, #5B0099)' } : {}}
+        style={!showContactSheet ? { background: 'linear-gradient(135deg, #1370F0, #0B2447)' } : {}}
       >
         {showContactSheet ? (
           <X className="w-7 h-7 text-white" />
         ) : (
           <>
-            <Headphones className="w-6 h-6 text-[#C5F82A]" />
-            <span className="absolute -top-1 -right-1 bg-[#C5F82A] text-[#3D0066] text-[10px] font-extrabold rounded-full w-5 h-5 flex items-center justify-center">
+            <Headphones className="w-6 h-6 text-[#FFFFFF]" />
+            <span className="absolute -top-1 -right-1 bg-[#FFFFFF] text-[#1370F0] text-[10px] font-extrabold rounded-full w-5 h-5 flex items-center justify-center">
               24
             </span>
           </>
@@ -356,9 +356,9 @@ const ProviderSelection = () => {
             href="tel:+252615555495"
             onClick={() => setShowContactSheet(false)}
             className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
-            style={{ background: 'linear-gradient(135deg, #3D0066, #5B0099)' }}
+            style={{ background: 'linear-gradient(135deg, #1370F0, #0B2447)' }}
           >
-            <Phone className="w-7 h-7 text-[#C5F82A]" />
+            <Phone className="w-7 h-7 text-[#FFFFFF]" />
           </a>
           <button
             onClick={() => setShowContactSheet(false)}

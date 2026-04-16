@@ -189,7 +189,7 @@ const OrderHistory = () => {
   return <div className="min-h-screen bg-background pb-24">
       {/* Header with safe-area padding for Android 12+ */}
       <div style={{
-        backgroundColor: '#3D0066',
+        backgroundColor: '#1370F0',
         paddingTop: 'calc(1rem + var(--effective-safe-area-top, 0px))',
         boxSizing: 'border-box' as const
       }} className="text-white py-4 px-4">
@@ -452,24 +452,24 @@ const OrderHistory = () => {
 
                       if (useLegacyExternalStorage) {
                         await Filesystem.writeFile({
-                          path: `Pictures/NajaxInvoices/${fileName}`,
+                          path: `Pictures/AwdheegleInvoices/${fileName}`,
                           data: base64String,
                           directory: Directory.ExternalStorage,
                           recursive: true,
                         });
                         toast({
                           title: 'Waa la keydiyay! ✅',
-                          description: 'Gallery > Pictures > NajaxInvoices',
+                          description: 'Gallery > Pictures > AwdheegleInvoices',
                         });
                       } else {
                         await Filesystem.mkdir({
-                          path: 'NajaxInvoices',
+                          path: 'AwdheegleInvoices',
                           directory: Directory.Documents,
                           recursive: true,
                         }).catch(() => null);
 
                         await Filesystem.writeFile({
-                          path: `NajaxInvoices/${fileName}`,
+                          path: `AwdheegleInvoices/${fileName}`,
                           data: base64String,
                           directory: Directory.Documents,
                           recursive: true,
@@ -477,7 +477,7 @@ const OrderHistory = () => {
 
                         toast({
                           title: 'Waa la keydiyay! ✅',
-                          description: `Documents/NajaxInvoices/${fileName}`,
+                          description: `Documents/AwdheegleInvoices/${fileName}`,
                         });
                       }
                     } else {
