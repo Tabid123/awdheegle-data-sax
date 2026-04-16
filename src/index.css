@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -14,26 +16,29 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 270 20% 98%;
-    --foreground: 270 30% 15%;
+    /* AWDHEEGLE DATA SERVICES - Light, minimalist, telecom-grade */
+    --background: 210 20% 98%;
+    --foreground: 220 45% 12%;
 
     --card: 0 0% 100%;
-    --card-foreground: 270 30% 15%;
+    --card-foreground: 220 45% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 270 30% 15%;
+    --popover-foreground: 220 45% 12%;
 
-    --primary: 270 91% 30%;
-    --primary-foreground: 75 94% 57%;
+    /* Brand vivid blue from logo */
+    --primary: 214 95% 52%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 270 20% 94%;
-    --secondary-foreground: 270 30% 15%;
+    --secondary: 210 25% 95%;
+    --secondary-foreground: 220 45% 15%;
 
-    --muted: 270 15% 94%;
-    --muted-foreground: 270 10% 45%;
+    --muted: 210 20% 95%;
+    --muted-foreground: 220 15% 45%;
 
-    --accent: 75 94% 57%;
-    --accent-foreground: 270 91% 20%;
+    /* Deep navy from logo as accent */
+    --accent: 220 70% 18%;
+    --accent-foreground: 0 0% 100%;
 
     --orange: 25 95% 53%;
     --orange-foreground: 210 40% 98%;
@@ -53,61 +58,59 @@ All colors MUST be HSL.
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 270 15% 90%;
-    --input: 270 15% 90%;
-    --ring: 270 91% 45%;
+    --border: 215 20% 90%;
+    --input: 215 20% 90%;
+    --ring: 214 95% 52%;
 
-    /* Custom design tokens - Najax Data purple/lime */
-    --gradient-primary: linear-gradient(135deg, hsl(270, 91%, 30%), hsl(75, 94%, 57%));
-    --gradient-button: linear-gradient(135deg, hsl(270, 91%, 35%), hsl(270, 80%, 50%));
-    --gradient-subtle: linear-gradient(180deg, hsl(270, 20%, 98%), hsl(0, 0%, 100%));
-    --shadow-elegant: 0 10px 30px -10px hsl(270 91% 30% / 0.3);
-    --shadow-glow: 0 0 40px hsl(270 91% 30% / 0.2);
-    --shadow-card: 0 4px 15px -2px hsl(0 0% 0% / 0.08);
+    /* Custom design tokens - Awdheegle blue */
+    --gradient-primary: linear-gradient(135deg, hsl(220, 70%, 18%), hsl(214, 95%, 52%));
+    --gradient-button: linear-gradient(135deg, hsl(214, 95%, 52%), hsl(214, 90%, 60%));
+    --gradient-subtle: linear-gradient(180deg, hsl(210, 20%, 98%), hsl(0, 0%, 100%));
+    --shadow-elegant: 0 10px 30px -10px hsl(214 95% 52% / 0.3);
+    --shadow-glow: 0 0 40px hsl(214 95% 52% / 0.25);
+    --shadow-card: 0 4px 15px -2px hsl(220 45% 12% / 0.08);
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
     --radius: 0.75rem;
 
-    --sidebar-background: 270 20% 98%;
-    --sidebar-foreground: 270 30% 20%;
-    --sidebar-primary: 270 91% 30%;
-    --sidebar-primary-foreground: 75 94% 57%;
-    --sidebar-accent: 270 15% 94%;
-    --sidebar-accent-foreground: 270 30% 15%;
-    --sidebar-border: 270 15% 90%;
-    --sidebar-ring: 270 91% 45%;
+    --sidebar-background: 210 20% 98%;
+    --sidebar-foreground: 220 45% 20%;
+    --sidebar-primary: 214 95% 52%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 20% 95%;
+    --sidebar-accent-foreground: 220 45% 15%;
+    --sidebar-border: 215 20% 90%;
+    --sidebar-ring: 214 95% 52%;
   }
 
   .dark {
-    /* Deep purple-black background */
-    --background: 270 30% 6%;
-    --foreground: 270 10% 95%;
+    /* Deep navy background */
+    --background: 220 50% 6%;
+    --foreground: 210 20% 96%;
 
-    --card: 270 25% 10%;
-    --card-foreground: 270 10% 95%;
+    --card: 220 45% 10%;
+    --card-foreground: 210 20% 96%;
 
-    --popover: 270 25% 12%;
-    --popover-foreground: 270 10% 95%;
+    --popover: 220 45% 12%;
+    --popover-foreground: 210 20% 96%;
 
-    /* Vibrant purple primary */
-    --primary: 270 80% 55%;
-    --primary-foreground: 270 30% 6%;
+    /* Vivid brand blue */
+    --primary: 214 95% 58%;
+    --primary-foreground: 0 0% 100%;
 
-    /* Secondary with purple tint */
-    --secondary: 270 30% 18%;
-    --secondary-foreground: 270 10% 95%;
+    --secondary: 220 35% 18%;
+    --secondary-foreground: 210 20% 96%;
 
-    --muted: 270 20% 15%;
-    --muted-foreground: 270 10% 60%;
+    --muted: 220 30% 15%;
+    --muted-foreground: 215 15% 65%;
 
-    /* Lime green accent */
-    --accent: 75 94% 55%;
-    --accent-foreground: 270 30% 6%;
+    /* Lighter navy accent */
+    --accent: 214 90% 65%;
+    --accent-foreground: 220 50% 6%;
 
     --orange: 25 95% 55%;
     --orange-foreground: 210 40% 98%;
 
-    /* Brand colors for providers (dark mode) */
     --hormuud: 140 80% 45%;
     --hormuud-foreground: 0 0% 98%;
     --somtel: 45 100% 55%;
@@ -122,29 +125,28 @@ All colors MUST be HSL.
     --destructive: 0 72% 51%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 270 20% 18%;
-    --input: 270 20% 15%;
-    --ring: 270 80% 55%;
+    --border: 220 30% 18%;
+    --input: 220 30% 15%;
+    --ring: 214 95% 58%;
 
-    /* Dark mode gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(270, 80%, 55%), hsl(75, 94%, 55%));
-    --gradient-button: linear-gradient(135deg, hsl(270, 80%, 50%), hsl(270, 70%, 60%));
-    --gradient-subtle: linear-gradient(180deg, hsl(270, 30%, 6%), hsl(270, 25%, 12%));
-    --gradient-glow: radial-gradient(ellipse at center, hsl(270 80% 55% / 0.15), transparent 70%);
-    
-    --shadow-elegant: 0 10px 40px -10px hsl(270 80% 55% / 0.3);
-    --shadow-glow: 0 0 60px hsl(270 80% 55% / 0.2);
-    --shadow-card: 0 4px 20px -2px hsl(0 0% 0% / 0.4), 0 0 0 1px hsl(270 20% 18% / 0.5);
+    --gradient-primary: linear-gradient(135deg, hsl(220, 70%, 25%), hsl(214, 95%, 58%));
+    --gradient-button: linear-gradient(135deg, hsl(214, 95%, 55%), hsl(214, 90%, 65%));
+    --gradient-subtle: linear-gradient(180deg, hsl(220, 50%, 6%), hsl(220, 45%, 12%));
+    --gradient-glow: radial-gradient(ellipse at center, hsl(214 95% 58% / 0.18), transparent 70%);
+
+    --shadow-elegant: 0 10px 40px -10px hsl(214 95% 58% / 0.35);
+    --shadow-glow: 0 0 60px hsl(214 95% 58% / 0.25);
+    --shadow-card: 0 4px 20px -2px hsl(0 0% 0% / 0.4), 0 0 0 1px hsl(220 30% 18% / 0.5);
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    
-    --sidebar-background: 270 30% 8%;
-    --sidebar-foreground: 270 10% 95%;
-    --sidebar-primary: 270 80% 55%;
+
+    --sidebar-background: 220 50% 8%;
+    --sidebar-foreground: 210 20% 96%;
+    --sidebar-primary: 214 95% 58%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 270 30% 18%;
-    --sidebar-accent-foreground: 270 10% 95%;
-    --sidebar-border: 270 20% 15%;
-    --sidebar-ring: 270 80% 55%;
+    --sidebar-accent: 220 35% 18%;
+    --sidebar-accent-foreground: 210 20% 96%;
+    --sidebar-border: 220 30% 15%;
+    --sidebar-ring: 214 95% 58%;
   }
 }
 
@@ -155,6 +157,8 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-feature-settings: 'cv11', 'ss01';
   }
 }
 
