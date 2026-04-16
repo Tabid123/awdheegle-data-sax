@@ -181,7 +181,15 @@ const OfflineMode = () => {
 
       {/* Logo */}
       <div className="mb-6 mt-2">
-        <img alt="Awdheegle Data" className="w-28 h-28 object-contain rounded-2xl" src={najaxLogo} />
+        <div
+          className="w-28 h-28 flex items-center justify-center rounded-3xl bg-card p-3 ring-1 ring-primary/10"
+          style={{
+            boxShadow:
+              '0 12px 30px -10px hsl(var(--primary) / 0.35), 0 4px 12px -4px hsl(var(--primary) / 0.18), 0 0 0 1px hsl(var(--primary) / 0.06)',
+          }}
+        >
+          <img alt="Awdheegle Data" className="w-full h-full object-contain" src={najaxLogo} />
+        </div>
       </div>
 
       {/* Tagline */}

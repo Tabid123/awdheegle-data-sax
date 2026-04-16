@@ -168,11 +168,19 @@ const Index = () => {
   if (isChecking) {
     return (
       <div className="fixed inset-0 bg-background flex flex-col items-center justify-center z-50">
-        <img
-          src={najaxLogoSplash}
-          alt="Awdheegle Data Services"
-          className="w-44 h-44 object-contain animate-pulse"
-        />
+        <div
+          className="w-44 h-44 flex items-center justify-center rounded-3xl bg-card p-4 ring-1 ring-primary/10 animate-pulse"
+          style={{
+            boxShadow:
+              '0 16px 40px -12px hsl(var(--primary) / 0.4), 0 6px 16px -6px hsl(var(--primary) / 0.2), 0 0 0 1px hsl(var(--primary) / 0.06)',
+          }}
+        >
+          <img
+            src={najaxLogoSplash}
+            alt="Awdheegle Data Services"
+            className="w-full h-full object-contain"
+          />
+        </div>
         <div className="w-10 h-10 mt-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
 
         {extendedSplashReached && connectivityChecking && !forceExit && (
