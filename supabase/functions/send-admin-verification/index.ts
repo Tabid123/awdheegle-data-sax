@@ -112,8 +112,8 @@ serve(async (req) => {
 
       // Send SMS via Hormuud
       const token = await getHormuudToken();
-      const senderId = Deno.env.get('HORMUUD_SENDER_ID') || 'NajaxData';
-      const message = `Najax Data Admin: Code-kaaga waa ${code}. 5 daqiiqo kadib wuu dhacayaa.`;
+      const senderId = Deno.env.get('HORMUUD_SENDER_ID') || 'Awdheegle';
+      const message = `Awdheegle Data Admin: Code-kaaga waa ${code}. 5 daqiiqo kadib wuu dhacayaa.`;
 
       const smsPayload = {
         refid: `admin-verify-${Date.now()}`,

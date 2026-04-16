@@ -353,7 +353,7 @@ ${businessData.top_packages.map((p, i) => `${i+1}. ${p.name} (${p.provider}): ${
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const systemPrompt = `You are Najax Data Admin Assistant - Kaalmiyaha Admin-ka Najax Data.
+    const systemPrompt = `You are Awdheegle Data Admin Assistant - Kaalmiyaha Admin-ka Awdheegle Data.
 
 Waxaad u adeegaysaa admin-ka warsadaha ganacsi-ga. Waxaad haysataa xogta database-ka DHAMMAANTEED - maanta, shalay, toddobaadkan, bisha, iyo dhammaan wakhtiga.
 

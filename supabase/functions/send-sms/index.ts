@@ -73,7 +73,7 @@ serve(async (req) => {
       throw new Error('Phone number and code are required');
     }
 
-    const senderId = Deno.env.get('HORMUUD_SENDER_ID') || 'NajaxData';
+    const senderId = Deno.env.get('HORMUUD_SENDER_ID') || 'Awdheegle';
 
     // Convert phone number from +252XXXXXXXXX to local format (XXXXXXXXX)
     const localNumber = phoneNumber.replace(/^\+252/, '');

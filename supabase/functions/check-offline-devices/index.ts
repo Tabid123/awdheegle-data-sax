@@ -61,7 +61,7 @@ async function sendSmsAlert(
 ): Promise<boolean> {
   try {
     const token = await getHormuudToken();
-    const senderId = 'NajaxData';
+    const senderId = 'Awdheegle';
 
     // Format phone number
     let formattedPhone = alertPhoneNumber.replace(/\D/g, '');
