@@ -120,7 +120,7 @@ ${somaliaTime}
 Hubi phone-ka! isku day inaa online ka dhigtid!`;
 
     // Use short sender ID (max 11 chars for most providers)
-    const senderId = 'NajaxData';
+    const senderId = 'Awdheegle';
     const token = await getHormuudToken();
 
     const smsPayload = {
