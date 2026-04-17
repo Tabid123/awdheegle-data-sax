@@ -53,12 +53,12 @@ popd
 
 REM --- Copy APK to output ---
 if not exist apk-output mkdir apk-output
-copy /Y android-app\app\build\outputs\apk\debug\app-debug.apk apk-output\najax-data.apk >nul
+copy /Y android-app\app\build\outputs\apk\debug\app-debug.apk apk-output\awdheegle-data.apk >nul
 
 REM --- Save log ---
 if exist gradle-build.log del /q gradle-build.log >nul 2>nul
 call android-app\gradlew -p android-app -q help > gradle-build.log 2>&1
 
 echo.
-echo [SUCCESS] APK is ready: apk-output\najax-data.apk
+echo [SUCCESS] APK is ready: apk-output\awdheegle-data.apk
 exit /b 0
