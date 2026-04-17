@@ -223,16 +223,15 @@ export function PaymentSmsLog() {
             .from('payment_receipts')
             .select(`
               *,
-              order:matched_order_id (
+              order:order_id (
                 id,
-                package_name,
-                data_amount,
-                customer_phone,
+                sender_phone,
                 receiver_phone,
                 provider_id,
                 delivery_status,
                 delivery_notes,
-                selling_price
+                amount,
+                package_id
               )
             `)
             .eq('id', newId)
@@ -275,16 +274,15 @@ export function PaymentSmsLog() {
             .from('payment_receipts')
             .select(`
               *,
-              order:matched_order_id (
+              order:order_id (
                 id,
-                package_name,
-                data_amount,
-                customer_phone,
+                sender_phone,
                 receiver_phone,
                 provider_id,
                 delivery_status,
                 delivery_notes,
-                selling_price
+                amount,
+                package_id
               )
             `)
             .eq('id', updatedId)

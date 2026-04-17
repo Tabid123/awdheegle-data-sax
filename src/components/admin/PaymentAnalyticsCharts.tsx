@@ -67,7 +67,7 @@ export function PaymentAnalyticsCharts() {
         .from('payment_receipts')
         .select(`
           id, amount, status, created_at,
-          order:matched_order_id (provider_id)
+          order:order_id (provider_id)
         `)
         .gte('created_at', dateFrom.toISOString())
         .order('created_at', { ascending: true });
