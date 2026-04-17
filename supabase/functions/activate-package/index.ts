@@ -368,17 +368,25 @@ serve(async (req) => {
         console.log(`🔋 Ping merged: device=${deviceId} battery=${batteryParam || 'N/A'}% charging=${chargingParam}`);
       }
 
-      // Look up device to get its configured providers (sim1_provider, sim2_provider)
-      // Filter out archived devices to avoid duplicate conflicts
+      // Look up device to get UUID + configured providers
+      // Android sends hardware device_id (text); RPC needs the UUID primary key
       const { data: device, error: deviceError } = await supabase
         .from('android_devices')
-        .select('sim1_provider, sim2_provider')
+        .select('id, sim1_provider, sim2_provider')
         .eq('device_id', deviceId)
         .is('archived_at', null)
         .maybeSingle();
 
       if (deviceError) {
         console.error('Device lookup error:', deviceError);
+      }
+
+      if (!device?.id) {
+        console.log('⚠️ Device not registered yet:', deviceId);
+        return new Response(
+          JSON.stringify({ orders: [], nextPollMs: 20000 }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
 
       // Build list of providers this device can handle
@@ -390,9 +398,9 @@ serve(async (req) => {
         deviceProviders.push(device.sim2_provider.toLowerCase());
       }
 
-      console.log('Device providers:', deviceProviders);
+      console.log('Device providers:', deviceProviders, 'UUID:', device.id);
 
-      // If no device found or no providers configured, return empty
+      // If no providers configured, return empty
       if (deviceProviders.length === 0) {
         console.log('No providers configured for device:', deviceId);
         return new Response(
@@ -408,10 +416,10 @@ serve(async (req) => {
         .eq('status', 'scheduled')
         .lte('scheduled_at', new Date().toISOString());
 
-      // ATOMIC CLAIM: Use RPC to claim one pending order (prevents race condition)
+      // ATOMIC CLAIM: pass UUID (not hardware device_id string)
       const { data: claimed, error } = await supabase
         .rpc('claim_next_delivery', {
-          p_device_id: deviceId,
+          p_device_id: device.id,
           p_providers: deviceProviders
         });
 
