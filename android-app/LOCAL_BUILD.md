@@ -49,11 +49,11 @@ Examples:
 The script will:
 - Create `android-app/local.properties` pointing to your SDK
 - Run Gradle to assemble the debug APK
-- Copy the APK to `apk-output/najax-delivery.apk`
+- Copy the APK to `apk-output/awdheegle-data.apk`
 
 ## 4) Install the APK (optional)
 ```bash
-adb install -r apk-output/najax-delivery.apk
+adb install -r apk-output/awdheegle-data.apk
 ```
 
 ## Troubleshooting

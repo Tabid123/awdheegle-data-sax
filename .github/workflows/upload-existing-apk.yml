@@ -4,7 +4,7 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'public/downloads/najax-data.apk'
+      - 'public/downloads/awdheegle-data.apk'
       - '.github/workflows/upload-existing-apk.yml'
   workflow_dispatch:
 
@@ -18,8 +18,8 @@ jobs:
 
       - name: Ensure APK exists
         run: |
-          if [ ! -f public/downloads/najax-data.apk ]; then
-            echo "APK file not found at public/downloads/najax-data.apk" >&2
+          if [ ! -f public/downloads/awdheegle-data.apk ]; then
+            echo "APK file not found at public/downloads/awdheegle-data.apk" >&2
             exit 1
           fi
 
@@ -31,7 +31,7 @@ jobs:
           TIMESTAMP=$(date +%s)
           : "${VERSION:=manual}"
           : "${BUILD_NUMBER:=${GITHUB_RUN_NUMBER}}"
-          FILE_NAME="najax-data-v${VERSION}-${TIMESTAMP}.apk"
+          FILE_NAME="awdheegle-data-v${VERSION}-${TIMESTAMP}.apk"
           echo "VERSION=v${VERSION}" >> $GITHUB_OUTPUT
           echo "BUILD_NUMBER=${BUILD_NUMBER}" >> $GITHUB_OUTPUT
           echo "TIMESTAMP=${TIMESTAMP}" >> $GITHUB_OUTPUT
@@ -40,7 +40,7 @@ jobs:
       - name: Prepare APK artifact
         run: |
           mkdir -p apk-output
-          cp public/downloads/najax-data.apk "apk-output/${{ steps.version.outputs.FILE_NAME }}"
+          cp public/downloads/awdheegle-data.apk "apk-output/${{ steps.version.outputs.FILE_NAME }}"
 
       - name: Get APK file size
         id: filesize
@@ -90,6 +90,6 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: najax-data-apk
+          name: awdheegle-data-apk
           path: apk-output/${{ steps.version.outputs.FILE_NAME }}
           retention-days: 30

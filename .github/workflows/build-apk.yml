@@ -106,12 +106,12 @@ jobs:
     - name: Rename APK
       run: |
         mkdir -p apk-output
-        cp android-app/app/build/outputs/apk/debug/app-debug.apk apk-output/najax-data.apk
+        cp android-app/app/build/outputs/apk/debug/app-debug.apk apk-output/awdheegle-data.apk
     
     - name: Get APK file size
       id: apk_size
       run: |
-        APK_SIZE=$(stat -f%z apk-output/najax-data.apk 2>/dev/null || stat -c%s apk-output/najax-data.apk)
+        APK_SIZE=$(stat -f%z apk-output/awdheegle-data.apk 2>/dev/null || stat -c%s apk-output/awdheegle-data.apk)
         echo "size=$APK_SIZE" >> $GITHUB_OUTPUT
 
     - name: Upload APK to Supabase Storage
@@ -119,14 +119,14 @@ jobs:
         SUPABASE_URL: https://powpgjyjpitjdsgofasn.supabase.co
         SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       run: |
-        APK_FILENAME="najax-data-v1.0.${{ github.run_number }}.apk"
+        APK_FILENAME="awdheegle-data-v1.0.${{ github.run_number }}.apk"
         
         curl -X POST \
           "${SUPABASE_URL}/storage/v1/object/apk-builds/${APK_FILENAME}" \
           -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
           -H "Content-Type: application/vnd.android.package-archive" \
           -H "x-upsert: true" \
-          --data-binary "@apk-output/najax-data.apk"
+          --data-binary "@apk-output/awdheegle-data.apk"
         
         curl -X POST \
           "${SUPABASE_URL}/rest/v1/apk_builds" \
@@ -150,18 +150,18 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         tag_name: ${{ steps.version.outputs.version }}
-        name: Najax Data ${{ steps.version.outputs.version }}
+        name: Awdheegle Data ${{ steps.version.outputs.version }}
         body: |
           🤖 **Automatic build from GitHub Actions**
           
-          📱 **Download:** `najax-data.apk` below
+          📱 **Download:** `awdheegle-data.apk` below
           
           📊 **Info:**
           - Version: ${{ steps.version.outputs.version }}
           - Build #${{ github.run_number }}
           - Date: ${{ steps.version.outputs.date }}
           - Commit: `${{ github.sha }}`
-        files: apk-output/najax-data.apk
+        files: apk-output/awdheegle-data.apk
         draft: false
         prerelease: false
         make_latest: true
