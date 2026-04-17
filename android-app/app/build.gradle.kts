@@ -10,7 +10,7 @@ android {
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.najax.data"
+        applicationId = "com.awdheegle.data"
         minSdk = 23
         targetSdk = 34
         versionCode = 1
