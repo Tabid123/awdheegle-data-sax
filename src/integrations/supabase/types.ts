@@ -39,13 +39,16 @@ export type Database = {
         Row: {
           android_version: string | null
           app_version: string | null
+          archived_at: string | null
           battery_level: number | null
           created_at: string
           device_id: string
           device_name: string
+          failed_deliveries: number
           id: string
           imei: string | null
           is_active: boolean
+          is_charging: boolean | null
           last_heartbeat: string | null
           last_ping_at: string | null
           model: string | null
@@ -56,18 +59,22 @@ export type Database = {
           sim2_number: string | null
           sim2_provider: string | null
           status: Database["public"]["Enums"]["device_status"]
+          total_deliveries: number
           updated_at: string
         }
         Insert: {
           android_version?: string | null
           app_version?: string | null
+          archived_at?: string | null
           battery_level?: number | null
           created_at?: string
           device_id: string
           device_name: string
+          failed_deliveries?: number
           id?: string
           imei?: string | null
           is_active?: boolean
+          is_charging?: boolean | null
           last_heartbeat?: string | null
           last_ping_at?: string | null
           model?: string | null
@@ -78,18 +85,22 @@ export type Database = {
           sim2_number?: string | null
           sim2_provider?: string | null
           status?: Database["public"]["Enums"]["device_status"]
+          total_deliveries?: number
           updated_at?: string
         }
         Update: {
           android_version?: string | null
           app_version?: string | null
+          archived_at?: string | null
           battery_level?: number | null
           created_at?: string
           device_id?: string
           device_name?: string
+          failed_deliveries?: number
           id?: string
           imei?: string | null
           is_active?: boolean
+          is_charging?: boolean | null
           last_heartbeat?: string | null
           last_ping_at?: string | null
           model?: string | null
@@ -100,6 +111,7 @@ export type Database = {
           sim2_number?: string | null
           sim2_provider?: string | null
           status?: Database["public"]["Enums"]["device_status"]
+          total_deliveries?: number
           updated_at?: string
         }
         Relationships: []
@@ -1066,6 +1078,73 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_receipts: {
+        Row: {
+          amount: number | null
+          created_at: string
+          device_id: string | null
+          id: string
+          matched: boolean
+          order_id: string | null
+          raw_sms: string
+          received_at: string
+          reference: string | null
+          sender_phone: string | null
+          sim_id: string | null
+          status: string
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string
+          device_id?: string | null
+          id?: string
+          matched?: boolean
+          order_id?: string | null
+          raw_sms: string
+          received_at?: string
+          reference?: string | null
+          sender_phone?: string | null
+          sim_id?: string | null
+          status?: string
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string
+          device_id?: string | null
+          id?: string
+          matched?: boolean
+          order_id?: string | null
+          raw_sms?: string
+          received_at?: string
+          reference?: string | null
+          sender_phone?: string | null
+          sim_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_receipts_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "android_devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_receipts_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_receipts_sim_id_fkey"
+            columns: ["sim_id"]
+            isOneToOne: false
+            referencedRelation: "sims"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_sms_log: {
         Row: {
           amount: number | null
@@ -1213,6 +1292,47 @@ export type Database = {
           ussd_code?: string | null
         }
         Relationships: []
+      }
+      sim_balances: {
+        Row: {
+          balance: number
+          created_at: string
+          device_id: string | null
+          id: string
+          last_updated_at: string
+          provider: string | null
+          sim_slot: number
+          updated_at: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          device_id?: string | null
+          id?: string
+          last_updated_at?: string
+          provider?: string | null
+          sim_slot?: number
+          updated_at?: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          device_id?: string | null
+          id?: string
+          last_updated_at?: string
+          provider?: string | null
+          sim_slot?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sim_balances_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "android_devices"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sims: {
         Row: {
