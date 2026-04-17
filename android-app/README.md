@@ -1,9 +1,9 @@
-# Najax Data Delivery - Android App
+# Awdheegle Data Delivery - Android App
 
 ## 🎯 Overview
 
 This Android app automates data package delivery by:
-- Polling the Najax Data API every 5 seconds for new orders
+- Polling the Awdheegle Data API every 5 seconds for new orders
 - Automatically dialing USSD codes on the correct SIM (Hormuud Slot 1, Somnet Slot 2)
 - Running 24/7 as a background service
 - Reporting delivery status back to the server
@@ -20,7 +20,7 @@ android-app/
 │   ├── src/main/
 │   │   ├── kotlin/com/iftin/delivery/
 │   │   │   ├── MainActivity.kt              # Main UI with dashboard
-│   │   │   ├── NajaxDataApp.kt              # Application class
+│   │   │   ├── AwdheegleDataApp.kt          # Application class
 │   │   │   ├── service/
 │   │   │   │   └── UssdDialerService.kt     # Background service (24/7)
 │   │   │   ├── api/
@@ -157,27 +157,27 @@ android-app/
 
 ### Local Testing
 1. Start the service
-2. Check notification: "Najax Delivery Active"
+2. Check notification: "Awdheegle Data Active"
 3. Create test order from website
 4. Watch phone dial USSD automatically
 5. Check dashboard stats update
 
 ### View Logs
 ```bash
-adb logcat -s NajaxDelivery
+adb logcat -s AwdheegleDelivery
 ```
 
 ---
 
 ## 📄 License
 
-Proprietary - Najax Data © 2025
+Proprietary - Awdheegle Data © 2026
 
 ---
 
 ## 👥 Credits
 
-**Developed for**: Najax Data (Somalia)  
+**Developed for**: Awdheegle Data (Somalia)  
 **Platform**: Android (Kotlin)  
 **Backend**: Supabase Edge Functions  
 **Target Device**: Samsung Galaxy M31  
