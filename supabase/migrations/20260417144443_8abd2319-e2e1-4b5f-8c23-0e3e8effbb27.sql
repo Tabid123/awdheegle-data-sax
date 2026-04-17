@@ -1,0 +1,1 @@
+DELETE FROM android_devices WHERE device_id = 'test-curl-12345';
