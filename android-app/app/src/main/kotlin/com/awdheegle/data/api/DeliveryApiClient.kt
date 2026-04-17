@@ -10,9 +10,9 @@ import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
 class DeliveryApiClient {
-    private val baseUrl = "https://powpgjyjpitjdsgofasn.supabase.co/functions/v1"
-    private val supabaseRestUrl = "https://powpgjyjpitjdsgofasn.supabase.co/rest/v1"
-    private val anonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBvd3BnanlqcGl0amRzZ29mYXNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0Mzc1NzgsImV4cCI6MjA5MTAxMzU3OH0.SE3ClLgXW3h3bkA0_YwPHMc5iyMM6wGwXHTm_4yUZL4"
+    private val baseUrl = "https://xpqvfcmalgvrpoqwbqtv.supabase.co/functions/v1"
+    private val supabaseRestUrl = "https://xpqvfcmalgvrpoqwbqtv.supabase.co/rest/v1"
+    private val anonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhwcXZmY21hbGd2cnBvcXdicXR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0MjE2MDIsImV4cCI6MjA5MTk5NzYwMn0.535f8NcOV3cuMucDHzs1Gbl89-_XdrPnA292ukLNNp8"
     
     // ==================== CONNECTION POOLING ====================
     // Single shared OkHttpClient instance reuses TCP+TLS connections across all API calls.

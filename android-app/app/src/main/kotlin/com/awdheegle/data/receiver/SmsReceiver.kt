@@ -23,10 +23,10 @@ import java.util.concurrent.TimeUnit
 
 class SmsReceiver : BroadcastReceiver() {
     private val TAG = "SmsReceiver"
-    private val API_URL = "https://powpgjyjpitjdsgofasn.supabase.co/functions/v1/process-payment-receipt"
-    private val BALANCE_API_URL = "https://powpgjyjpitjdsgofasn.supabase.co/functions/v1/update-sim-balance"
-    private val SMS_LOG_URL = "https://powpgjyjpitjdsgofasn.supabase.co/rest/v1/sms_logs"
-    private val SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBvd3BnanlqcGl0amRzZ29mYXNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0Mzc1NzgsImV4cCI6MjA5MTAxMzU3OH0.SE3ClLgXW3h3bkA0_YwPHMc5iyMM6wGwXHTm_4yUZL4"
+    private val API_URL = "https://xpqvfcmalgvrpoqwbqtv.supabase.co/functions/v1/process-payment-receipt"
+    private val BALANCE_API_URL = "https://xpqvfcmalgvrpoqwbqtv.supabase.co/functions/v1/update-sim-balance"
+    private val SMS_LOG_URL = "https://xpqvfcmalgvrpoqwbqtv.supabase.co/rest/v1/sms_logs"
+    private val SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhwcXZmY21hbGd2cnBvcXdicXR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0MjE2MDIsImV4cCI6MjA5MTk5NzYwMn0.535f8NcOV3cuMucDHzs1Gbl89-_XdrPnA292ukLNNp8"
     
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
