@@ -56,13 +56,19 @@ const ProviderCard = ({ name, logo, onClick, disabled = false }: ProviderCardPro
           boxShadow: `0 0 0 4px hsl(${providerColor} / 0.14)`,
         }}
       >
-        <img
-          src={logo}
-          alt={`${name} logo`}
-          className="h-11 w-11 object-contain"
-          loading="eager"
-          decoding="async"
-        />
+        {logo ? (
+          <img
+            src={logo}
+            alt={`${name} logo`}
+            className="h-11 w-11 object-contain"
+            loading="eager"
+            decoding="async"
+          />
+        ) : (
+          <span className="text-lg font-bold text-foreground">
+            {name.trim().charAt(0).toUpperCase() || '?'}
+          </span>
+        )}
       </div>
 
       <span className="relative text-sm font-semibold text-foreground tracking-tight">{name}</span>

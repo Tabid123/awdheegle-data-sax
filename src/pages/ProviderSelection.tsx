@@ -17,9 +17,20 @@ import najaxLogo from '@/assets/najax-logo.jpeg';
 interface Provider {
   id: string;
   provider_name: string;
+  display_name?: string | null;
   provider_logo: string | null;
   is_active: boolean;
+  sort_order?: number;
 }
+
+const normalizeProvider = (provider: any): Provider => ({
+  id: provider.id,
+  provider_name: provider.provider_name || provider.display_name || '',
+  display_name: provider.display_name || provider.provider_name || '',
+  provider_logo: provider.provider_logo ?? provider.logo_url ?? null,
+  is_active: provider.is_active !== false,
+  sort_order: provider.sort_order ?? 0,
+});
 
 const ProviderSelection = () => {
   const navigate = useNavigate();
@@ -63,7 +74,8 @@ const ProviderSelection = () => {
   const getCachedProviders = () => {
     try {
       const cached = localStorage.getItem('offline_providers');
-      return cached ? JSON.parse(cached) : [];
+      const parsed = cached ? JSON.parse(cached) : [];
+      return Array.isArray(parsed) ? parsed.map(normalizeProvider).filter((provider) => provider.id) : [];
     } catch {
       return [];
     }
@@ -76,10 +88,19 @@ const ProviderSelection = () => {
         return getCachedProviders();
       }
 
-      const { data, error } = await supabase.rpc('get_active_providers');
-      if (error) throw error;
+      const { data, error } = await supabase
+        .from('providers_config')
+        .select('id, provider_name, display_name, logo_url, is_active, sort_order')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true });
 
-      const freshProviders = data || [];
+      if (error) {
+        const cachedProviders = getCachedProviders();
+        if (cachedProviders.length > 0) return cachedProviders;
+        throw error;
+      }
+
+      const freshProviders = (data || []).map(normalizeProvider);
       localStorage.setItem('offline_providers', JSON.stringify(freshProviders));
       return freshProviders;
     },
@@ -88,44 +109,6 @@ const ProviderSelection = () => {
     refetchOnMount: 'always',
     retry: false,
   });
-
-  useEffect(() => {
-    if (providers.length) {
-      // Prefetch categories for each provider
-      providers.forEach((p: Provider) => {
-        queryClient.prefetchQuery({
-          queryKey: ['categories', p.id],
-          queryFn: async () => {
-            const { data, error } = await supabase.rpc('get_active_categories', { p_provider_id: p.id });
-            if (error) throw error;
-            return data || [];
-          },
-          staleTime: 5 * 60 * 1000
-        });
-      });
-      providers.forEach((p: Provider) => {
-        queryClient.prefetchQuery({
-          queryKey: ['packages', p.id],
-          queryFn: async () => {
-            const { data, error } = await supabase.rpc('get_public_packages', { p_provider_id: p.id });
-            if (error) throw error;
-            return data || [];
-          },
-          staleTime: 60 * 1000
-        });
-        queryClient.prefetchQuery({
-          queryKey: ['promotionalText', p.id],
-          queryFn: async () => {
-            const { data, error } = await supabase.from('providers_config').select('promotional_text').eq('id', p.id).maybeSingle();
-            if (error) throw error;
-            return data?.promotional_text || 'Awdheegle Data ka iibso Internet adigoona qof wicin, waqti kasta!';
-          },
-          staleTime: 10 * 60 * 1000
-        });
-      });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [providers]);
 
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
@@ -224,9 +207,9 @@ const ProviderSelection = () => {
       >
         <div className="p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src={najaxLogo} alt="Awdheegle" className="w-9 h-9 rounded-xl" />
+            <img src={najaxLogo} alt="Najax Data" className="w-9 h-9 rounded-xl" />
             <div>
-              <h1 className="text-base font-bold text-[#FFFFFF] tracking-tight">Awdheegle Data</h1>
+              <h1 className="text-base font-bold text-[#FFFFFF] tracking-tight">Najax Data</h1>
               <p className="text-[10px] text-white/50 font-medium">Internet Marketplace</p>
             </div>
           </div>
@@ -298,9 +281,9 @@ const ProviderSelection = () => {
             {providers.map((provider: Provider) => (
               <div key={provider.id} className={isReallyOnline === false ? 'opacity-60' : ''}>
                 <ProviderCard 
-                  name={provider.provider_name} 
+                  name={provider.display_name || provider.provider_name} 
                   logo={provider.provider_logo || ''} 
-                  onClick={() => handleProviderSelect(provider.id, provider.provider_name)}
+                  onClick={() => handleProviderSelect(provider.id, provider.display_name || provider.provider_name)}
                   disabled={isReallyOnline === false}
                 />
               </div>
