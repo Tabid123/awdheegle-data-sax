@@ -59,33 +59,30 @@ const PaymentProviders = () => {
   } = useQuery({
     queryKey: ['paymentProviders'],
     queryFn: async () => {
-      // Try cache first if offline
       if (!isReallyOnline) {
         const cached = localStorage.getItem('offline_payment_providers');
         return cached ? JSON.parse(cached) : [];
       }
-      
-      const {
-        data,
-        error
-      } = await supabase.rpc('get_active_payment_providers');
-      if (error) throw error;
-      
-      // Update cache when we get fresh data
-      if (data) {
+      const { data, error } = await supabase.rpc('get_active_payment_providers');
+      if (error) {
+        console.error('❌ Failed to load payment providers:', error);
+        throw error;
+      }
+      console.log('✅ Loaded payment providers:', data?.length || 0);
+      if (data && data.length > 0) {
         localStorage.setItem('offline_payment_providers', JSON.stringify(data));
       }
-      
       return data || [];
     },
-    staleTime: 30000, // 30 seconds
-    refetchOnMount: true,
-    refetchOnWindowFocus: false,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
     retry: 1,
     initialData: () => {
       try {
         const cached = localStorage.getItem('offline_payment_providers');
-        return cached ? JSON.parse(cached) : undefined;
+        const parsed = cached ? JSON.parse(cached) : undefined;
+        return parsed && parsed.length > 0 ? parsed : undefined;
       } catch (e) {
         return undefined;
       }
