@@ -673,10 +673,10 @@ export const BannersCustomView = ({ isSo }: { isSo: boolean }) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [newBanner, setNewBanner] = useState({ banner_image: '', alt_text: '' });
+  const [newBanner, setNewBanner] = useState({ image_url: '', title: '' });
 
   const loadBanners = useCallback(async () => {
-    const { data } = await supabase.from('banners_config').select('*').order('display_order');
+    const { data } = await supabase.from('banners_config').select('*').order('sort_order');
     setBanners(data || []);
     setLoading(false);
   }, []);
@@ -698,8 +698,8 @@ export const BannersCustomView = ({ isSo }: { isSo: boolean }) => {
   };
 
   const saveBanner = async () => {
-    if (!newBanner.banner_image) { toast.error('Fill image URL'); return; }
-    const payload = { banner_image: newBanner.banner_image, alt_text: newBanner.alt_text || null };
+    if (!newBanner.image_url) { toast.error('Fill image URL'); return; }
+    const payload = { image_url: newBanner.image_url, title: newBanner.title || null };
     if (editingId) {
       const { error } = await supabase.from('banners_config').update(payload).eq('id', editingId);
       if (error) { toast.error('Error: ' + error.message); return; }
@@ -711,13 +711,13 @@ export const BannersCustomView = ({ isSo }: { isSo: boolean }) => {
       setBanners(prev => [data, ...prev]);
       toast.success('Added');
     }
-    setNewBanner({ banner_image: '', alt_text: '' });
+    setNewBanner({ image_url: '', title: '' });
     setShowAdd(false); setEditingId(null);
   };
 
   const startEditBanner = (item: any) => {
     setEditingId(item.id);
-    setNewBanner({ banner_image: item.banner_image || '', alt_text: item.alt_text || '' });
+    setNewBanner({ image_url: item.image_url || '', title: item.title || '' });
     setShowAdd(true); setExpandedId(null);
   };
 
