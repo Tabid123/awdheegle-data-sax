@@ -696,6 +696,41 @@ export type Database = {
           },
         ]
       }
+      featured_packages: {
+        Row: {
+          created_at: string
+          display_order: number
+          id: string
+          is_active: boolean
+          package_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          package_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          package_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "featured_packages_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: true
+            referencedRelation: "data_packages_config"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fraud_alerts: {
         Row: {
           alert_type: string
@@ -796,6 +831,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          is_active: boolean
           notes: string | null
           provider_id: string | null
           receiver_phone: string | null
@@ -805,6 +841,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          is_active?: boolean
           notes?: string | null
           provider_id?: string | null
           receiver_phone?: string | null
@@ -814,6 +851,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          is_active?: boolean
           notes?: string | null
           provider_id?: string | null
           receiver_phone?: string | null
