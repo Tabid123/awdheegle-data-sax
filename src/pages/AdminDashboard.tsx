@@ -741,7 +741,8 @@ const AdminDashboard = () => {
         .from('user_roles')
         .select('role')
         .eq('user_id', user.id)
-        .eq('role', 'admin')
+        .in('role', ['admin', 'super_admin'])
+        .limit(1)
         .maybeSingle();
 
       if (error || !roleData) {
