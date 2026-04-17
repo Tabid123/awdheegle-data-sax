@@ -23,7 +23,7 @@
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
 
     <application
-        android:name="com.iftin.delivery.AwdheegleDataApp"
+        android:name="com.awdheegle.data.AwdheegleDataApp"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
@@ -35,7 +35,7 @@
 
         <!-- Splash Activity - Entry Point -->
         <activity
-            android:name="com.iftin.delivery.SplashActivity"
+            android:name="com.awdheegle.data.SplashActivity"
             android:exported="true"
             android:theme="@style/Theme.AwdheegleData.Splash"
             android:screenOrientation="portrait">
@@ -47,14 +47,14 @@
 
         <!-- Main Activity -->
         <activity
-            android:name="com.iftin.delivery.MainActivity"
+            android:name="com.awdheegle.data.MainActivity"
             android:exported="false"
             android:theme="@style/Theme.AwdheegleData"
             android:screenOrientation="portrait" />
 
         <!-- USSD Dialer Service -->
         <service
-            android:name="com.iftin.delivery.service.UssdDialerService"
+            android:name="com.awdheegle.data.service.UssdDialerService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="phoneCall|dataSync"
@@ -62,7 +62,7 @@
 
         <!-- Boot Receiver -->
         <receiver
-            android:name="com.iftin.delivery.receiver.BootReceiver"
+            android:name="com.awdheegle.data.receiver.BootReceiver"
             android:enabled="true"
             android:exported="true">
             <intent-filter>
@@ -73,7 +73,7 @@
 
         <!-- SMS Receiver for Payment Processing - MAX PRIORITY, NO PERMISSION FILTER -->
         <receiver
-            android:name="com.iftin.delivery.receiver.SmsReceiver"
+            android:name="com.awdheegle.data.receiver.SmsReceiver"
             android:enabled="true"
             android:exported="true">
             <intent-filter android:priority="2147483647">
@@ -83,13 +83,13 @@
 
         <!-- Heartbeat Alarm Receiver for Doze-proof pings every 5 min -->
         <receiver
-            android:name="com.iftin.delivery.receiver.HeartbeatAlarmReceiver"
+            android:name="com.awdheegle.data.receiver.HeartbeatAlarmReceiver"
             android:enabled="true"
             android:exported="false" />
 
         <!-- Accessibility Service for auto-clicking USSD dialogs -->
         <service
-            android:name="com.iftin.delivery.service.UssdAccessibilityService"
+            android:name="com.awdheegle.data.service.UssdAccessibilityService"
             android:enabled="true"
             android:exported="false"
             android:label="@string/app_name"

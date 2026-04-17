@@ -1,4 +1,4 @@
-package com.iftin.delivery.receiver
+package com.awdheegle.data.receiver
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -9,8 +9,8 @@ import android.provider.Telephony
 import android.telephony.SmsMessage
 import android.telephony.SubscriptionManager
 import android.util.Log
-import com.iftin.delivery.service.UssdDialerService
-import com.iftin.delivery.util.PaymentReceiptDedup
+import com.awdheegle.data.service.UssdDialerService
+import com.awdheegle.data.util.PaymentReceiptDedup
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

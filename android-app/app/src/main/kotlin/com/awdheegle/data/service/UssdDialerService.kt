@@ -1,4 +1,4 @@
-package com.iftin.delivery.service
+package com.awdheegle.data.service
 
 import android.Manifest
 import android.app.*
@@ -19,14 +19,14 @@ import android.telephony.SmsManager
 import android.telephony.SubscriptionManager
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
-import com.iftin.delivery.MainActivity
-import com.iftin.delivery.R
-import com.iftin.delivery.receiver.HeartbeatAlarmReceiver
-import com.iftin.delivery.api.DeliveryApiClient
-import com.iftin.delivery.api.DeliveryApiClient.DeviceSimConfig
-import com.iftin.delivery.data.DeliveryDatabase
-import com.iftin.delivery.data.DeliveryTask
-import com.iftin.delivery.util.PaymentReceiptDedup
+import com.awdheegle.data.MainActivity
+import com.awdheegle.data.R
+import com.awdheegle.data.receiver.HeartbeatAlarmReceiver
+import com.awdheegle.data.api.DeliveryApiClient
+import com.awdheegle.data.api.DeliveryApiClient.DeviceSimConfig
+import com.awdheegle.data.data.DeliveryDatabase
+import com.awdheegle.data.data.DeliveryTask
+import com.awdheegle.data.util.PaymentReceiptDedup
 import kotlinx.coroutines.*
 import kotlinx.coroutines.suspendCancellableCoroutine
 import okhttp3.MediaType.Companion.toMediaType

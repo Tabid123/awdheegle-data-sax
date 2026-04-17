@@ -1,4 +1,4 @@
-package com.iftin.delivery
+package com.awdheegle.data
 
 import android.content.Intent
 import android.os.Bundle

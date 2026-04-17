@@ -1,4 +1,4 @@
-package com.iftin.delivery
+package com.awdheegle.data
 
 import android.Manifest
 import android.app.ActivityManager
@@ -38,10 +38,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.iftin.delivery.api.DeliveryApiClient
-import com.iftin.delivery.data.DeliveryDatabase
-import com.iftin.delivery.service.UssdDialerService
-import com.iftin.delivery.ui.theme.AwdheegleDataTheme
+import com.awdheegle.data.api.DeliveryApiClient
+import com.awdheegle.data.data.DeliveryDatabase
+import com.awdheegle.data.service.UssdDialerService
+import com.awdheegle.data.ui.theme.AwdheegleDataTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -310,7 +310,7 @@ fun MainScreen(
 
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    val db = remember(context) { com.iftin.delivery.data.DeliveryDatabase.getInstance(context) }
+    val db = remember(context) { com.awdheegle.data.data.DeliveryDatabase.getInstance(context) }
 
     // Continuously check actual service state
     LaunchedEffect(Unit) {

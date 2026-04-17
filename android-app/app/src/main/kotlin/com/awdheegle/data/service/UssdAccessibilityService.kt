@@ -1,4 +1,4 @@
-package com.iftin.delivery.service
+package com.awdheegle.data.service
 
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
@@ -28,7 +28,7 @@ class UssdAccessibilityService : AccessibilityService() {
 
     companion object {
         private const val TAG = "UssdAccessibility"
-        const val ACTION_USSD_CLICK_COMPLETE = "com.najax.data.USSD_CLICK_COMPLETE"
+        const val ACTION_USSD_CLICK_COMPLETE = "com.awdheegle.data.USSD_CLICK_COMPLETE"
         const val PREFS_NAME = "awdheegle_ussd_prefs"
         const val KEY_EXPECTING_USSD = "expecting_ussd_dialogs"
         const val KEY_LAST_USSD_TIME = "last_ussd_time"
@@ -411,7 +411,7 @@ class UssdAccessibilityService : AccessibilityService() {
             
             // Send final completion broadcast with package name for Android 13+
             sendBroadcast(Intent(ACTION_USSD_CLICK_COMPLETE).apply {
-                setPackage("com.najax.data")
+                setPackage("com.awdheegle.data")
                 putExtra("total_clicks", clickCount)
                 putExtra("success", true)
             })
@@ -518,7 +518,7 @@ class UssdAccessibilityService : AccessibilityService() {
     private fun notifyClickComplete() {
         try {
             val intent = Intent(ACTION_USSD_CLICK_COMPLETE).apply {
-                setPackage("com.najax.data")  // Required for Android 13+
+                setPackage("com.awdheegle.data")  // Required for Android 13+
                 putExtra("click_count", clickCount)
                 putExtra("timestamp", System.currentTimeMillis())
             }
