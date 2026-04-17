@@ -1,4 +1,4 @@
-package com.iftin.delivery.data
+package com.awdheegle.data.data
 
 import android.content.Context
 import androidx.room.*

@@ -1,4 +1,4 @@
-package com.iftin.delivery.worker
+package com.awdheegle.data.worker
 
 import android.app.ActivityManager
 import android.content.Context
@@ -6,7 +6,7 @@ import android.content.Intent
 import android.os.Build
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.iftin.delivery.service.UssdDialerService
+import com.awdheegle.data.service.UssdDialerService
 
 /**
  * WorkManager worker that ensures UssdDialerService is running and triggers polling.

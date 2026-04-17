@@ -1,12 +1,12 @@
-package com.iftin.delivery
+package com.awdheegle.data
 
 import android.app.Application
 import android.content.Intent
 import android.os.Build
 import androidx.work.*
-import com.iftin.delivery.service.UssdDialerService
-import com.iftin.delivery.worker.ServiceWatchdogWorker
-import com.iftin.delivery.worker.UssdPollingWorker
+import com.awdheegle.data.service.UssdDialerService
+import com.awdheegle.data.worker.ServiceWatchdogWorker
+import com.awdheegle.data.worker.UssdPollingWorker
 import java.util.concurrent.TimeUnit
 
 class AwdheegleDataApp : Application() {

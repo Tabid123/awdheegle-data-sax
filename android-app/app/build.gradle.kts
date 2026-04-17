@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.iftin.delivery"
+    namespace = "com.awdheegle.data"
     compileSdk = 34
 
     defaultConfig {

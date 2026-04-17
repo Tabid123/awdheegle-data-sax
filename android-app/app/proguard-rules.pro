@@ -4,17 +4,17 @@
 # CRITICAL: Keep all app classes for USSD automation & Play Store
 # Prevents R8/ProGuard from obfuscating class names
 # ============================================================
--keep class com.iftin.delivery.SplashActivity { *; }
--keep class com.iftin.delivery.MainActivity { *; }
--keep class com.iftin.delivery.NajaxDataApp { *; }
+-keep class com.awdheegle.data.SplashActivity { *; }
+-keep class com.awdheegle.data.MainActivity { *; }
+-keep class com.awdheegle.data.NajaxDataApp { *; }
 
 # Keep all services in our package (including AccessibilityService)
--keep class com.iftin.delivery.service.** { *; }
--keep class com.iftin.delivery.service.UssdAccessibilityService { *; }
--keep class com.iftin.delivery.service.UssdDialerService { *; }
+-keep class com.awdheegle.data.service.** { *; }
+-keep class com.awdheegle.data.service.UssdAccessibilityService { *; }
+-keep class com.awdheegle.data.service.UssdDialerService { *; }
 
 # Keep all receivers
--keep class com.iftin.delivery.receiver.** { *; }
+-keep class com.awdheegle.data.receiver.** { *; }
 
 # Keep Accessibility Service classes
 -keep class * extends android.accessibilityservice.AccessibilityService { *; }
@@ -25,10 +25,10 @@
 }
 
 # Keep data classes
--keep class com.iftin.delivery.data.** { *; }
+-keep class com.awdheegle.data.data.** { *; }
 
 # Keep API client
--keep class com.iftin.delivery.api.** { *; }
+-keep class com.awdheegle.data.api.** { *; }
 
 # ============================================================
 # Kotlin and Coroutines

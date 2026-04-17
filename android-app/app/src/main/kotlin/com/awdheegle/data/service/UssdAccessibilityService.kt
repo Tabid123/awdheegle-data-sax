@@ -1,4 +1,4 @@
-package com.iftin.delivery.service
+package com.awdheegle.data.service
 
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo

@@ -1,4 +1,4 @@
-package com.iftin.delivery.receiver
+package com.awdheegle.data.receiver
 
 import android.app.AlarmManager
 import android.app.PendingIntent
@@ -8,7 +8,7 @@ import android.content.Intent
 import android.os.Build
 import android.os.PowerManager
 import android.provider.Settings
-import com.iftin.delivery.api.DeliveryApiClient
+import com.awdheegle.data.api.DeliveryApiClient
 import kotlinx.coroutines.*
 
 /**
@@ -20,7 +20,7 @@ class HeartbeatAlarmReceiver : BroadcastReceiver() {
 
     companion object {
         private const val HEARTBEAT_INTERVAL_MS = 5 * 60 * 1000L // 5 minutes
-        private const val ACTION_HEARTBEAT = "com.iftin.delivery.HEARTBEAT_PING"
+        private const val ACTION_HEARTBEAT = "com.awdheegle.data.HEARTBEAT_PING"
 
         /**
          * Schedule the first heartbeat alarm. Call from UssdDialerService.onCreate().

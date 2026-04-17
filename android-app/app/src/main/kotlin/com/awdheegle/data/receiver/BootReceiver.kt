@@ -1,10 +1,10 @@
-package com.iftin.delivery.receiver
+package com.awdheegle.data.receiver
 
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-import com.iftin.delivery.service.UssdDialerService
+import com.awdheegle.data.service.UssdDialerService
 
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {

@@ -1,4 +1,4 @@
-package com.iftin.delivery.ui.theme
+package com.awdheegle.data.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme

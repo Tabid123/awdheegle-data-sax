@@ -1,4 +1,4 @@
-package com.iftin.delivery.util
+package com.awdheegle.data.util
 
 import android.content.Context
 import java.security.MessageDigest
