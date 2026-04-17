@@ -374,15 +374,27 @@ export const CategoriesCustomView = ({ isSo }: { isSo: boolean }) => {
 
   const loadCategories = useCallback(async () => {
     const [catRes, provRes, pkgRes, instRes] = await Promise.all([
-      supabase.from('package_categories').select('*').order('display_order'),
-      supabase.from('providers_config').select('id, provider_name, provider_logo').order('display_order'),
-      supabase.from('data_packages_config').select('id, category_id, ussd_code, package_name').order('display_order').limit(500),
-      supabase.from('delivery_instructions').select('id, category_id, ussd_code, code_template'),
+      supabase.from('package_categories').select('*').order('sort_order'),
+      supabase.from('providers_config').select('id, provider_name, display_name, logo_url').order('sort_order'),
+      supabase.from('data_packages_config').select('id, category_id, ussd_template, package_name').order('sort_order').limit(500),
+      supabase.from('delivery_instructions').select('id, reference_id, ussd_template, level'),
     ]);
     setCategories(catRes.data || []);
-    setProviders(provRes.data || []);
-    setPackages(pkgRes.data || []);
-    setInstructions(instRes.data || []);
+    setProviders((provRes.data || []).map((provider: any) => ({
+      ...provider,
+      provider_name: provider.provider_name || provider.display_name || '—',
+      provider_logo: provider.logo_url || '',
+    })));
+    setPackages((pkgRes.data || []).map((pkg: any) => ({
+      ...pkg,
+      ussd_code: pkg.ussd_template || '',
+    })));
+    setInstructions((instRes.data || []).map((instruction: any) => ({
+      ...instruction,
+      category_id: instruction.reference_id,
+      ussd_code: instruction.ussd_template || '',
+      code_template: instruction.ussd_template || '',
+    })));
     setLoading(false);
   }, []);
 
@@ -458,7 +470,7 @@ export const CategoriesCustomView = ({ isSo }: { isSo: boolean }) => {
             { icon: Package, label: 'Category', value: item.category_name, color: 'text-purple-500' },
             { icon: Globe, label: 'Provider', value: getProviderName(item.provider_id), color: 'text-indigo-500' },
             { icon: Hash, label: 'Packages', value: `${catPkgs.length}`, color: 'text-cyan-500' },
-            { icon: Hash, label: 'Order', value: `${item.display_order}`, color: 'text-blue-500' },
+            { icon: Hash, label: 'Order', value: `${item.sort_order ?? 0}`, color: 'text-blue-500' },
             { icon: Calendar, label: 'Created', value: formatDate(item.created_at), color: 'text-gray-500' },
             ...(ussdCodes.length > 0 ? [{ icon: Code, label: 'Pkg USSD', value: ussdCodes.join(' | '), color: 'text-indigo-500' }] : []),
             ...(instrCodes.length > 0 ? [{ icon: Code, label: 'System USSD', value: instrCodes.join(' | '), color: 'text-orange-500' }] : []),
