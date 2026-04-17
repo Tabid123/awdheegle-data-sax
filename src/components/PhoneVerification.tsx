@@ -131,17 +131,26 @@ const PhoneVerification = ({ isOpen, onClose, onSuccess, paymentProvider, packag
       try {
         const fullPhoneNumber = `+252${phoneNumber}`;
         const { data: existingPhone } = await supabase
-          .from('verified_phones').select('id').eq('phone_number', fullPhoneNumber).maybeSingle();
+          .from('verified_phones')
+          .select('id')
+          .eq('phone_number', fullPhoneNumber)
+          .maybeSingle();
 
         if (existingPhone) {
-          await supabase.from('verified_phones').update({ last_login_at: new Date().toISOString() }).eq('phone_number', fullPhoneNumber);
+          await supabase
+            .from('verified_phones')
+            .update({ last_login_at: new Date().toISOString() })
+            .eq('phone_number', fullPhoneNumber);
         } else {
-          await supabase.from('verified_phones').insert({
-            phone_number: fullPhoneNumber,
-            verification_code: storedCode,
-            verified_at: new Date().toISOString(),
-            last_login_at: new Date().toISOString()
-          });
+          await supabase
+            .from('verified_phones')
+            .insert([
+              {
+                phone_number: fullPhoneNumber,
+                verified_at: new Date().toISOString(),
+                last_login_at: new Date().toISOString()
+              }
+            ]);
         }
       } catch (error) {
         console.error('Error saving verified phone:', error);

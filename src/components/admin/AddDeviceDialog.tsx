@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,13 +24,13 @@ export const AddDeviceDialog = ({ open, onOpenChange, onDeviceAdded }: AddDevice
   const { language } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [providers, setProviders] = useState<Provider[]>([]);
-  
+
   const [deviceName, setDeviceName] = useState('');
   const [deviceId, setDeviceId] = useState('');
   const [sim1Number, setSim1Number] = useState('');
-  const [sim1Provider, setSim1Provider] = useState('');
+  const [sim1ProviderId, setSim1ProviderId] = useState('');
   const [sim2Number, setSim2Number] = useState('');
-  const [sim2Provider, setSim2Provider] = useState('');
+  const [sim2ProviderId, setSim2ProviderId] = useState('');
 
   useEffect(() => {
     if (open) {
@@ -43,17 +43,27 @@ export const AddDeviceDialog = ({ open, onOpenChange, onDeviceAdded }: AddDevice
       .from('providers_config')
       .select('id, provider_name')
       .eq('is_active', true)
-      .order('display_order');
-    
+      .order('sort_order');
+
     if (error) {
       console.error('Error loading providers:', error);
       return;
     }
+
     setProviders(data || []);
   };
 
+  const resetForm = () => {
+    setDeviceName('');
+    setDeviceId('');
+    setSim1Number('');
+    setSim1ProviderId('');
+    setSim2Number('');
+    setSim2ProviderId('');
+  };
+
   const handleSubmit = async () => {
-    if (!deviceName || !deviceId || !sim1Number || !sim1Provider) {
+    if (!deviceName || !deviceId || !sim1Number || !sim1ProviderId) {
       toast({
         title: language === 'so' ? 'Khalad' : 'Error',
         description: language === 'so' ? 'Fadlan buuxi meelaha muhiimka ah' : 'Please fill in required fields',
@@ -64,34 +74,49 @@ export const AddDeviceDialog = ({ open, onOpenChange, onDeviceAdded }: AddDevice
 
     setLoading(true);
     try {
-      // Insert main device record with SIM 1
-      const { error: insertError } = await supabase
+      const { data: device, error: deviceError } = await supabase
         .from('android_devices')
         .insert({
           device_name: deviceName,
           device_id: deviceId,
-          sim_number: sim1Number,
-          provider_name: sim1Provider,
-          sim1_provider: sim1Provider.toLowerCase(),
-          sim2_provider: sim2Provider ? sim2Provider.toLowerCase() : null,
           is_active: true,
-        });
+          status: 'offline',
+        })
+        .select('id')
+        .single();
 
-      if (insertError) throw insertError;
+      if (deviceError) throw deviceError;
+
+      const simsToInsert = [
+        {
+          device_id: device.id,
+          phone_number: sim1Number,
+          provider_id: sim1ProviderId,
+          sim_slot: 1,
+          status: 'active' as const,
+        },
+        ...(sim2Number && sim2ProviderId
+          ? [
+              {
+                device_id: device.id,
+                phone_number: sim2Number,
+                provider_id: sim2ProviderId,
+                sim_slot: 2,
+                status: 'active' as const,
+              },
+            ]
+          : []),
+      ];
+
+      const { error: simsError } = await supabase.from('sims').insert(simsToInsert);
+      if (simsError) throw simsError;
 
       toast({
         title: language === 'so' ? 'Guul' : 'Success',
         description: language === 'so' ? 'Phone-ka waa la diiwaan galiyay' : 'Device registered successfully',
       });
 
-      // Reset form
-      setDeviceName('');
-      setDeviceId('');
-      setSim1Number('');
-      setSim1Provider('');
-      setSim2Number('');
-      setSim2Provider('');
-
+      resetForm();
       onDeviceAdded();
       onOpenChange(false);
     } catch (error: any) {
@@ -115,15 +140,13 @@ export const AddDeviceDialog = ({ open, onOpenChange, onDeviceAdded }: AddDevice
             {language === 'so' ? 'Ku Dar Phone Cusub' : 'Add New Device'}
           </DialogTitle>
           <DialogDescription>
-            {language === 'so' 
+            {language === 'so'
               ? 'Diiwaan geli phone-ka cusub iyo SIM-yadiisa'
-              : 'Register a new phone and its SIM configuration'
-            }
+              : 'Register a new phone and its SIM configuration'}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          {/* Device Info */}
           <div className="space-y-2">
             <Label>{language === 'so' ? 'Magaca Phone-ka' : 'Device Name'} *</Label>
             <Input
@@ -141,38 +164,32 @@ export const AddDeviceDialog = ({ open, onOpenChange, onDeviceAdded }: AddDevice
               onChange={(e) => setDeviceId(e.target.value)}
             />
             <p className="text-xs text-muted-foreground">
-              {language === 'so' 
+              {language === 'so'
                 ? 'Tani waa ID-ga app-ka Android-ka u sheeyo server-ka'
-                : 'This ID is sent by the Android app to the server'
-              }
+                : 'This ID is sent by the Android app to the server'}
             </p>
           </div>
 
-          {/* SIM 1 */}
           <div className="p-4 border rounded-lg bg-muted/50 space-y-3">
             <div className="flex items-center gap-2 font-medium">
               <CreditCard className="h-4 w-4 text-primary" />
               SIM 1 *
             </div>
-            
+
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">{language === 'so' ? 'Lambarka' : 'Number'}</Label>
-                <Input
-                  placeholder="252..."
-                  value={sim1Number}
-                  onChange={(e) => setSim1Number(e.target.value)}
-                />
+                <Input placeholder="252..." value={sim1Number} onChange={(e) => setSim1Number(e.target.value)} />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">{language === 'so' ? 'Shirkadda' : 'Provider'}</Label>
-                <Select value={sim1Provider} onValueChange={setSim1Provider}>
+                <Select value={sim1ProviderId} onValueChange={setSim1ProviderId}>
                   <SelectTrigger>
                     <SelectValue placeholder={language === 'so' ? 'Dooro...' : 'Select...'} />
                   </SelectTrigger>
                   <SelectContent>
                     {providers.map((p) => (
-                      <SelectItem key={p.id} value={p.provider_name}>
+                      <SelectItem key={p.id} value={p.id}>
                         {p.provider_name}
                       </SelectItem>
                     ))}
@@ -182,31 +199,26 @@ export const AddDeviceDialog = ({ open, onOpenChange, onDeviceAdded }: AddDevice
             </div>
           </div>
 
-          {/* SIM 2 */}
           <div className="p-4 border rounded-lg space-y-3">
             <div className="flex items-center gap-2 font-medium text-muted-foreground">
               <CreditCard className="h-4 w-4" />
               SIM 2 ({language === 'so' ? 'ikhtiyaari' : 'optional'})
             </div>
-            
+
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">{language === 'so' ? 'Lambarka' : 'Number'}</Label>
-                <Input
-                  placeholder="252..."
-                  value={sim2Number}
-                  onChange={(e) => setSim2Number(e.target.value)}
-                />
+                <Input placeholder="252..." value={sim2Number} onChange={(e) => setSim2Number(e.target.value)} />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">{language === 'so' ? 'Shirkadda' : 'Provider'}</Label>
-                <Select value={sim2Provider} onValueChange={setSim2Provider}>
+                <Select value={sim2ProviderId} onValueChange={setSim2ProviderId}>
                   <SelectTrigger>
                     <SelectValue placeholder={language === 'so' ? 'Dooro...' : 'Select...'} />
                   </SelectTrigger>
                   <SelectContent>
                     {providers.map((p) => (
-                      <SelectItem key={p.id} value={p.provider_name}>
+                      <SelectItem key={p.id} value={p.id}>
                         {p.provider_name}
                       </SelectItem>
                     ))}
@@ -222,10 +234,7 @@ export const AddDeviceDialog = ({ open, onOpenChange, onDeviceAdded }: AddDevice
             {language === 'so' ? 'Ka noqo' : 'Cancel'}
           </Button>
           <Button onClick={handleSubmit} disabled={loading}>
-            {loading 
-              ? (language === 'so' ? 'Keydineynaa...' : 'Saving...') 
-              : (language === 'so' ? 'Ku Dar' : 'Add Device')
-            }
+            {loading ? (language === 'so' ? 'Waa la keydinayaa...' : 'Saving...') : (language === 'so' ? 'Keydi' : 'Save')}
           </Button>
         </DialogFooter>
       </DialogContent>

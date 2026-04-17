@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface Banner {
@@ -6,33 +6,34 @@ interface Banner {
   banner_image: string;
   alt_text: string | null;
   display_order: number;
-  media_type?: string;
-  video_duration?: number | null;
-  rotation_interval?: number | null;
+  link_url: string | null;
+}
+
+interface BannerRow {
+  id: string;
+  image_url: string;
+  title: string | null;
+  sort_order: number;
+  link_url: string | null;
 }
 
 const RotatingBanner = () => {
-  // Initialize banners directly from cache for instant display
   const [banners, setBanners] = useState<Banner[]>(() => {
     try {
       const cached = localStorage.getItem('offline_banners');
-      if (cached) {
-        return JSON.parse(cached);
-      }
-    } catch (e) {}
-    return [];
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
   });
   const [currentBanner, setCurrentBanner] = useState(() => {
     try {
-      // Check if this is a fresh app launch or navigation within session
       const sessionActive = sessionStorage.getItem('session_active');
       if (!sessionActive) {
-        // Fresh app launch - start from beginning
         sessionStorage.setItem('session_active', 'true');
         sessionStorage.removeItem('banner_position');
         return 0;
       }
-      // Navigation within session - restore position
       const saved = sessionStorage.getItem('banner_position');
       return saved ? parseInt(saved, 10) : 0;
     } catch {
@@ -40,11 +41,7 @@ const RotatingBanner = () => {
     }
   });
   const [isLoading, setIsLoading] = useState(true);
-  const [isVisible, setIsVisible] = useState(true);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
 
-  // Save banner position to sessionStorage
   useEffect(() => {
     try {
       sessionStorage.setItem('banner_position', currentBanner.toString());
@@ -53,127 +50,34 @@ const RotatingBanner = () => {
     }
   }, [currentBanner]);
 
-  // Reset position if out of bounds after banners load
   useEffect(() => {
     if (banners.length > 0 && currentBanner >= banners.length) {
       setCurrentBanner(0);
     }
   }, [banners.length, currentBanner]);
 
-  // Track visibility with IntersectionObserver - pause video when not visible
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsVisible(entry.isIntersecting);
-      },
-      { threshold: 0.1 }
-    );
-
-    observer.observe(container);
-
-    return () => {
-      observer.disconnect();
-    };
-  }, []);
-
-  // Pause/play video based on visibility and document hidden state
-  useEffect(() => {
-    if (!videoRef.current) return;
-    
-    const currentMedia = banners[currentBanner];
-    if (currentMedia?.media_type !== 'video') return;
-
-    if (isVisible && !document.hidden) {
-      videoRef.current.play().catch(() => {});
-    } else {
-      videoRef.current.pause();
-    }
-  }, [isVisible, currentBanner, banners]);
-
-  // Handle document visibility change
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!videoRef.current) return;
-      const currentMedia = banners[currentBanner];
-      if (currentMedia?.media_type !== 'video') return;
-
-      if (document.hidden || !isVisible) {
-        videoRef.current.pause();
-      } else {
-        videoRef.current.play().catch(() => {});
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [isVisible, currentBanner, banners]);
-
-  // Save video position periodically for persistence across navigation
-  useEffect(() => {
-    const saveVideoPosition = () => {
-      if (videoRef.current && banners[currentBanner]?.media_type === 'video') {
-        try {
-          sessionStorage.setItem('video_position', videoRef.current.currentTime.toString());
-          sessionStorage.setItem('video_banner_index', currentBanner.toString());
-        } catch {}
-      }
-    };
-
-    const interval = setInterval(saveVideoPosition, 500);
-    window.addEventListener('beforeunload', saveVideoPosition);
-    
-    return () => {
-      saveVideoPosition();
-      clearInterval(interval);
-      window.removeEventListener('beforeunload', saveVideoPosition);
-    };
-  }, [currentBanner, banners]);
-
-  // Restore video position when video loads
-  const handleVideoLoaded = () => {
-    try {
-      const savedPosition = sessionStorage.getItem('video_position');
-      const savedBannerIndex = sessionStorage.getItem('video_banner_index');
-      
-      if (savedPosition && savedBannerIndex === currentBanner.toString()) {
-        const position = parseFloat(savedPosition);
-        if (videoRef.current && position > 0 && position < (videoRef.current.duration - 0.5)) {
-          videoRef.current.currentTime = position;
-        }
-        sessionStorage.removeItem('video_position');
-        sessionStorage.removeItem('video_banner_index');
-      }
-    } catch {}
-  };
-
-  // Fetch fresh data in background
   useEffect(() => {
     const loadBanners = async () => {
       try {
         const { data, error } = await supabase
           .from('banners_config')
-          .select('*')
+          .select('id, image_url, title, sort_order, link_url')
           .eq('is_active', true)
-          .order('display_order', { ascending: true });
+          .order('sort_order', { ascending: true });
 
         if (error) throw error;
 
-        const freshBanners = (data ?? []) as Banner[];
+        const freshBanners = ((data ?? []) as BannerRow[]).map((row) => ({
+          id: row.id,
+          banner_image: row.image_url,
+          alt_text: row.title,
+          display_order: row.sort_order,
+          link_url: row.link_url,
+        }));
+
         setBanners(freshBanners);
         localStorage.setItem('offline_banners', JSON.stringify(freshBanners));
-
-        if (freshBanners.length === 0) {
-          setCurrentBanner(0);
-          try {
-            sessionStorage.removeItem('banner_position');
-          } catch {}
-        }
-      } catch (e) {
+      } catch {
         // Use cached data if available
       } finally {
         setIsLoading(false);
@@ -183,45 +87,26 @@ const RotatingBanner = () => {
     loadBanners();
   }, []);
 
-  // Auto-rotate for images only - videos use onEnded event
   useEffect(() => {
     if (banners.length === 0) return;
-    
-    const currentMedia = banners[currentBanner];
-    if (!currentMedia) return;
-    const isVideo = currentMedia?.media_type === 'video';
-    
-    // For videos, don't use interval - let onEnded handle rotation
-    if (isVideo) return;
-    
-    // For images: use rotation_interval if set, otherwise default 4s
-    const rotationTime = currentMedia.rotation_interval 
-      ? currentMedia.rotation_interval * 1000 
-      : 4000;
-    
-    const interval = setInterval(() => {
+
+    const interval = window.setInterval(() => {
       setCurrentBanner((prev) => (prev + 1) % banners.length);
-    }, rotationTime);
+    }, 4000);
 
-    return () => clearInterval(interval);
-  }, [banners.length, currentBanner, banners]);
+    return () => window.clearInterval(interval);
+  }, [banners.length]);
 
-  // Handle video end - move to next banner
-  const handleVideoEnded = () => {
-    setCurrentBanner((prev) => (prev + 1) % banners.length);
-  };
-
-  // Show skeleton while loading
   if (banners.length === 0) {
     if (isLoading) {
       return (
         <div className="w-full space-y-2">
-          <div 
-            className="w-full rounded-xl overflow-hidden bg-muted animate-pulse" 
+          <div
+            className="w-full rounded-xl overflow-hidden bg-muted animate-pulse"
             style={{ aspectRatio: '2.5/1', maxHeight: '320px' }}
           />
           <div className="flex justify-center space-x-1.5">
-            {[1, 2, 3].map(i => (
+            {[1, 2, 3].map((i) => (
               <div key={i} className="w-6 h-1.5 rounded-full bg-muted-foreground/20" />
             ))}
           </div>
@@ -233,55 +118,46 @@ const RotatingBanner = () => {
 
   const currentMedia = banners[currentBanner];
   if (!currentMedia) return null;
-  const isVideo = currentMedia.media_type === 'video';
+
+  const handleClick = () => {
+    if (currentMedia.link_url) {
+      window.open(currentMedia.link_url, '_blank', 'noopener,noreferrer');
+    }
+  };
 
   return (
-    <div ref={containerRef} className="w-full space-y-2">
-      <div className="w-full rounded-xl overflow-hidden shadow-elegant relative" style={{ aspectRatio: '2.5/1', maxHeight: '320px' }}>
-        {isVideo ? (
-          <video
-            ref={videoRef}
-            key={currentMedia.banner_image}
-            src={currentMedia.banner_image}
-            className="w-full h-full object-cover animate-fade-in"
-            autoPlay
-            playsInline
-            preload="auto"
-            onEnded={handleVideoEnded}
-            onLoadedMetadata={handleVideoLoaded}
-            aria-label={currentMedia.alt_text || 'Promotional video'}
-          />
-        ) : (
-          <img
-            key={currentMedia.banner_image}
-            src={currentMedia.banner_image}
-            alt={currentMedia.alt_text || 'Promotional banner'}
-            className="w-full h-full object-cover animate-fade-in"
-            width={1200}
-            height={400}
-            sizes="(max-width: 768px) 100vw, 1200px"
-            loading="eager"
-            fetchPriority="high"
-            decoding="async"
-          />
-        )}
-        {/* Brand overlay — ensures AWDHEEGLE DATA branding shows on every banner */}
+    <div className="w-full space-y-2">
+      <button
+        type="button"
+        onClick={handleClick}
+        className="w-full rounded-xl overflow-hidden shadow-elegant relative text-left"
+        style={{ aspectRatio: '2.5/1', maxHeight: '320px' }}
+      >
+        <img
+          key={currentMedia.banner_image}
+          src={currentMedia.banner_image}
+          alt={currentMedia.alt_text || 'Promotional banner'}
+          className="w-full h-full object-cover animate-fade-in"
+          width={1200}
+          height={400}
+          sizes="(max-width: 768px) 100vw, 1200px"
+          loading="eager"
+          fetchPriority="high"
+          decoding="async"
+        />
         <div className="absolute inset-0 pointer-events-none flex items-end justify-start p-3 bg-gradient-to-t from-black/55 via-black/10 to-transparent">
           <span className="px-2.5 py-1 rounded-md bg-primary text-primary-foreground text-[11px] font-extrabold tracking-wider shadow-md">
             AWDHEEGLE DATA
           </span>
         </div>
-      </div>
+      </button>
 
-      {/* Navigation bars */}
       <div className="flex justify-center space-x-1.5">
         {banners.map((_, index) => (
           <div
             key={index}
             className={`h-1.5 rounded-full transition-all duration-500 ease-in-out ${
-              index === currentBanner 
-                ? 'w-8 bg-primary' 
-                : 'w-4 bg-muted-foreground/30'
+              index === currentBanner ? 'w-8 bg-primary' : 'w-4 bg-muted-foreground/30'
             }`}
             aria-label={`Banner ${index + 1}`}
           />

@@ -7,16 +7,33 @@ import { useNavigate } from 'react-router-dom';
 import { formatPrice } from '@/lib/utils';
 import { useConnectivity } from '@/contexts/ConnectivityContext';
 
-interface PopularPackage {
-  package_id: string;
+type PackageSource = 'featured' | 'most_purchased';
+
+interface RpcPackage {
+  id: string;
   package_name: string;
   data_amount: string;
-  selling_price: number;
-  provider_id: string;
+  price: number;
   provider_name: string;
-  provider_logo: string;
-  connection_type_label: string;
-  display_order?: number;
+  logo_url: string | null;
+  description?: string | null;
+  purchase_count?: number;
+}
+
+interface ProviderLookup {
+  id: string;
+  display_name: string;
+  logo_url: string | null;
+}
+
+interface PopularPackage {
+  id: string;
+  package_name: string;
+  data_amount: string;
+  price: number;
+  provider_id: string | null;
+  provider_name: string;
+  provider_logo: string | null;
   purchase_count?: number;
 }
 
@@ -25,36 +42,41 @@ const PopularPackages = () => {
   const { isReallyOnline } = useConnectivity();
   const queryClient = useQueryClient();
 
-  // Realtime: featured_packages changes
   useEffect(() => {
     const channel = supabase
-      .channel('featured-packages-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'featured_packages' }, () => {
+      .channel('popular-packages-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'data_packages_config' }, () => {
         queryClient.invalidateQueries({ queryKey: ['popularPackages'] });
-        queryClient.invalidateQueries({ queryKey: ['featuredPackages'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'app_settings' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['popularPackages'] });
+        queryClient.invalidateQueries({ queryKey: ['showFeaturedPackages'] });
+        queryClient.invalidateQueries({ queryKey: ['popularPackagesSource'] });
       })
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [queryClient]);
-  
-  // Check if featured packages should be shown
+
   const { data: showFeatured = true } = useQuery({
     queryKey: ['showFeaturedPackages'],
     queryFn: async () => {
-      // Try cache first only when offline is confirmed
       if (isReallyOnline === false) {
         const cached = localStorage.getItem('app_settings_show_featured');
         return cached ? JSON.parse(cached) : true;
       }
-      
+
       const { data, error } = await supabase
         .from('app_settings')
         .select('setting_value')
         .eq('setting_key', 'show_featured_packages')
         .maybeSingle();
+
       if (error) return true;
-      
-      const value = data?.setting_value ?? true;
+
+      const value = typeof data?.setting_value === 'boolean' ? data.setting_value : true;
       localStorage.setItem('app_settings_show_featured', JSON.stringify(value));
       return value;
     },
@@ -62,24 +84,24 @@ const PopularPackages = () => {
     retry: false,
   });
 
-  // Check source: 'featured' or 'most_purchased'
   const { data: packageSource = 'featured' } = useQuery({
     queryKey: ['popularPackagesSource'],
-    queryFn: async () => {
-      // Try cache first only when offline is confirmed
+    queryFn: async (): Promise<PackageSource> => {
       if (isReallyOnline === false) {
         const cached = localStorage.getItem('app_settings_package_source');
         return cached ? JSON.parse(cached) : 'featured';
       }
-      
+
       const { data, error } = await supabase
         .from('app_settings')
-        .select('text_value')
+        .select('setting_value')
         .eq('setting_key', 'popular_packages_source')
         .maybeSingle();
+
       if (error) return 'featured';
-      
-      const value = (data?.text_value as 'featured' | 'most_purchased') ?? 'featured';
+
+      const rawValue = data?.setting_value;
+      const value: PackageSource = rawValue === 'most_purchased' ? 'most_purchased' : 'featured';
       localStorage.setItem('app_settings_package_source', JSON.stringify(value));
       return value;
     },
@@ -89,19 +111,43 @@ const PopularPackages = () => {
 
   const { data: popularPackages = [], isLoading: packagesLoading } = useQuery({
     queryKey: ['popularPackages', packageSource],
-    queryFn: async () => {
-      // Try cache first only when offline is confirmed
+    queryFn: async (): Promise<PopularPackage[]> => {
       if (isReallyOnline === false) {
         const cached = localStorage.getItem('offline_featured_packages');
         return cached ? JSON.parse(cached) : [];
       }
-      
-      const rpcFunction = packageSource === 'most_purchased' 
-        ? 'get_most_purchased_packages' 
+
+      const rpcFunction = packageSource === 'most_purchased'
+        ? 'get_most_purchased_packages'
         : 'get_featured_packages';
-      const { data, error } = await supabase.rpc(rpcFunction);
+
+      const [{ data, error }, { data: providers }] = await Promise.all([
+        supabase.rpc(rpcFunction),
+        supabase.from('providers_config').select('id, display_name, logo_url'),
+      ]);
+
       if (error) throw error;
-      return (data || []) as PopularPackage[];
+
+      const providerMap = new Map(
+        ((providers ?? []) as ProviderLookup[]).map((provider) => [provider.display_name.toLowerCase(), provider])
+      );
+
+      const normalized = ((data ?? []) as RpcPackage[]).map((pkg) => {
+        const provider = providerMap.get(pkg.provider_name.toLowerCase());
+        return {
+          id: pkg.id,
+          package_name: pkg.package_name,
+          data_amount: pkg.data_amount,
+          price: pkg.price,
+          provider_id: provider?.id ?? null,
+          provider_name: pkg.provider_name,
+          provider_logo: pkg.logo_url ?? provider?.logo_url ?? null,
+          purchase_count: pkg.purchase_count,
+        };
+      });
+
+      localStorage.setItem('offline_featured_packages', JSON.stringify(normalized));
+      return normalized;
     },
     staleTime: 5 * 60 * 1000,
     enabled: showFeatured,
@@ -110,24 +156,28 @@ const PopularPackages = () => {
       try {
         const cached = localStorage.getItem('offline_featured_packages');
         return cached ? JSON.parse(cached) : [];
-      } catch (e) {
+      } catch {
         return [];
       }
     },
   });
 
   const handlePackageClick = (pkg: PopularPackage) => {
-    navigate(`/packages/${pkg.provider_id}`, { 
-      state: { 
-        providerName: pkg.provider_name,
-        selectedPackageId: pkg.package_id 
-      } 
-    });
+    if (pkg.provider_id) {
+      navigate(`/packages/${pkg.provider_id}`, {
+        state: {
+          providerName: pkg.provider_name,
+          selectedPackageId: pkg.id,
+        },
+      });
+      return;
+    }
+
+    navigate('/providers');
   };
 
   if (!showFeatured) return null;
 
-  // Show skeleton while loading for new users
   if (packagesLoading && popularPackages.length === 0) {
     return (
       <div className="space-y-3">
@@ -136,7 +186,7 @@ const PopularPackages = () => {
           <div className="h-6 w-48 bg-muted rounded animate-pulse" />
         </div>
         <div className="space-y-2">
-          {[1, 2, 3].map(i => (
+          {[1, 2, 3].map((i) => (
             <Card key={i} className="p-3">
               <div className="flex items-center gap-3 animate-pulse">
                 <div className="w-10 h-10 rounded-full bg-muted" />
@@ -163,11 +213,11 @@ const PopularPackages = () => {
           {packageSource === 'most_purchased' ? 'Xirmooyinka ugu Caansan' : 'Xirmooyinka La Doortay'}
         </h2>
       </div>
-      
+
       <div className="space-y-2">
         {popularPackages.map((pkg, idx) => (
-          <Card 
-            key={`${pkg.package_id}-${pkg.provider_id}-${idx}`}
+          <Card
+            key={`${pkg.id}-${pkg.provider_id ?? 'unknown'}-${idx}`}
             className="p-3 hover:shadow-md transition-shadow cursor-pointer"
             onClick={() => handlePackageClick(pkg)}
           >
@@ -185,9 +235,7 @@ const PopularPackages = () => {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 min-w-0">
                     <Wifi className="w-3.5 h-3.5 text-primary flex-shrink-0" />
-                    <p className="font-semibold text-sm text-foreground truncate">
-                      {pkg.data_amount}
-                    </p>
+                    <p className="font-semibold text-sm text-foreground truncate">{pkg.data_amount}</p>
                   </div>
                   <p className="text-xs text-muted-foreground truncate">
                     {pkg.provider_name} - {pkg.package_name}
@@ -195,7 +243,7 @@ const PopularPackages = () => {
                 </div>
               </div>
               <div className="text-right flex-shrink-0 ml-2">
-                <p className="font-bold text-primary text-sm whitespace-nowrap">${formatPrice(pkg.selling_price)}</p>
+                <p className="font-bold text-primary text-sm whitespace-nowrap">${formatPrice(pkg.price)}</p>
               </div>
             </div>
           </Card>
