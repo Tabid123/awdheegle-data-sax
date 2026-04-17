@@ -210,31 +210,37 @@ export type Database = {
       }
       banners_config: {
         Row: {
+          alt_text: string | null
           created_at: string
           id: string
           image_url: string
           is_active: boolean
           link_url: string | null
+          media_type: string
           sort_order: number
           title: string | null
           updated_at: string
         }
         Insert: {
+          alt_text?: string | null
           created_at?: string
           id?: string
           image_url: string
           is_active?: boolean
           link_url?: string | null
+          media_type?: string
           sort_order?: number
           title?: string | null
           updated_at?: string
         }
         Update: {
+          alt_text?: string | null
           created_at?: string
           id?: string
           image_url?: string
           is_active?: boolean
           link_url?: string | null
+          media_type?: string
           sort_order?: number
           title?: string | null
           updated_at?: string
@@ -373,6 +379,9 @@ export type Database = {
       data_packages_config: {
         Row: {
           category: string | null
+          category_id: string | null
+          connection_type_label: string
+          cost_price: number
           created_at: string
           data_amount: string | null
           description: string | null
@@ -390,6 +399,9 @@ export type Database = {
         }
         Insert: {
           category?: string | null
+          category_id?: string | null
+          connection_type_label?: string
+          cost_price?: number
           created_at?: string
           data_amount?: string | null
           description?: string | null
@@ -407,6 +419,9 @@ export type Database = {
         }
         Update: {
           category?: string | null
+          category_id?: string | null
+          connection_type_label?: string
+          cost_price?: number
           created_at?: string
           data_amount?: string | null
           description?: string | null
@@ -423,6 +438,13 @@ export type Database = {
           validity_days?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "data_packages_config_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "package_categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "data_packages_config_provider_id_fkey"
             columns: ["provider_id"]
@@ -874,6 +896,47 @@ export type Database = {
           },
         ]
       }
+      package_categories: {
+        Row: {
+          category_image: string | null
+          category_name: string
+          created_at: string
+          id: string
+          is_active: boolean
+          provider_id: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          category_image?: string | null
+          category_name: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          provider_id?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          category_image?: string | null
+          category_name?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          provider_id?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "package_categories_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers_config"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       package_delivery_rules: {
         Row: {
           created_at: string
@@ -918,6 +981,7 @@ export type Database = {
       }
       payment_providers_config: {
         Row: {
+          commission_rate: number
           created_at: string
           display_name: string
           id: string
@@ -930,6 +994,7 @@ export type Database = {
           ussd_template: string | null
         }
         Insert: {
+          commission_rate?: number
           created_at?: string
           display_name: string
           id?: string
@@ -942,6 +1007,7 @@ export type Database = {
           ussd_template?: string | null
         }
         Update: {
+          commission_rate?: number
           created_at?: string
           display_name?: string
           id?: string
@@ -1056,10 +1122,12 @@ export type Database = {
         Row: {
           created_at: string
           display_name: string
+          evoucher_rate: number
           id: string
           is_active: boolean
           logo_url: string | null
           phone_prefixes: string[] | null
+          promotional_text: string | null
           provider_name: string
           sort_order: number
           updated_at: string
@@ -1068,10 +1136,12 @@ export type Database = {
         Insert: {
           created_at?: string
           display_name: string
+          evoucher_rate?: number
           id?: string
           is_active?: boolean
           logo_url?: string | null
           phone_prefixes?: string[] | null
+          promotional_text?: string | null
           provider_name: string
           sort_order?: number
           updated_at?: string
@@ -1080,10 +1150,12 @@ export type Database = {
         Update: {
           created_at?: string
           display_name?: string
+          evoucher_rate?: number
           id?: string
           is_active?: boolean
           logo_url?: string | null
           phone_prefixes?: string[] | null
+          promotional_text?: string | null
           provider_name?: string
           sort_order?: number
           updated_at?: string
@@ -1316,6 +1388,54 @@ export type Database = {
           ussd_command: string
         }[]
       }
+      get_active_categories: {
+        Args: { p_provider_id: string }
+        Returns: {
+          category_image: string
+          category_name: string
+          created_at: string
+          display_order: number
+          id: string
+          is_active: boolean
+          provider_id: string
+          sort_order: number
+          updated_at: string
+        }[]
+      }
+      get_active_payment_providers: {
+        Args: never
+        Returns: {
+          commission_rate: number
+          display_name: string
+          display_order: number
+          id: string
+          is_active: boolean
+          logo_url: string
+          payment_number: string
+          payment_phone: string
+          provider_logo: string
+          provider_name: string
+          sort_order: number
+          ussd_template: string
+        }[]
+      }
+      get_active_providers: {
+        Args: never
+        Returns: {
+          display_name: string
+          display_order: number
+          evoucher_rate: number
+          id: string
+          is_active: boolean
+          logo_url: string
+          phone_prefixes: string[]
+          promotional_text: string
+          provider_logo: string
+          provider_name: string
+          sort_order: number
+          ussd_code: string
+        }[]
+      }
       get_customer_order_history: {
         Args: { _phone: string }
         Returns: {
@@ -1353,6 +1473,27 @@ export type Database = {
           price: number
           provider_name: string
           purchase_count: number
+        }[]
+      }
+      get_public_packages: {
+        Args: { p_provider_id: string }
+        Returns: {
+          category_id: string
+          connection_type_label: string
+          cost_price: number
+          data_amount: string
+          description: string
+          id: string
+          is_active: boolean
+          is_featured: boolean
+          package_name: string
+          price: number
+          provider_id: string
+          selling_price: number
+          sort_order: number
+          ussd_code: string
+          ussd_template: string
+          validity_days: number
         }[]
       }
       has_permission: {
