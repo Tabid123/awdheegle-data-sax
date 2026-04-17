@@ -184,10 +184,19 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
 
   const savePackage = async () => {
     if (!newPkg.package_name || !newPkg.selling_price || !newPkg.provider_id) { toast.error(isSo ? 'Buuxi meelaha lagama maarmaanka ah' : 'Fill required fields'); return; }
-    const payload = {
-      package_name: newPkg.package_name, data_amount: newPkg.data_amount, selling_price: Number(newPkg.selling_price),
-      cost_price: Number(newPkg.cost_price || 0), validity_days: newPkg.validity_days, provider_id: newPkg.provider_id,
-      category_id: newPkg.category_id || null, ussd_code: newPkg.ussd_code || null, connection_type_label: newPkg.connection_type_label,
+    const sellingPriceNum = Number(newPkg.selling_price);
+    const payload: any = {
+      package_name: newPkg.package_name,
+      data_amount: newPkg.data_amount,
+      price: sellingPriceNum,
+      selling_price: sellingPriceNum,
+      cost_price: Number(newPkg.cost_price || 0),
+      validity_days: newPkg.validity_days ? parseInt(String(newPkg.validity_days), 10) : null,
+      provider_id: newPkg.provider_id,
+      category_id: newPkg.category_id || null,
+      ussd_code: newPkg.ussd_code || null,
+      ussd_template: newPkg.ussd_code || null,
+      connection_type_label: newPkg.connection_type_label,
     };
     if (editingId) {
       const { error } = await supabase.from('data_packages_config').update(payload).eq('id', editingId);
