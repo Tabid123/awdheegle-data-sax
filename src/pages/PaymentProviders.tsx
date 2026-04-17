@@ -217,6 +217,9 @@ const PaymentProviders = () => {
     const providerLower = providerName?.toLowerCase() || '';
     switch (providerLower) {
       case 'hormuud':
+      case 'evc':
+      case 'evc plus':
+      case 'evcplus':
         return '61';
       case 'somtel':
         return '62';
@@ -227,6 +230,11 @@ const PaymentProviders = () => {
       case 'amtel':
         return '71';
       default:
+        if (providerLower.includes('evc') || providerLower.includes('hormuud')) return '61';
+        if (providerLower.includes('somtel')) return '62';
+        if (providerLower.includes('somnet')) return '68';
+        if (providerLower.includes('somlink')) return '63';
+        if (providerLower.includes('amtel')) return '71';
         return '';
     }
   }, []);
