@@ -19,7 +19,7 @@ export const ProvidersCustomView = ({ isSo }: { isSo: boolean }) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [newProv, setNewProv] = useState({ provider_name: '', display_name: '', sort_order: '0', ussd_code: '', logo_url: '', phone_prefixes: '' });
+  const [newProv, setNewProv] = useState({ provider_name: '', display_name: '', sort_order: '0', logo_url: '' });
 
   const loadProviders = useCallback(async () => {
     const { data } = await supabase.from('providers_config').select('*').order('sort_order');
