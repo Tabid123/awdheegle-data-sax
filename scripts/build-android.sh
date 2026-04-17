@@ -53,7 +53,7 @@ fi
 
 # --- Copy APK to output ---
 mkdir -p apk-output
-cp android-app/app/build/outputs/apk/debug/app-debug.apk apk-output/najax-data.apk
+cp android-app/app/build/outputs/apk/debug/app-debug.apk apk-output/awdheegle-data.apk
 
 echo
-echo "[SUCCESS] APK is ready: apk-output/najax-data.apk"
+echo "[SUCCESS] APK is ready: apk-output/awdheegle-data.apk"

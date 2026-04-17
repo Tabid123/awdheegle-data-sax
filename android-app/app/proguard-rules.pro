@@ -1,4 +1,4 @@
-# Najax Data ProGuard Rules
+# Awdheegle Data ProGuard Rules
 
 # ============================================================
 # CRITICAL: Keep all app classes for USSD automation & Play Store

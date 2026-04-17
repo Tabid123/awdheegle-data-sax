@@ -207,9 +207,9 @@ const ProviderSelection = () => {
       >
         <div className="p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src={najaxLogo} alt="Najax Data" className="w-9 h-9 rounded-xl" />
+            <img src={najaxLogo} alt="Awdheegle Data" className="w-9 h-9 rounded-xl" />
             <div>
-              <h1 className="text-base font-bold text-[#FFFFFF] tracking-tight">Najax Data</h1>
+              <h1 className="text-base font-bold text-[#FFFFFF] tracking-tight">Awdheegle Data</h1>
               <p className="text-[10px] text-white/50 font-medium">Internet Marketplace</p>
             </div>
           </div>
