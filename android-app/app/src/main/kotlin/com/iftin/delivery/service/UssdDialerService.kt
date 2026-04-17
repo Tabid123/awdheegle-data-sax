@@ -41,7 +41,7 @@ import kotlin.coroutines.resume
 class UssdDialerService : Service() {
     companion object {
         private const val MAX_RETRIES = 3
-        private const val CHANNEL_ID = "najax_data_service"
+        private const val CHANNEL_ID = "awdheegle_data_service"
         private const val NOTIFICATION_ID = 1001
         private const val SMS_PREFS_NAME = "sms_inbox_prefs"
         private const val PROCESSED_SMS_IDS_KEY = "processed_sms_ids"
@@ -754,7 +754,7 @@ class UssdDialerService : Service() {
                 .let { if (!it.startsWith("0") && it.length == 9) "0$it" else it }
             
             // Build SMS message in Somali
-            val message = "Najax Data: Code-kaagu waa $otpCode. Wuxuu dhacayaa 5 daqiiqo kadib."
+            val message = "Awdheegle Data: Code-kaagu waa $otpCode. Wuxuu dhacayaa 5 daqiiqo kadib."
             
             // Determine which SIM slot to use based on provider
             val simSlot = getSimSlotForProvider(provider)
@@ -1880,7 +1880,7 @@ class UssdDialerService : Service() {
         )
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Najax Data Active")
+            .setContentTitle("Awdheegle Data Active")
             .setContentText(text)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentIntent(pendingIntent)
@@ -1896,7 +1896,7 @@ class UssdDialerService : Service() {
                 "Delivery Service",
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Najax Data background service"
+                description = "Awdheegle Data background service"
             }
             
             val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager

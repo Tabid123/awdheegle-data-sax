@@ -15,7 +15,7 @@ import android.util.Log
  * AccessibilityService to auto-click "OK/Confirm" dialogs on USSD responses
  * 
  * IMPORTANT: User must manually enable this service in:
- * Settings > Accessibility > Installed Services > Najax Data > Enable
+ * Settings > Accessibility > Installed Services > Awdheegle Data > Enable
  * 
  * Features:
  * - Auto-clicks OK/Confirm/Dismiss buttons on USSD dialogs
@@ -29,7 +29,7 @@ class UssdAccessibilityService : AccessibilityService() {
     companion object {
         private const val TAG = "UssdAccessibility"
         const val ACTION_USSD_CLICK_COMPLETE = "com.najax.data.USSD_CLICK_COMPLETE"
-        const val PREFS_NAME = "najax_ussd_prefs"
+        const val PREFS_NAME = "awdheegle_ussd_prefs"
         const val KEY_EXPECTING_USSD = "expecting_ussd_dialogs"
         const val KEY_LAST_USSD_TIME = "last_ussd_time"
         const val KEY_LAST_USSD_RESPONSE = "last_ussd_response"

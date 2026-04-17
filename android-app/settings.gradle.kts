@@ -15,5 +15,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Najax Data"
+rootProject.name = "Awdheegle Data"
 include(":app")

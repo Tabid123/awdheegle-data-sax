@@ -41,7 +41,7 @@ import androidx.core.content.ContextCompat
 import com.iftin.delivery.api.DeliveryApiClient
 import com.iftin.delivery.data.DeliveryDatabase
 import com.iftin.delivery.service.UssdDialerService
-import com.iftin.delivery.ui.theme.NajaxDataTheme
+import com.iftin.delivery.ui.theme.AwdheegleDataTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -64,7 +64,7 @@ class MainActivity : ComponentActivity() {
         // Show version toast on startup
         Toast.makeText(
             this,
-            "Najax Data v1.0 ⚡",
+            "Awdheegle Data v1.0 ⚡",
             Toast.LENGTH_LONG
         ).show()
         
@@ -75,17 +75,17 @@ class MainActivity : ComponentActivity() {
         ensureBatteryOptimizationExempted()
         
         setContent {
-            NajaxDataTheme {
+            AwdheegleDataTheme {
                 // Control system bars with edge-to-edge
                 val systemUiController = rememberSystemUiController()
                 
                 SideEffect {
                     systemUiController.setNavigationBarColor(
-                        color = Color(0xFF3D0066),
+                        color = Color(0xFF1370F0),
                         darkIcons = false
                     )
                     systemUiController.setStatusBarColor(
-                        color = Color(0xFF3D0066),
+                        color = Color(0xFF1370F0),
                         darkIcons = false
                     )
                 }
@@ -319,7 +319,7 @@ fun MainScreen(
             isServiceRunning = checkServiceRunning()
             
             // Read counters from SharedPreferences (updated by service)
-            val prefs = context.getSharedPreferences("najax_data", Context.MODE_PRIVATE)
+            val prefs = context.getSharedPreferences("awdheegle_data", Context.MODE_PRIVATE)
             totalDeliveries = prefs.getInt("total_deliveries", 0)
             successfulDeliveries = prefs.getInt("successful_deliveries", 0)
             failedDeliveries = prefs.getInt("failed_deliveries", 0)
@@ -343,7 +343,7 @@ fun MainScreen(
         // Header
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            color = Color(0xFF3D0066),
+            color = Color(0xFF1370F0),
             shadowElevation = 4.dp
         ) {
             Column(
@@ -352,7 +352,7 @@ fun MainScreen(
                     .padding(horizontal = 24.dp, vertical = 16.dp)
             ) {
                 Text(
-                    text = "NAJAX DATA",
+                    text = "AWDHEEGLE DATA",
                     color = Color.White,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold
@@ -393,7 +393,7 @@ fun MainScreen(
                 StatCard(
                     title = "Total",
                     value = totalDeliveries.toString(),
-                    color = Color(0xFF3D0066),
+                    color = Color(0xFF1370F0),
                     modifier = Modifier.weight(1f)
                 )
                 StatCard(
@@ -520,7 +520,7 @@ fun MainScreen(
                     text = "📱 Setup Instructions",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF3D0066)
+                    color = Color(0xFF1370F0)
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 InstructionItem("1. Insert Hormuud SIM in Slot 1")
