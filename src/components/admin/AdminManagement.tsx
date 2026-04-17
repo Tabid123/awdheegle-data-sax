@@ -287,7 +287,7 @@ export function AdminManagement() {
               />
               {inviteEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteEmail) && (
                 <p className="text-xs text-destructive">
-                  {language === 'so' ? 'Fadlan email sax ah geli (tusaale: admin@najax.com)' : 'Please enter a valid email (e.g., admin@najax.com)'}
+                  {language === 'so' ? 'Fadlan email sax ah geli (tusaale: admin@awdheegle.com)' : 'Please enter a valid email (e.g., admin@awdheegle.com)'}
                 </p>
               )}
             </div>
