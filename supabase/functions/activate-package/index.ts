@@ -280,14 +280,19 @@ serve(async (req) => {
         }
         console.log('📱 Calculated sim_slot:', simSlot, 'for provider:', providerSlug);
 
-        // Auto-split mixed amounts into separate delivery queue entries
+        // Auto-split mixed amounts into separate delivery queue entries.
+        // NOTE: ussd_command is the canonical column; ussd_code is mirrored by trigger.
         const queueItems = costParts.map((part, idx) => ({
           order_id: orderId,
+          package_id: order.package_id,
           provider_name: providerSlug,
+          ussd_command: buildUssd(part),
           ussd_code: buildUssd(part),
           receiver_phone: receiverPhone,
           status: idx === 0 ? 'pending' : 'scheduled',
           sim_slot: simSlot,
+          execution_order: idx + 1,
+          delay_seconds: idx * 15,
           ...(idx > 0 ? { scheduled_at: new Date(Date.now() + idx * 15000).toISOString() } : {}),
         }));
 
@@ -406,10 +411,11 @@ serve(async (req) => {
         throw error;
       }
 
-      // claim_next_delivery returns a single JSON object (not array)
-      if (claimed && typeof claimed === 'object' && claimed.id) {
-        const order = claimed;
-        
+      // claim_next_delivery returns rows (TABLE) — supabase-js gives an array
+      const claimedRow = Array.isArray(claimed) ? claimed[0] : claimed;
+      if (claimedRow && claimedRow.id) {
+        const order = claimedRow;
+
         console.log('✅ Claimed delivery:', { id: order.id, provider_name: order.provider_name });
 
       return new Response(
@@ -417,10 +423,10 @@ serve(async (req) => {
             orders: [{
               id: order.id,
               orderId: order.order_id,
-              ussdCode: order.ussd_code,
+              ussdCode: order.ussd_code || order.ussd_command,
               receiverPhone: order.receiver_phone,
               packageCode: order.package_code,
-              attempts: order.attempts,
+              attempts: order.attempts ?? 1,
               simSlot: order.sim_slot ?? 0,
               provider: order.provider_name,
               pinCode: order.pin_code || '',

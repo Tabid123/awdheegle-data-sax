@@ -285,6 +285,7 @@ export type Database = {
           blocked_at: string
           blocked_by: string | null
           id: string
+          is_active: boolean
           phone_number: string
           reason: string | null
         }
@@ -292,6 +293,7 @@ export type Database = {
           blocked_at?: string
           blocked_by?: string | null
           id?: string
+          is_active?: boolean
           phone_number: string
           reason?: string | null
         }
@@ -299,6 +301,7 @@ export type Database = {
           blocked_at?: string
           blocked_by?: string | null
           id?: string
+          is_active?: boolean
           phone_number?: string
           reason?: string | null
         }
@@ -546,6 +549,7 @@ export type Database = {
       }
       delivery_queue: {
         Row: {
+          attempts: number
           claimed_at: string | null
           claimed_by: string | null
           completed_at: string | null
@@ -556,11 +560,19 @@ export type Database = {
           id: string
           last_attempt_at: string | null
           order_id: string
+          package_code: string | null
           package_id: string | null
+          pin_code: string | null
+          provider_name: string | null
+          receiver_phone: string | null
+          scheduled_at: string | null
+          sim_slot: number | null
           status: string
+          ussd_code: string | null
           ussd_command: string | null
         }
         Insert: {
+          attempts?: number
           claimed_at?: string | null
           claimed_by?: string | null
           completed_at?: string | null
@@ -571,11 +583,19 @@ export type Database = {
           id?: string
           last_attempt_at?: string | null
           order_id: string
+          package_code?: string | null
           package_id?: string | null
+          pin_code?: string | null
+          provider_name?: string | null
+          receiver_phone?: string | null
+          scheduled_at?: string | null
+          sim_slot?: number | null
           status?: string
+          ussd_code?: string | null
           ussd_command?: string | null
         }
         Update: {
+          attempts?: number
           claimed_at?: string | null
           claimed_by?: string | null
           completed_at?: string | null
@@ -586,8 +606,15 @@ export type Database = {
           id?: string
           last_attempt_at?: string | null
           order_id?: string
+          package_code?: string | null
           package_id?: string | null
+          pin_code?: string | null
+          provider_name?: string | null
+          receiver_phone?: string | null
+          scheduled_at?: string | null
+          sim_slot?: number | null
           status?: string
+          ussd_code?: string | null
           ussd_command?: string | null
         }
         Relationships: [
@@ -1405,30 +1432,39 @@ export type Database = {
       }
       sim_balances: {
         Row: {
+          android_device_id: string | null
           balance: number
+          balance_type: string
           created_at: string
           device_id: string | null
           id: string
+          last_updated: string | null
           last_updated_at: string
           provider: string | null
           sim_slot: number
           updated_at: string
         }
         Insert: {
+          android_device_id?: string | null
           balance?: number
+          balance_type?: string
           created_at?: string
           device_id?: string | null
           id?: string
+          last_updated?: string | null
           last_updated_at?: string
           provider?: string | null
           sim_slot?: number
           updated_at?: string
         }
         Update: {
+          android_device_id?: string | null
           balance?: number
+          balance_type?: string
           created_at?: string
           device_id?: string | null
           id?: string
+          last_updated?: string | null
           last_updated_at?: string
           provider?: string | null
           sim_slot?: number
@@ -1661,11 +1697,19 @@ export type Database = {
     }
     Functions: {
       claim_next_delivery: {
-        Args: { _device_id: string; _providers?: string[] }
+        Args: { p_device_id: string; p_providers?: string[] }
         Returns: {
+          attempts: number
+          id: string
           order_id: string
+          package_code: string
           package_id: string
+          pin_code: string
+          provider_name: string
           queue_id: string
+          receiver_phone: string
+          sim_slot: number
+          ussd_code: string
           ussd_command: string
         }[]
       }
@@ -1790,6 +1834,7 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_phone_blocked: { Args: { p_phone: string }; Returns: boolean }
     }
     Enums: {
       app_role: "super_admin" | "admin" | "moderator" | "user"
