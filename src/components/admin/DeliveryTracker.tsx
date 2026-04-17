@@ -90,7 +90,7 @@ export function DeliveryTracker() {
 
       let query = supabase
         .from('delivery_queue')
-        .select(`*, order:order_id (package_name, data_amount, customer_phone, sender_phone, delivery_notes, delivery_status, provider_id, provider:provider_id (provider_name, provider_logo))`)
+        .select(`*, order:order_id (receiver_phone, sender_phone, delivery_notes, delivery_status, provider_id, amount, package:package_id (package_name, data_amount), provider:provider_id (provider_name, provider_logo))`)
         .order('created_at', { ascending: false });
 
       if (dateFrom) query = query.gte('created_at', dateFrom.toISOString());
@@ -117,7 +117,7 @@ export function DeliveryTracker() {
         const newId = payload.new?.id;
         if (!newId) return;
         const { data } = await supabase.from('delivery_queue')
-          .select(`*, order:order_id (package_name, data_amount, customer_phone, sender_phone, delivery_notes, delivery_status, provider_id, provider:provider_id (provider_name, provider_logo))`)
+          .select(`*, order:order_id (receiver_phone, sender_phone, delivery_notes, delivery_status, provider_id, amount, package:package_id (package_name, data_amount), provider:provider_id (provider_name, provider_logo))`)
           .eq('id', newId).single();
         if (data) setDeliveries(prev => [data as DeliveryItem, ...prev]);
       })
@@ -125,7 +125,7 @@ export function DeliveryTracker() {
         const updatedId = payload.new?.id;
         if (!updatedId) return;
         const { data } = await supabase.from('delivery_queue')
-          .select(`*, order:order_id (package_name, data_amount, customer_phone, sender_phone, delivery_notes, delivery_status, provider_id, provider:provider_id (provider_name, provider_logo))`)
+          .select(`*, order:order_id (receiver_phone, sender_phone, delivery_notes, delivery_status, provider_id, amount, package:package_id (package_name, data_amount), provider:provider_id (provider_name, provider_logo))`)
           .eq('id', updatedId).single();
         if (data) setDeliveries(prev => prev.map(d => d.id === updatedId ? (data as DeliveryItem) : d));
       })
