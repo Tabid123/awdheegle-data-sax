@@ -115,7 +115,7 @@ class UssdDialerService : Service() {
         val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
         wakeLock = powerManager.newWakeLock(
             PowerManager.PARTIAL_WAKE_LOCK,
-            "NajaxData::UssdDialerLock"
+            "AwdheegleData::UssdDialerLock"
         )
         wakeLock.acquire(24 * 60 * 60 * 1000L)  // 24 hours
         lastWakeLockRenewal = System.currentTimeMillis()
@@ -123,7 +123,7 @@ class UssdDialerService : Service() {
         // Acquire WiFi lock to keep WiFi active when screen is off (prevents Doze WiFi sleep)
         val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
         @Suppress("DEPRECATION")
-        wifiLock = wifiManager.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "NajaxData::WifiLock")
+        wifiLock = wifiManager.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "AwdheegleData::WifiLock")
         wifiLock.acquire()
         android.util.Log.d("UssdDialer", "📶 WiFi lock acquired — WiFi stays active during screen lock")
         
