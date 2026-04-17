@@ -178,8 +178,8 @@ serve(async (req) => {
       }
 
       // 4. Build final USSD code - format amount correctly
-      // Decimal amounts use * as separator in USSD: $4.25 -> "4*25", $0.10 -> "0*10"
-      // Integer amounts stay as-is: $4 -> "4", $20 -> "20"
+      // Decimals use DOT (.) as separator (sida gacanta loo gelinayo): 0.1 -> "0.1", 0.09 -> "0.09", 4.25 -> "4.25"
+      // Integers stay as-is: 4 -> "4", 20 -> "20"
       const formatAmountForUssd = (amount: number) => {
         const numericAmount = Number(amount);
         if (!Number.isFinite(numericAmount)) return '0';
@@ -187,9 +187,8 @@ serve(async (req) => {
         if (Math.abs(numericAmount - Math.round(numericAmount)) < 0.000001) {
           return String(Math.round(numericAmount));
         }
-        // Decimal amount: 4.25 -> "4*25", 0.10 -> "0*10"
-        const parts = numericAmount.toFixed(2).split('.');
-        return `${parts[0]}*${parts[1]}`;
+        // Decimal amount: keep as decimal with dot, strip trailing zeros (0.10 -> "0.1")
+        return String(numericAmount);
       };
 
       // No longer split amounts — send full amount in single USSD
