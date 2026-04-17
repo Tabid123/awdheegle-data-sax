@@ -23,7 +23,7 @@
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
 
     <application
-        android:name="com.iftin.delivery.NajaxDataApp"
+        android:name="com.iftin.delivery.AwdheegleDataApp"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"

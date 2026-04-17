@@ -8,26 +8,26 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Color(0xFF3D0066),
-    secondary = Color(0xFFC5F82A),
-    tertiary = Color(0xFF5C1A8C)
+    primary = Color(0xFF1370F0),
+    secondary = Color(0xFF0B2447),
+    tertiary = Color(0xFF4A95F5)
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Color(0xFF3D0066),
-    secondary = Color(0xFFC5F82A),
-    tertiary = Color(0xFF5C1A8C),
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
+    primary = Color(0xFF1370F0),
+    secondary = Color(0xFF0B2447),
+    tertiary = Color(0xFF4A95F5),
+    background = Color(0xFFFFFFFF),
+    surface = Color(0xFFFFFFFF),
     onPrimary = Color.White,
-    onSecondary = Color.Black,
+    onSecondary = Color.White,
     onTertiary = Color.White,
     onBackground = Color(0xFF1C1B1F),
     onSurface = Color(0xFF1C1B1F),
 )
 
 @Composable
-fun NajaxDataTheme(
+fun AwdheegleDataTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {

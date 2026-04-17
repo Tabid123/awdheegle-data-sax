@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Najax Transfer</string>
+    <string name="app_name">Awdheegle Data</string>
     
     <!-- Accessibility Service -->
-    <string name="accessibility_service_label">Najax Transfer USSD Automation</string>
-    <string name="accessibility_service_description">Allows Najax Transfer to automatically read and process USSD responses for mobile data delivery. This service only activates during payment transactions.</string>
+    <string name="accessibility_service_label">Awdheegle Data USSD Automation</string>
+    <string name="accessibility_service_description">Allows Awdheegle Data to automatically read and process USSD responses for mobile data delivery. This service only activates during payment transactions.</string>
 </resources>
