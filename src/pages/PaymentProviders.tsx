@@ -248,24 +248,9 @@ const PaymentProviders = () => {
     }
   }, []);
 
-  // Get offline registration phones (registered by user in offline mode)
-  const offlineSenderPhone = localStorage.getItem('offlineSenderPhone') || '';
-  const offlineReceiverPhone = localStorage.getItem('offlineReceiverPhone') || '';
-
-  // Set receiver prefix when provider is loaded
+  // Online mode: do NOT auto-fill from offline registration.
+  // User must enter sender/receiver numbers manually each time.
   React.useEffect(() => {
-    // If user has offline-registered receiver phone, use it
-    const stateReceiver = location.state?.receiverPhone;
-    if (stateReceiver) {
-      setReceiverNumber(stateReceiver);
-      setReceiverProviderPrefix(stateReceiver.substring(0, 2));
-      return;
-    }
-    if (offlineReceiverPhone && offlineReceiverPhone.length >= 7) {
-      setReceiverNumber(offlineReceiverPhone);
-      setReceiverProviderPrefix(offlineReceiverPhone.substring(0, 2));
-      return;
-    }
     if (providerName) {
       if (isADSL) {
         setReceiverProviderPrefix('1');
@@ -276,19 +261,9 @@ const PaymentProviders = () => {
         setReceiverNumber(prefix);
       }
     }
-  }, [providerName, isADSL, location.state]);
+  }, [providerName, isADSL, getProviderPrefix]);
 
-  // Pre-fill sender phone from offline registration
   const offlineSenderRef = React.useRef(false);
-  React.useEffect(() => {
-    if (location.state?.senderPhone) {
-      setPaymentNumber(location.state.senderPhone);
-      offlineSenderRef.current = true;
-    } else if (offlineSenderPhone && offlineSenderPhone.length === 9) {
-      setPaymentNumber(offlineSenderPhone);
-      offlineSenderRef.current = true;
-    }
-  }, [location.state]);
 
   const handlePaymentSelect = useCallback((paymentId: string) => {
     setSelectedProvider(paymentId);
