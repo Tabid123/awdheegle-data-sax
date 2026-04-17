@@ -734,8 +734,8 @@ export const BannersCustomView = ({ isSo }: { isSo: boolean }) => {
       {showAdd && (
         <div className="bg-white dark:bg-gray-800 rounded-xl border p-3 space-y-2 animate-in slide-in-from-top-2">
           <div className="text-xs font-bold text-gray-600 dark:text-gray-300">{editingId ? '✏️ Edit Banner' : '➕ New Banner'}</div>
-          <ImageUploader value={newBanner.banner_image} onChange={url => setNewBanner(p => ({...p, banner_image: url}))} bucket="banners" label={isSo ? 'Sawirka Banner' : 'Banner Image'} />
-          <input value={newBanner.alt_text} onChange={e => setNewBanner(p => ({...p, alt_text: e.target.value}))} placeholder="Alt Text (optional)" className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none" />
+          <ImageUploader value={newBanner.image_url} onChange={url => setNewBanner(p => ({...p, image_url: url}))} bucket="banners" label={isSo ? 'Sawirka Banner' : 'Banner Image'} />
+          <input value={newBanner.title} onChange={e => setNewBanner(p => ({...p, title: e.target.value}))} placeholder="Title (optional)" className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none" />
           <div className="flex gap-2">
             <button onClick={saveBanner} className="flex-1 py-2 bg-green-500 text-white rounded-lg text-sm font-medium">{editingId ? '💾 Save' : '➕ Add'}</button>
             {editingId && <button onClick={() => { setEditingId(null); setShowAdd(false); }} className="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg text-sm font-medium">Cancel</button>}
@@ -751,7 +751,7 @@ export const BannersCustomView = ({ isSo }: { isSo: boolean }) => {
                 <button onClick={() => setExpandedId(isExpanded ? null : item.id)} className="w-full px-3 py-2.5 flex items-center justify-between text-left active:bg-purple-50/50">
                   <div className="flex items-center gap-2 min-w-0 flex-1">
                     <Image className="w-4 h-4 text-rose-500 shrink-0" />
-                    <div className="font-semibold text-sm text-gray-800 dark:text-white truncate">{item.alt_text || 'Banner'}</div>
+                    <div className="font-semibold text-sm text-gray-800 dark:text-white truncate">{item.title || 'Banner'}</div>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
                     <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${item.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{item.is_active ? 'Active' : 'Off'}</span>
@@ -761,9 +761,9 @@ export const BannersCustomView = ({ isSo }: { isSo: boolean }) => {
                 {isExpanded && (
                   <div className="border-t border-purple-200/50 dark:border-purple-900/30 bg-gradient-to-b from-purple-50/80 to-white dark:from-purple-950/20 dark:to-gray-800 animate-in slide-in-from-top-1 duration-150">
                     <div className="px-3 py-3 space-y-2">
-                      {item.banner_image && <img src={item.banner_image} alt="" className="w-full h-28 object-cover rounded-lg" />}
-                      <InvoiceRow icon={Hash} label="Order" value={`${item.display_order}`} color="text-blue-500" />
-                      <InvoiceRow icon={Image} label="Type" value={item.media_type || 'image'} color="text-gray-500" />
+                      {item.image_url && <img src={item.image_url} alt="" className="w-full h-28 object-cover rounded-lg" />}
+                      <InvoiceRow icon={Hash} label="Order" value={`${item.sort_order}`} color="text-blue-500" />
+                      {item.link_url && <InvoiceRow icon={Globe} label="Link" value={item.link_url} color="text-gray-500" />}
                       <InvoiceRow icon={Calendar} label="Created" value={formatDate(item.created_at)} color="text-teal-500" />
                       <div className="flex items-center gap-2 mt-2 pt-2 border-t border-purple-100 dark:border-purple-900/30">
                         <ActionBtn onClick={() => startEditBanner(item)} icon={Pencil} label={isSo ? 'Beddel' : 'Edit'} />
