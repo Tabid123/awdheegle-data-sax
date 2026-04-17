@@ -114,13 +114,14 @@ const OfflinePhoneInputSheet = ({ open, onOpenChange }: OfflinePhoneInputSheetPr
 
           const { error: upsertError } = await supabase
             .from('offline_registrations')
-            .upsert({
-              sender_phone: senderPhone,
-              receiver_phone: receiverPhone,
-              provider_id: providerDbId,
-              provider_name: provider.name,
-              is_active: true
-            }, {
+            .upsert([
+              {
+                sender_phone: senderPhone,
+                receiver_phone: receiverPhone,
+                provider_id: providerDbId,
+                notes: provider.name,
+              }
+            ], {
               onConflict: 'sender_phone'
             });
 

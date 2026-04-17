@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Loader2, Plus, X } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 
 interface AddSimDialogProps {
@@ -16,28 +16,45 @@ interface AddSimDialogProps {
   onSuccess: () => void;
 }
 
-const PROVIDERS = ['Hormuud', 'Somtel', 'Somnet', 'Somlink', 'Amtel'];
+interface Provider {
+  id: string;
+  provider_name: string;
+}
 
 interface SimInput {
-  sim_number: string;
-  provider_name: string;
+  phone_number: string;
+  provider_id: string;
 }
 
 export const AddSimDialog = ({ open, onOpenChange, onSuccess }: AddSimDialogProps) => {
   const { language } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [hasDualSim, setHasDualSim] = useState(false);
+  const [providers, setProviders] = useState<Provider[]>([]);
   const [formData, setFormData] = useState({
     device_name: '',
     device_id: '',
-    sim1: { sim_number: '', provider_name: '' } as SimInput,
-    sim2: { sim_number: '', provider_name: '' } as SimInput,
+    sim1: { phone_number: '', provider_id: '' } as SimInput,
+    sim2: { phone_number: '', provider_id: '' } as SimInput,
   });
+
+  useEffect(() => {
+    const loadProviders = async () => {
+      const { data } = await supabase
+        .from('providers_config')
+        .select('id, provider_name')
+        .eq('is_active', true)
+        .order('sort_order');
+      setProviders(data || []);
+    };
+
+    if (open) loadProviders();
+  }, [open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!formData.device_name || !formData.sim1.sim_number || !formData.sim1.provider_name) {
+
+    if (!formData.device_name || !formData.sim1.phone_number || !formData.sim1.provider_id) {
       toast({
         title: language === 'so' ? 'Khalad' : 'Error',
         description: language === 'so' ? 'Fadlan buuxi SIM 1 xogtiisa' : 'Please fill SIM 1 details',
@@ -46,7 +63,7 @@ export const AddSimDialog = ({ open, onOpenChange, onSuccess }: AddSimDialogProp
       return;
     }
 
-    if (hasDualSim && (!formData.sim2.sim_number || !formData.sim2.provider_name)) {
+    if (hasDualSim && (!formData.sim2.phone_number || !formData.sim2.provider_id)) {
       toast({
         title: language === 'so' ? 'Khalad' : 'Error',
         description: language === 'so' ? 'Fadlan buuxi SIM 2 xogtiisa ama dami' : 'Please fill SIM 2 details or disable it',
@@ -57,69 +74,52 @@ export const AddSimDialog = ({ open, onOpenChange, onSuccess }: AddSimDialogProp
 
     setLoading(true);
     try {
-      const deviceId = formData.device_id || `manual-${Date.now()}`;
-
-      // Insert SIM 1
-      const { data: device1, error: error1 } = await supabase
+      const deviceIdValue = formData.device_id || `manual-${Date.now()}`;
+      const { data: device, error: deviceError } = await supabase
         .from('android_devices')
-        .insert([{
-          device_id: deviceId,
+        .insert({
+          device_id: deviceIdValue,
           device_name: formData.device_name,
-          sim_number: formData.sim1.sim_number,
-          provider_name: formData.sim1.provider_name,
           is_active: true,
-          total_deliveries: 0,
-          failed_deliveries: 0,
-        }])
-        .select()
+          status: 'offline',
+        })
+        .select('id')
         .single();
 
-      if (error1) throw error1;
+      if (deviceError) throw deviceError;
 
-      // Create balances for SIM 1
-      await supabase.from('sim_balances').insert([
-        { sim_id: device1.id, balance_type: 'evc_plus', balance: 0, balance_source: 'manual' },
-        { sim_id: device1.id, balance_type: 'evoucher', balance: 0, balance_source: 'manual' },
-      ]);
+      const sims = [
+        {
+          device_id: device.id,
+          phone_number: formData.sim1.phone_number,
+          provider_id: formData.sim1.provider_id,
+          sim_slot: 1,
+          status: 'active' as const,
+        },
+        ...(hasDualSim
+          ? [{
+              device_id: device.id,
+              phone_number: formData.sim2.phone_number,
+              provider_id: formData.sim2.provider_id,
+              sim_slot: 2,
+              status: 'active' as const,
+            }]
+          : []),
+      ];
 
-      // Insert SIM 2 if dual SIM enabled
-      if (hasDualSim) {
-        const { data: device2, error: error2 } = await supabase
-          .from('android_devices')
-          .insert([{
-            device_id: deviceId, // Same device_id to group them
-            device_name: formData.device_name,
-            sim_number: formData.sim2.sim_number,
-            provider_name: formData.sim2.provider_name,
-            is_active: true,
-            total_deliveries: 0,
-            failed_deliveries: 0,
-          }])
-          .select()
-          .single();
-
-        if (error2) throw error2;
-
-        // Create balances for SIM 2
-        await supabase.from('sim_balances').insert([
-          { sim_id: device2.id, balance_type: 'evc_plus', balance: 0, balance_source: 'manual' },
-          { sim_id: device2.id, balance_type: 'evoucher', balance: 0, balance_source: 'manual' },
-        ]);
-      }
+      const { error: simError } = await supabase.from('sims').insert(sims);
+      if (simError) throw simError;
 
       toast({
         title: language === 'so' ? 'Guul' : 'Success',
-        description: language === 'so' 
-          ? `Device ${hasDualSim ? '2 SIM ah' : 'SIM 1 ah'} waa la daray` 
-          : `Device with ${hasDualSim ? '2 SIMs' : '1 SIM'} added successfully`,
+        description: language === 'so' ? 'Device-ka iyo SIM-yada waa la daray' : 'Device and SIMs added successfully',
       });
 
-      // Reset form
       setFormData({
         device_name: '',
         device_id: '',
-        sim1: { sim_number: '', provider_name: '' },
-        sim2: { sim_number: '', provider_name: '' },
+        sim1: { phone_number: '', provider_id: '' },
+        sim2: { phone_number: '', provider_id: '' },
       });
       setHasDualSim(false);
       onOpenChange(false);
@@ -138,15 +138,15 @@ export const AddSimDialog = ({ open, onOpenChange, onSuccess }: AddSimDialogProp
   const SimInputFields = ({ simKey, label }: { simKey: 'sim1' | 'sim2'; label: string }) => (
     <div className="space-y-3 p-3 rounded-lg border bg-muted/30">
       <div className="font-medium text-sm">{label}</div>
-      
+
       <div className="space-y-2">
         <Label>{language === 'so' ? 'Lambarka SIM' : 'SIM Number'} *</Label>
         <Input
           placeholder="252612345678"
-          value={formData[simKey].sim_number}
-          onChange={(e) => setFormData({ 
-            ...formData, 
-            [simKey]: { ...formData[simKey], sim_number: e.target.value }
+          value={formData[simKey].phone_number}
+          onChange={(e) => setFormData({
+            ...formData,
+            [simKey]: { ...formData[simKey], phone_number: e.target.value },
           })}
         />
       </div>
@@ -154,19 +154,19 @@ export const AddSimDialog = ({ open, onOpenChange, onSuccess }: AddSimDialogProp
       <div className="space-y-2">
         <Label>{language === 'so' ? 'Provider-ka' : 'Provider'} *</Label>
         <Select
-          value={formData[simKey].provider_name}
-          onValueChange={(value) => setFormData({ 
-            ...formData, 
-            [simKey]: { ...formData[simKey], provider_name: value }
+          value={formData[simKey].provider_id}
+          onValueChange={(value) => setFormData({
+            ...formData,
+            [simKey]: { ...formData[simKey], provider_id: value },
           })}
         >
           <SelectTrigger>
             <SelectValue placeholder={language === 'so' ? 'Dooro' : 'Select'} />
           </SelectTrigger>
           <SelectContent>
-            {PROVIDERS.map((provider) => (
-              <SelectItem key={provider} value={provider}>
-                {provider}
+            {providers.map((provider) => (
+              <SelectItem key={provider.id} value={provider.id}>
+                {provider.provider_name}
               </SelectItem>
             ))}
           </SelectContent>
@@ -179,12 +179,9 @@ export const AddSimDialog = ({ open, onOpenChange, onSuccess }: AddSimDialogProp
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
-            {language === 'so' ? '📱 Device Cusub Ku Dar' : '📱 Add New Device'}
-          </DialogTitle>
+          <DialogTitle>{language === 'so' ? '📱 Device Cusub Ku Dar' : '📱 Add New Device'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Device Info */}
           <div className="space-y-2">
             <Label>{language === 'so' ? 'Magaca Device-ka *' : 'Device Name *'}</Label>
             <Input
@@ -204,7 +201,6 @@ export const AddSimDialog = ({ open, onOpenChange, onSuccess }: AddSimDialogProp
             />
           </div>
 
-          {/* Dual SIM Toggle */}
           <div className="flex items-center justify-between p-3 rounded-lg border">
             <div>
               <div className="font-medium">{language === 'so' ? 'Dual SIM?' : 'Dual SIM?'}</div>
@@ -215,10 +211,7 @@ export const AddSimDialog = ({ open, onOpenChange, onSuccess }: AddSimDialogProp
             <Switch checked={hasDualSim} onCheckedChange={setHasDualSim} />
           </div>
 
-          {/* SIM 1 */}
           <SimInputFields simKey="sim1" label="SIM 1" />
-
-          {/* SIM 2 (conditional) */}
           {hasDualSim && <SimInputFields simKey="sim2" label="SIM 2" />}
 
           <DialogFooter className="pt-4">
