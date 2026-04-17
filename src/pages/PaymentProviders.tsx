@@ -271,10 +271,8 @@ const PaymentProviders = () => {
     if (selectedPayment) {
       const prefix = selectedPayment.prefix_code || getProviderPrefix(selectedPayment.provider_name);
       setPaymentProviderPrefix(prefix);
-      // Only set prefix if user doesn't have a pre-filled sender phone
-      if (!offlineSenderRef.current) {
-        setPaymentNumber(prefix);
-      }
+      // Leave sender phone empty so user types full number including prefix
+      setPaymentNumber('');
     }
   }, [paymentProviders, getProviderPrefix]);
   const handlePaymentNumberChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
