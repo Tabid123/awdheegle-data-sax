@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Background color - Najax Data brand purple -->
+    <!-- Background color - Awdheegle Data brand blue -->
     <item android:drawable="@color/splash_background" />
     
     <!-- Centered logo - fitted -->

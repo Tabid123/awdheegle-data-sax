@@ -9,7 +9,7 @@ import com.iftin.delivery.worker.ServiceWatchdogWorker
 import com.iftin.delivery.worker.UssdPollingWorker
 import java.util.concurrent.TimeUnit
 
-class NajaxDataApp : Application() {
+class AwdheegleDataApp : Application() {
     
     companion object {
         private const val POLLING_WORK_NAME = "ussd_polling_work"
@@ -23,11 +23,11 @@ class NajaxDataApp : Application() {
         // crashes when starting foreground services from Application.onCreate()
         // The service is started from MainActivity after permissions are granted
         
-        android.util.Log.d("NajaxApp", "✅ App started - service will be launched from MainActivity")
+        android.util.Log.d("AwdheegleApp", "✅ App started - service will be launched from MainActivity")
         
         scheduleReliablePolling()
         
-        android.util.Log.d("NajaxApp", "✅ All workers scheduled")
+        android.util.Log.d("AwdheegleApp", "✅ All workers scheduled")
     }
     
     private fun scheduleReliablePolling() {
@@ -54,7 +54,7 @@ class NajaxDataApp : Application() {
             pollingRequest
         )
         
-        android.util.Log.d("NajaxApp", "📅 UssdPollingWorker scheduled (every 15 min)")
+        android.util.Log.d("AwdheegleApp", "📅 UssdPollingWorker scheduled (every 15 min)")
         
         val watchdogRequest = PeriodicWorkRequestBuilder<ServiceWatchdogWorker>(
             15, TimeUnit.MINUTES
@@ -72,6 +72,6 @@ class NajaxDataApp : Application() {
             watchdogRequest
         )
         
-        android.util.Log.d("NajaxApp", "🐕 ServiceWatchdogWorker scheduled (every 15 min)")
+        android.util.Log.d("AwdheegleApp", "🐕 ServiceWatchdogWorker scheduled (every 15 min)")
     }
 }

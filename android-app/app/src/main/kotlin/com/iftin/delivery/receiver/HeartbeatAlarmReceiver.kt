@@ -74,7 +74,7 @@ class HeartbeatAlarmReceiver : BroadcastReceiver() {
         val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
         val wakeLock = powerManager.newWakeLock(
             PowerManager.PARTIAL_WAKE_LOCK,
-            "NajaxData::HeartbeatWakeLock"
+            "AwdheegleData::HeartbeatWakeLock"
         )
         wakeLock.acquire(30_000L) // 30 seconds max
 

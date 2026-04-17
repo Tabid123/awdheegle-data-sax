@@ -39,7 +39,7 @@ class SmsReceiver : BroadcastReceiver() {
         val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
         val wakeLock = powerManager.newWakeLock(
             PowerManager.PARTIAL_WAKE_LOCK,
-            "NajaxData::SmsReceive"
+            "AwdheegleData::SmsReceive"
         )
         wakeLock.acquire(120000L) // 2 minutes - covers all processing
         
@@ -460,7 +460,7 @@ class SmsReceiver : BroadcastReceiver() {
             val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
             val wakeLock = powerManager.newWakeLock(
                 PowerManager.PARTIAL_WAKE_LOCK,
-                "NajaxData::SmsWake"
+                "AwdheegleData::SmsWake"
             )
             wakeLock.acquire(60000L) // 1 minute max
             
