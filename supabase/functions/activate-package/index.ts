@@ -101,10 +101,10 @@ serve(async (req) => {
         throw new Error('Order not found');
       }
 
-      // 2. Get package cost_price & category_id from database
+      // 2. Get package selling_price (qiimaha iibka oo macmiilka la siiyo) & category_id
       const { data: pkg, error: pkgErr } = await supabase
         .from('data_packages_config')
-        .select('cost_price, category_id')
+        .select('cost_price, selling_price, price, category_id')
         .eq('id', order.package_id)
         .single();
 
@@ -113,9 +113,15 @@ serve(async (req) => {
         throw new Error('Package not found');
       }
 
+      // USSD waxaa lagu diraa SELLING PRICE (qiimaha la iibiyay), MA AHA cost price
+      const ussdAmount = Number(pkg.selling_price ?? pkg.price ?? pkg.cost_price);
+
       console.log('Package from DB:', { 
         packageId: order.package_id,
         costPrice: pkg.cost_price,
+        sellingPrice: pkg.selling_price,
+        price: pkg.price,
+        ussdAmount,
         categoryId: pkg.category_id 
       });
 
@@ -211,7 +217,7 @@ serve(async (req) => {
       };
 
       const receiverForUssd = normalizePhoneForUssd(receiverPhone);
-      const costParts = splitMixedAmount(Number(pkg.cost_price));
+      const costParts = splitMixedAmount(ussdAmount);
       
       // Build USSD for a specific amount part
       const buildUssd = (amountPart: number) => {
@@ -220,11 +226,13 @@ serve(async (req) => {
           instruction.code_template
             .replace('{receiver_phone}', receiverForUssd)
             .replace('{cost_price}', amountFormatted)
+            .replace('{selling_price}', amountFormatted)
+            .replace('{amount}', amountFormatted)
             .replace('{sim_password}', instruction.sim_password || '5516')
         );
       };
 
-      console.log('💰 Cost split:', { originalCost: pkg.cost_price, parts: costParts, ussds: costParts.map(p => buildUssd(p)) });
+      console.log('💰 USSD amount split:', { sellingPrice: ussdAmount, parts: costParts, ussds: costParts.map(p => buildUssd(p)) });
 
       // 5. Idempotent insert into delivery_queue (avoid duplicates)
       let queueData: any = null;
