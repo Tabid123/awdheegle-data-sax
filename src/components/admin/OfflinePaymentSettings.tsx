@@ -12,9 +12,18 @@ import { toast } from 'sonner';
 interface AppSetting {
   id: string;
   setting_key: string;
-  text_value: string | null;
+  setting_value: any;
   description: string;
 }
+
+const readVal = (s?: AppSetting): string => {
+  if (!s) return '';
+  const v = s.setting_value;
+  if (v == null) return '';
+  if (typeof v === 'string') return v;
+  if (typeof v === 'object' && 'value' in v) return String(v.value ?? '');
+  return String(v);
+};
 
 const OfflinePaymentSettings = () => {
   const queryClient = useQueryClient();
@@ -32,67 +41,62 @@ const OfflinePaymentSettings = () => {
         .in('setting_key', ['payment_number', 'payment_prefix']);
       
       if (error) throw error;
-      return data as AppSetting[];
+      return (data || []) as AppSetting[];
     },
   });
 
-  // Initialize state when settings load
   React.useEffect(() => {
     if (settings.length > 0) {
-      const numberSetting = settings.find(s => s.setting_key === 'payment_number');
-      const prefixSetting = settings.find(s => s.setting_key === 'payment_prefix');
-      
-      if (numberSetting?.text_value) setPaymentNumber(numberSetting.text_value);
-      if (prefixSetting?.text_value) setPaymentPrefix(prefixSetting.text_value);
+      setPaymentNumber(readVal(settings.find(s => s.setting_key === 'payment_number')));
+      setPaymentPrefix(readVal(settings.find(s => s.setting_key === 'payment_prefix')));
     }
   }, [settings]);
 
-  const updateSetting = useMutation({
-    mutationFn: async ({ id, value }: { id: string; value: string }) => {
-      const { error } = await supabase
-        .from('app_settings')
-        .update({ text_value: value })
-        .eq('id', id);
-      
-      if (error) throw error;
+  const upsertSetting = useMutation({
+    mutationFn: async ({ key, value }: { key: string; value: string }) => {
+      const existing = settings.find(s => s.setting_key === key);
+      if (existing) {
+        const { error } = await supabase
+          .from('app_settings')
+          .update({ setting_value: { value } })
+          .eq('id', existing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('app_settings')
+          .insert({ setting_key: key, setting_value: { value } });
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['offlinePaymentSettings'] });
       queryClient.invalidateQueries({ queryKey: ['appSettings'] });
       toast.success('Settings la kaydisey si guul leh!');
     },
-    onError: (error) => {
-      toast.error('Khalad ayaa dhacay!');
+    onError: (error: any) => {
+      toast.error('Khalad: ' + (error?.message || 'unknown'));
       console.error('Error updating setting:', error);
     },
   });
 
   const handleNumberChange = (value: string) => {
     setPaymentNumber(value);
-    const original = settings.find(s => s.setting_key === 'payment_number')?.text_value;
-    setHasNumberChanges(value !== original);
+    setHasNumberChanges(value !== readVal(settings.find(s => s.setting_key === 'payment_number')));
   };
 
   const handlePrefixChange = (value: string) => {
     setPaymentPrefix(value);
-    const original = settings.find(s => s.setting_key === 'payment_prefix')?.text_value;
-    setHasPrefixChanges(value !== original);
+    setHasPrefixChanges(value !== readVal(settings.find(s => s.setting_key === 'payment_prefix')));
   };
 
   const handleSaveNumber = () => {
-    const setting = settings.find(s => s.setting_key === 'payment_number');
-    if (setting) {
-      updateSetting.mutate({ id: setting.id, value: paymentNumber });
-      setHasNumberChanges(false);
-    }
+    upsertSetting.mutate({ key: 'payment_number', value: paymentNumber });
+    setHasNumberChanges(false);
   };
 
   const handleSavePrefix = () => {
-    const setting = settings.find(s => s.setting_key === 'payment_prefix');
-    if (setting) {
-      updateSetting.mutate({ id: setting.id, value: paymentPrefix });
-      setHasPrefixChanges(false);
-    }
+    upsertSetting.mutate({ key: 'payment_prefix', value: paymentPrefix });
+    setHasPrefixChanges(false);
   };
 
   const handleCallNumber = () => {

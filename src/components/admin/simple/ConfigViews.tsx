@@ -844,10 +844,13 @@ export const PaymentSettingsCustomView = ({ isSo }: { isSo: boolean }) => {
 
   const savePaymentProvider = async () => {
     if (!newPay.provider_name) { toast.error('Fill provider name'); return; }
-    const payload = {
-      provider_name: newPay.provider_name, payment_number: newPay.payment_number || null,
-      commission_rate: Number(newPay.commission_rate || 0), prefix_code: newPay.prefix_code || null,
-      ussd_code_template: newPay.ussd_code_template || null, provider_logo: newPay.provider_logo || null,
+    const payload: any = {
+      provider_name: newPay.provider_name,
+      display_name: newPay.provider_name,
+      payment_phone: newPay.payment_number || null,
+      commission_rate: Number(newPay.commission_rate || 0),
+      ussd_template: newPay.ussd_code_template || null,
+      logo_url: newPay.provider_logo || null,
     };
     if (editingId) {
       const { error } = await supabase.from('payment_providers_config').update(payload).eq('id', editingId);
