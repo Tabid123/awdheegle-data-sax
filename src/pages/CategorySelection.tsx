@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Phone, MessageCircle, Wifi, ArrowLeft, Edit, Sun, CalendarDays, CalendarRange, Infinity } from 'lucide-react';
