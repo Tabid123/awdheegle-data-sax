@@ -554,6 +554,7 @@ export type Database = {
           error_message: string | null
           execution_order: number
           id: string
+          last_attempt_at: string | null
           order_id: string
           package_id: string | null
           status: string
@@ -568,6 +569,7 @@ export type Database = {
           error_message?: string | null
           execution_order?: number
           id?: string
+          last_attempt_at?: string | null
           order_id: string
           package_id?: string | null
           status?: string
@@ -582,6 +584,7 @@ export type Database = {
           error_message?: string | null
           execution_order?: number
           id?: string
+          last_attempt_at?: string | null
           order_id?: string
           package_id?: string | null
           status?: string
@@ -1658,7 +1661,7 @@ export type Database = {
     }
     Functions: {
       claim_next_delivery: {
-        Args: { _device_id: string }
+        Args: { _device_id: string; _providers?: string[] }
         Returns: {
           order_id: string
           package_id: string
