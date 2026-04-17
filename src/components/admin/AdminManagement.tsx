@@ -280,7 +280,7 @@ export function AdminManagement() {
               </Label>
               <Input
                 type="email"
-                placeholder="admin@najax.com"
+                placeholder="admin@awdheegle.com"
                 value={inviteEmail}
                 onChange={(e) => setInviteEmail(e.target.value)}
                 className={inviteEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteEmail) ? 'border-destructive' : ''}
