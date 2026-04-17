@@ -27,7 +27,7 @@ export const CustomersCustomView = ({ isSo }: { isSo: boolean }) => {
     setLoading(true);
     const [phonesRes, ordersRes] = await Promise.all([
       supabase.from('verified_phones').select('*').order('created_at', { ascending: false }),
-      supabase.from('orders').select('customer_phone, created_at, selling_price').order('created_at', { ascending: false }).limit(2000),
+      supabase.from('orders').select('sender_phone, created_at, amount').order('created_at', { ascending: false }).limit(2000),
     ]);
     setPhones(phonesRes.data || []);
     setOrders(ordersRes.data || []);
@@ -38,13 +38,13 @@ export const CustomersCustomView = ({ isSo }: { isSo: boolean }) => {
   useRealtimeRefresh(['verified_phones', 'orders'], loadData, 800, { notify: true, lang: isSo ? 'so' : 'en' });
 
   const startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0);
-  const allBuyerPhones = new Set(orders.map(o => normalizePhone(o.customer_phone)));
+  const allBuyerPhones = new Set(orders.map(o => normalizePhone(o.sender_phone)));
   const todayRegistered = phones.filter(p => new Date(p.created_at) >= startOfToday);
   const activeCustomers = phones.filter(p => allBuyerPhones.has(normalizePhone(p.phone_number)));
   const inactiveCustomers = phones.filter(p => !allBuyerPhones.has(normalizePhone(p.phone_number)));
   const purchasedToday = phones.filter(p => {
     const todayOrders = orders.filter(o => new Date(o.created_at) >= startOfToday);
-    return new Set(todayOrders.map(o => normalizePhone(o.customer_phone))).has(normalizePhone(p.phone_number));
+    return new Set(todayOrders.map(o => normalizePhone(o.sender_phone))).has(normalizePhone(p.phone_number));
   });
 
   const getFiltered = () => {
@@ -53,7 +53,7 @@ export const CustomersCustomView = ({ isSo }: { isSo: boolean }) => {
     else if (filter === 'active') filtered = activeCustomers;
     else if (filter === 'inactive') filtered = inactiveCustomers;
     else if (filter === 'purchasedToday') filtered = purchasedToday;
-    if (search) filtered = filtered.filter(p => p.phone_number.includes(search));
+    if (search) filtered = filtered.filter(p => p.phone_number?.includes(search));
     return filtered;
   };
 
@@ -67,8 +67,8 @@ export const CustomersCustomView = ({ isSo }: { isSo: boolean }) => {
 
   const getCustomerStats = (phone: string) => {
     const norm = normalizePhone(phone);
-    const customerOrders = orders.filter(o => normalizePhone(o.customer_phone) === norm);
-    const totalSpent = customerOrders.reduce((s, o) => s + Number(o.selling_price || 0), 0);
+    const customerOrders = orders.filter(o => normalizePhone(o.sender_phone) === norm);
+    const totalSpent = customerOrders.reduce((s, o) => s + Number(o.amount || 0), 0);
     return { orderCount: customerOrders.length, totalSpent };
   };
 
@@ -138,17 +138,22 @@ export const CustomersCustomView = ({ isSo }: { isSo: boolean }) => {
 // ========== OFFLINE REGISTRATIONS ==========
 export const OfflineRegistrationsCustomView = ({ isSo }: { isSo: boolean }) => {
   const [regs, setRegs] = useState<any[]>([]);
+  const [providers, setProviders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
   const [search, setSearch] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
-  const [newReg, setNewReg] = useState({ sender_phone: '', receiver_phone: '', provider_name: '' });
+  const [newReg, setNewReg] = useState({ sender_phone: '', receiver_phone: '', provider_id: '' });
 
   const loadRegs = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase.from('offline_registrations').select('*').order('created_at', { ascending: false });
-    setRegs(data || []);
+    const [regsRes, provRes] = await Promise.all([
+      supabase.from('offline_registrations').select('*').order('created_at', { ascending: false }),
+      supabase.from('providers_config').select('id, display_name, provider_name').order('sort_order'),
+    ]);
+    setRegs(regsRes.data || []);
+    setProviders(provRes.data || []);
     setLoading(false);
   }, []);
 
@@ -156,23 +161,23 @@ export const OfflineRegistrationsCustomView = ({ isSo }: { isSo: boolean }) => {
   useRealtimeRefresh(['offline_registrations'], loadRegs, 800, { notify: true, lang: isSo ? 'so' : 'en' });
 
   const startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0);
-  const activeRegs = regs.filter(r => r.is_active).length;
-  const inactiveRegs = regs.filter(r => !r.is_active).length;
+  const withProvider = regs.filter(r => r.provider_id).length;
+  const withoutProvider = regs.filter(r => !r.provider_id).length;
   const todayRegs = regs.filter(r => new Date(r.created_at) >= startOfToday).length;
+
+  const getProviderName = (id: string | null) => {
+    if (!id) return '—';
+    const p = providers.find(x => x.id === id);
+    return p?.display_name || p?.provider_name || '—';
+  };
 
   const getFiltered = () => {
     let filtered = regs;
-    if (filter === 'active') filtered = filtered.filter(r => r.is_active);
-    else if (filter === 'inactive') filtered = filtered.filter(r => !r.is_active);
+    if (filter === 'with') filtered = filtered.filter(r => r.provider_id);
+    else if (filter === 'without') filtered = filtered.filter(r => !r.provider_id);
     else if (filter === 'today') filtered = filtered.filter(r => new Date(r.created_at) >= startOfToday);
     if (search) filtered = filtered.filter(r => r.sender_phone?.includes(search) || r.receiver_phone?.includes(search));
     return filtered;
-  };
-
-  const toggleStatus = async (id: string, currentStatus: boolean) => {
-    await supabase.from('offline_registrations').update({ is_active: !currentStatus }).eq('id', id);
-    setRegs(prev => prev.map(r => r.id === id ? { ...r, is_active: !r.is_active } : r));
-    toast.success(isSo ? 'Waa la cusboonaysiiyay' : 'Status updated');
   };
 
   const deleteReg = async (id: string) => {
@@ -185,11 +190,13 @@ export const OfflineRegistrationsCustomView = ({ isSo }: { isSo: boolean }) => {
   const addReg = async () => {
     if (!newReg.sender_phone || !newReg.receiver_phone) { toast.error(isSo ? 'Buuxi meelaha' : 'Fill required fields'); return; }
     const { data, error } = await supabase.from('offline_registrations').insert({
-      sender_phone: newReg.sender_phone, receiver_phone: newReg.receiver_phone, provider_name: newReg.provider_name || null,
+      sender_phone: newReg.sender_phone,
+      receiver_phone: newReg.receiver_phone,
+      provider_id: newReg.provider_id || null,
     }).select().single();
     if (error) { toast.error('Error: ' + error.message); return; }
     setRegs(prev => [data, ...prev]);
-    setNewReg({ sender_phone: '', receiver_phone: '', provider_name: '' });
+    setNewReg({ sender_phone: '', receiver_phone: '', provider_id: '' });
     setShowAdd(false);
     toast.success(isSo ? 'Waa lagu daray' : 'Added');
   };
@@ -200,14 +207,14 @@ export const OfflineRegistrationsCustomView = ({ isSo }: { isSo: boolean }) => {
     <div className="space-y-3">
       <StatCardsRow cards={[
         { label: 'Total', value: regs.length, color: 'bg-purple-500', icon: Users },
-        { label: 'Active', value: activeRegs, color: 'bg-green-500', icon: CheckCircle },
-        { label: 'Inactive', value: inactiveRegs, color: 'bg-amber-500', icon: XCircle },
+        { label: isSo ? 'Leh Shirkad' : 'With Provider', value: withProvider, color: 'bg-green-500', icon: CheckCircle },
+        { label: isSo ? 'La&apos;aan' : 'No Provider', value: withoutProvider, color: 'bg-amber-500', icon: XCircle },
         { label: isSo ? 'Maanta' : 'Today', value: todayRegs, color: 'bg-sky-500', icon: UserPlus },
       ]} />
       <FilterRow filters={[
         { key: 'all', label: isSo ? 'Dhammaan' : 'All', count: regs.length },
-        { key: 'active', label: 'Active', count: activeRegs },
-        { key: 'inactive', label: 'Inactive', count: inactiveRegs },
+        { key: 'with', label: isSo ? 'Shirkad leh' : 'With Provider', count: withProvider },
+        { key: 'without', label: isSo ? 'La\'aan' : 'No Provider', count: withoutProvider },
         { key: 'today', label: isSo ? 'Maanta' : 'Today', count: todayRegs },
       ]} activeKey={filter} onSelect={setFilter} activeColor="bg-orange-500" />
       <SearchInput value={search} onChange={setSearch} placeholder={isSo ? 'Raadi sender ama receiver...' : 'Search...'} />
@@ -218,7 +225,10 @@ export const OfflineRegistrationsCustomView = ({ isSo }: { isSo: boolean }) => {
         <div className="bg-white dark:bg-gray-800 rounded-xl border p-3 space-y-2 animate-in slide-in-from-top-2">
           <input value={newReg.sender_phone} onChange={e => setNewReg(p => ({...p, sender_phone: e.target.value}))} placeholder={isSo ? 'Lambarka Diraha' : 'Sender Phone'} className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none" />
           <input value={newReg.receiver_phone} onChange={e => setNewReg(p => ({...p, receiver_phone: e.target.value}))} placeholder={isSo ? 'Lambarka Qaataha' : 'Receiver Phone'} className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none" />
-          <input value={newReg.provider_name} onChange={e => setNewReg(p => ({...p, provider_name: e.target.value}))} placeholder={isSo ? 'Shirkadda (optional)' : 'Provider (optional)'} className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none" />
+          <select value={newReg.provider_id} onChange={e => setNewReg(p => ({...p, provider_id: e.target.value}))} className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none">
+            <option value="">{isSo ? 'Shirkadda (optional)' : 'Provider (optional)'}</option>
+            {providers.map(p => <option key={p.id} value={p.id}>{p.display_name || p.provider_name}</option>)}
+          </select>
           <button onClick={addReg} className="w-full py-2 bg-green-500 text-white rounded-lg text-sm font-medium active:bg-green-600">
             <Plus className="w-3.5 h-3.5 inline mr-1" /> {isSo ? 'Ku Dar' : 'Add'}
           </button>
@@ -239,7 +249,7 @@ export const OfflineRegistrationsCustomView = ({ isSo }: { isSo: boolean }) => {
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${item.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{item.is_active ? 'Active' : 'Off'}</span>
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700">{getProviderName(item.provider_id)}</span>
                     <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                   </div>
                 </button>
@@ -247,14 +257,10 @@ export const OfflineRegistrationsCustomView = ({ isSo }: { isSo: boolean }) => {
                   <InvoiceAccordionContent isSo={isSo} id={item.id} rows={[
                     { icon: Phone, label: 'Sender', value: `+252${item.sender_phone}`, color: 'text-purple-500' },
                     { icon: Phone, label: 'Receiver', value: `+252${item.receiver_phone}`, color: 'text-green-500' },
-                    { icon: Globe, label: 'Provider', value: item.provider_name || '—', color: 'text-blue-500' },
+                    { icon: Globe, label: 'Provider', value: getProviderName(item.provider_id), color: 'text-blue-500' },
                     { icon: Calendar, label: isSo ? 'Taariikhda' : 'Date', value: `${formatDate(item.created_at)} ${formatTime(item.created_at)}`, color: 'text-teal-500' },
-                    { icon: Power, label: 'Status', value: item.is_active ? 'Active' : 'Inactive', color: item.is_active ? 'text-green-500' : 'text-red-500' },
                   ]} actions={
-                    <>
-                      <ActionBtn onClick={() => toggleStatus(item.id, item.is_active)} icon={Power} label={item.is_active ? 'Disable' : 'Enable'} variant="warning" />
-                      <ActionBtn onClick={() => deleteReg(item.id)} icon={Trash2} label={isSo ? 'Tirtir' : 'Delete'} variant="danger" />
-                    </>
+                    <ActionBtn onClick={() => deleteReg(item.id)} icon={Trash2} label={isSo ? 'Tirtir' : 'Delete'} variant="danger" />
                   } />
                 )}
               </div>
