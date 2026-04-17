@@ -120,12 +120,10 @@ export const ProvidersCustomView = ({ isSo }: { isSo: boolean }) => {
                 </button>
                 {isExpanded && (
                   <InvoiceAccordionContent isSo={isSo} id={item.id} rows={[
-                    { icon: Globe, label: 'Provider', value: item.provider_name, color: 'text-purple-500' },
-                    { icon: FileText, label: 'Display Name', value: item.display_name || '—', color: 'text-emerald-500' },
-                    { icon: Hash, label: 'Sort Order', value: `${item.sort_order ?? 0}`, color: 'text-blue-500' },
-                    { icon: Code, label: 'USSD Code', value: item.ussd_code || '—', color: 'text-orange-500' },
-                    { icon: Phone, label: 'Prefixes', value: Array.isArray(item.phone_prefixes) ? item.phone_prefixes.join(', ') : '—', color: 'text-pink-500' },
-                    { icon: Calendar, label: 'Created', value: formatDate(item.created_at), color: 'text-gray-500' },
+                    { icon: Globe, label: isSo ? 'Magaca' : 'Provider', value: item.provider_name, color: 'text-purple-500' },
+                    { icon: FileText, label: isSo ? 'La Muujinayo' : 'Display Name', value: item.display_name || '—', color: 'text-emerald-500' },
+                    { icon: Hash, label: isSo ? 'Tartiibka' : 'Sort Order', value: `${item.sort_order ?? 0}`, color: 'text-blue-500' },
+                    { icon: Calendar, label: isSo ? 'La Sameeyay' : 'Created', value: formatDate(item.created_at), color: 'text-gray-500' },
                   ]} actions={
                     <>
                       <ActionBtn onClick={() => startEdit(item)} icon={Pencil} label={isSo ? 'Beddel' : 'Edit'} />
