@@ -38,13 +38,13 @@ export const CustomersCustomView = ({ isSo }: { isSo: boolean }) => {
   useRealtimeRefresh(['verified_phones', 'orders'], loadData, 800, { notify: true, lang: isSo ? 'so' : 'en' });
 
   const startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0);
-  const allBuyerPhones = new Set(orders.map(o => normalizePhone(o.customer_phone)));
+  const allBuyerPhones = new Set(orders.map(o => normalizePhone(o.sender_phone)));
   const todayRegistered = phones.filter(p => new Date(p.created_at) >= startOfToday);
   const activeCustomers = phones.filter(p => allBuyerPhones.has(normalizePhone(p.phone_number)));
   const inactiveCustomers = phones.filter(p => !allBuyerPhones.has(normalizePhone(p.phone_number)));
   const purchasedToday = phones.filter(p => {
     const todayOrders = orders.filter(o => new Date(o.created_at) >= startOfToday);
-    return new Set(todayOrders.map(o => normalizePhone(o.customer_phone))).has(normalizePhone(p.phone_number));
+    return new Set(todayOrders.map(o => normalizePhone(o.sender_phone))).has(normalizePhone(p.phone_number));
   });
 
   const getFiltered = () => {
@@ -53,7 +53,7 @@ export const CustomersCustomView = ({ isSo }: { isSo: boolean }) => {
     else if (filter === 'active') filtered = activeCustomers;
     else if (filter === 'inactive') filtered = inactiveCustomers;
     else if (filter === 'purchasedToday') filtered = purchasedToday;
-    if (search) filtered = filtered.filter(p => p.phone_number.includes(search));
+    if (search) filtered = filtered.filter(p => p.phone_number?.includes(search));
     return filtered;
   };
 
@@ -67,8 +67,8 @@ export const CustomersCustomView = ({ isSo }: { isSo: boolean }) => {
 
   const getCustomerStats = (phone: string) => {
     const norm = normalizePhone(phone);
-    const customerOrders = orders.filter(o => normalizePhone(o.customer_phone) === norm);
-    const totalSpent = customerOrders.reduce((s, o) => s + Number(o.selling_price || 0), 0);
+    const customerOrders = orders.filter(o => normalizePhone(o.sender_phone) === norm);
+    const totalSpent = customerOrders.reduce((s, o) => s + Number(o.amount || 0), 0);
     return { orderCount: customerOrders.length, totalSpent };
   };
 
