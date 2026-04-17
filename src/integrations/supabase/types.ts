@@ -498,29 +498,47 @@ export type Database = {
       }
       delivery_instructions: {
         Row: {
+          category_id: string | null
+          code_template: string | null
           created_at: string
           id: string
-          level: string
+          instruction_template: string | null
+          level: string | null
           notes: string | null
-          reference_id: string
+          package_id: string | null
+          provider_id: string | null
+          reference_id: string | null
+          sim_password: string | null
           updated_at: string
           ussd_template: string | null
         }
         Insert: {
+          category_id?: string | null
+          code_template?: string | null
           created_at?: string
           id?: string
-          level: string
+          instruction_template?: string | null
+          level?: string | null
           notes?: string | null
-          reference_id: string
+          package_id?: string | null
+          provider_id?: string | null
+          reference_id?: string | null
+          sim_password?: string | null
           updated_at?: string
           ussd_template?: string | null
         }
         Update: {
+          category_id?: string | null
+          code_template?: string | null
           created_at?: string
           id?: string
-          level?: string
+          instruction_template?: string | null
+          level?: string | null
           notes?: string | null
-          reference_id?: string
+          package_id?: string | null
+          provider_id?: string | null
+          reference_id?: string | null
+          sim_password?: string | null
           updated_at?: string
           ussd_template?: string | null
         }
@@ -834,6 +852,7 @@ export type Database = {
           is_active: boolean
           notes: string | null
           provider_id: string | null
+          provider_name: string | null
           receiver_phone: string | null
           sender_phone: string
           updated_at: string
@@ -844,6 +863,7 @@ export type Database = {
           is_active?: boolean
           notes?: string | null
           provider_id?: string | null
+          provider_name?: string | null
           receiver_phone?: string | null
           sender_phone: string
           updated_at?: string
@@ -854,6 +874,7 @@ export type Database = {
           is_active?: boolean
           notes?: string | null
           provider_id?: string | null
+          provider_name?: string | null
           receiver_phone?: string | null
           sender_phone?: string
           updated_at?: string
