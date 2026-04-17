@@ -178,30 +178,43 @@ Deno.serve(async (req) => {
         .eq('id', receipt.id);
     }
 
-    // 7. Queue delivery
+    // 7. Queue delivery via activate-package edge function
+    // Si loo isticmaalo logic-ka saxsan: cost_price (MA AHA selling_price),
+    // delivery_instructions template, provider_name, sim_slot, receiver_phone normalize.
     if (pending.package_id) {
-      const { data: pkg } = await supabase
-        .from('data_packages_config')
-        .select('ussd_template, ussd_code, package_name')
-        .eq('id', pending.package_id)
-        .maybeSingle();
+      try {
+        // Get provider name for activate-package
+        const { data: provider } = await supabase
+          .from('providers_config')
+          .select('provider_name, display_name')
+          .eq('id', pending.provider_id)
+          .maybeSingle();
 
-      const ussd = pkg?.ussd_template || pkg?.ussd_code || '';
-      const ussdCommand = ussd
-        .replace(/\{phone\}/g, pending.receiver_phone)
-        .replace(/\{amount\}/g, String(pending.expected_amount));
+        const providerName = provider?.provider_name || provider?.display_name || '';
 
-      const { error: queueError } = await supabase.from('delivery_queue').insert({
-        order_id: order.id,
-        package_id: pending.package_id,
-        ussd_command: ussdCommand,
-        status: 'pending',
-      });
+        const activateUrl = `${supabaseUrl}/functions/v1/activate-package/activate-package`;
+        const activateRes = await fetch(activateUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${serviceKey}`,
+            'apikey': serviceKey,
+          },
+          body: JSON.stringify({
+            orderId: order.id,
+            providerName,
+            receiverPhone: pending.receiver_phone,
+          }),
+        });
 
-      if (queueError) {
-        console.error('❌ delivery_queue insert error:', queueError);
-      } else {
-        console.log('📬 Delivery queued for order:', order.id);
+        const activateText = await activateRes.text();
+        if (!activateRes.ok) {
+          console.error('❌ activate-package call failed:', activateRes.status, activateText);
+        } else {
+          console.log('📬 Delivery queued via activate-package for order:', order.id, activateText);
+        }
+      } catch (e) {
+        console.error('❌ activate-package invocation error:', e);
       }
     }
 
