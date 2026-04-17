@@ -233,7 +233,7 @@ serve(async (req) => {
         );
       };
 
-      console.log('💰 USSD amount split:', { sellingPrice: ussdAmount, parts: costParts, ussds: costParts.map(p => buildUssd(p)) });
+      console.log('💰 USSD amount split:', { costPrice: ussdAmount, parts: costParts, ussds: costParts.map(p => buildUssd(p)) });
 
       // 5. Idempotent insert into delivery_queue (avoid duplicates)
       let queueData: any = null;
