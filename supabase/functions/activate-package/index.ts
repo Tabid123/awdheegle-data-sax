@@ -411,10 +411,11 @@ serve(async (req) => {
         throw error;
       }
 
-      // claim_next_delivery returns a single JSON object (not array)
-      if (claimed && typeof claimed === 'object' && claimed.id) {
-        const order = claimed;
-        
+      // claim_next_delivery returns rows (TABLE) — supabase-js gives an array
+      const claimedRow = Array.isArray(claimed) ? claimed[0] : claimed;
+      if (claimedRow && claimedRow.id) {
+        const order = claimedRow;
+
         console.log('✅ Claimed delivery:', { id: order.id, provider_name: order.provider_name });
 
       return new Response(
@@ -422,10 +423,10 @@ serve(async (req) => {
             orders: [{
               id: order.id,
               orderId: order.order_id,
-              ussdCode: order.ussd_code,
+              ussdCode: order.ussd_code || order.ussd_command,
               receiverPhone: order.receiver_phone,
               packageCode: order.package_code,
-              attempts: order.attempts,
+              attempts: order.attempts ?? 1,
               simSlot: order.sim_slot ?? 0,
               provider: order.provider_name,
               pinCode: order.pin_code || '',
