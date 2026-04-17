@@ -280,14 +280,19 @@ serve(async (req) => {
         }
         console.log('📱 Calculated sim_slot:', simSlot, 'for provider:', providerSlug);
 
-        // Auto-split mixed amounts into separate delivery queue entries
+        // Auto-split mixed amounts into separate delivery queue entries.
+        // NOTE: ussd_command is the canonical column; ussd_code is mirrored by trigger.
         const queueItems = costParts.map((part, idx) => ({
           order_id: orderId,
+          package_id: order.package_id,
           provider_name: providerSlug,
+          ussd_command: buildUssd(part),
           ussd_code: buildUssd(part),
           receiver_phone: receiverPhone,
           status: idx === 0 ? 'pending' : 'scheduled',
           sim_slot: simSlot,
+          execution_order: idx + 1,
+          delay_seconds: idx * 15,
           ...(idx > 0 ? { scheduled_at: new Date(Date.now() + idx * 15000).toISOString() } : {}),
         }));
 
