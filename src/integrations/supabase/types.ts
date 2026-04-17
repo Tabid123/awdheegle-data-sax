@@ -549,6 +549,7 @@ export type Database = {
       }
       delivery_queue: {
         Row: {
+          android_device_id: string | null
           attempts: number
           claimed_at: string | null
           claimed_by: string | null
@@ -572,6 +573,7 @@ export type Database = {
           ussd_command: string | null
         }
         Insert: {
+          android_device_id?: string | null
           attempts?: number
           claimed_at?: string | null
           claimed_by?: string | null
@@ -595,6 +597,7 @@ export type Database = {
           ussd_command?: string | null
         }
         Update: {
+          android_device_id?: string | null
           attempts?: number
           claimed_at?: string | null
           claimed_by?: string | null
