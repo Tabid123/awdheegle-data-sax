@@ -217,7 +217,7 @@ serve(async (req) => {
       };
 
       const receiverForUssd = normalizePhoneForUssd(receiverPhone);
-      const costParts = splitMixedAmount(Number(pkg.cost_price));
+      const costParts = splitMixedAmount(ussdAmount);
       
       // Build USSD for a specific amount part
       const buildUssd = (amountPart: number) => {
@@ -226,11 +226,13 @@ serve(async (req) => {
           instruction.code_template
             .replace('{receiver_phone}', receiverForUssd)
             .replace('{cost_price}', amountFormatted)
+            .replace('{selling_price}', amountFormatted)
+            .replace('{amount}', amountFormatted)
             .replace('{sim_password}', instruction.sim_password || '5516')
         );
       };
 
-      console.log('💰 Cost split:', { originalCost: pkg.cost_price, parts: costParts, ussds: costParts.map(p => buildUssd(p)) });
+      console.log('💰 USSD amount split:', { sellingPrice: ussdAmount, parts: costParts, ussds: costParts.map(p => buildUssd(p)) });
 
       // 5. Idempotent insert into delivery_queue (avoid duplicates)
       let queueData: any = null;
