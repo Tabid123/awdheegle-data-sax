@@ -19,10 +19,10 @@ export const ProvidersCustomView = ({ isSo }: { isSo: boolean }) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [newProv, setNewProv] = useState({ provider_name: '', evoucher_rate: '0', promotional_text: '', provider_logo: '' });
+  const [newProv, setNewProv] = useState({ provider_name: '', display_name: '', sort_order: '0', ussd_code: '', logo_url: '', phone_prefixes: '' });
 
   const loadProviders = useCallback(async () => {
-    const { data } = await supabase.from('providers_config').select('*').order('display_order');
+    const { data } = await supabase.from('providers_config').select('*').order('sort_order');
     setProviders(data || []);
     setLoading(false);
   }, []);
@@ -45,9 +45,16 @@ export const ProvidersCustomView = ({ isSo }: { isSo: boolean }) => {
 
   const saveProvider = async () => {
     if (!newProv.provider_name) { toast.error(isSo ? 'Magaca buuxi' : 'Fill provider name'); return; }
-    const payload = {
-      provider_name: newProv.provider_name, evoucher_rate: Number(newProv.evoucher_rate || 0),
-      promotional_text: newProv.promotional_text || null, provider_logo: newProv.provider_logo || null,
+    const prefixesArr = newProv.phone_prefixes
+      ? newProv.phone_prefixes.split(',').map(s => s.trim()).filter(Boolean)
+      : null;
+    const payload: any = {
+      provider_name: newProv.provider_name,
+      display_name: newProv.display_name || newProv.provider_name,
+      sort_order: Number(newProv.sort_order || 0),
+      ussd_code: newProv.ussd_code || null,
+      logo_url: newProv.logo_url || null,
+      phone_prefixes: prefixesArr,
     };
     if (editingId) {
       const { error } = await supabase.from('providers_config').update(payload).eq('id', editingId);
@@ -60,17 +67,25 @@ export const ProvidersCustomView = ({ isSo }: { isSo: boolean }) => {
       setProviders(prev => [data, ...prev]);
       toast.success(isSo ? 'Waa lagu daray' : 'Added');
     }
-    setNewProv({ provider_name: '', evoucher_rate: '0', promotional_text: '', provider_logo: '' });
+    setNewProv({ provider_name: '', display_name: '', sort_order: '0', ussd_code: '', logo_url: '', phone_prefixes: '' });
     setShowAdd(false); setEditingId(null);
   };
 
   const startEdit = (item: any) => {
     setEditingId(item.id);
-    setNewProv({ provider_name: item.provider_name, evoucher_rate: String(item.evoucher_rate || 0), promotional_text: item.promotional_text || '', provider_logo: item.provider_logo || '' });
+    setNewProv({
+      provider_name: item.provider_name || '',
+      display_name: item.display_name || '',
+      sort_order: String(item.sort_order || 0),
+      ussd_code: item.ussd_code || '',
+      logo_url: item.logo_url || '',
+      phone_prefixes: Array.isArray(item.phone_prefixes) ? item.phone_prefixes.join(', ') : '',
+    });
     setShowAdd(true); setExpandedId(null);
   };
 
   const activeCount = providers.filter(p => p.is_active).length;
+  const resetForm = () => setNewProv({ provider_name: '', display_name: '', sort_order: '0', ussd_code: '', logo_url: '', phone_prefixes: '' });
 
   return (
     <div className="space-y-3">
@@ -79,17 +94,19 @@ export const ProvidersCustomView = ({ isSo }: { isSo: boolean }) => {
         { label: 'Active', value: activeCount, icon: CheckCircle, color: 'bg-green-500' },
         { label: 'Inactive', value: providers.length - activeCount, icon: XCircle, color: 'bg-red-500' },
       ]} />
-      <button onClick={() => { setShowAdd(!showAdd); setEditingId(null); setNewProv({ provider_name: '', evoucher_rate: '0', promotional_text: '', provider_logo: '' }); }}
+      <button onClick={() => { setShowAdd(!showAdd); setEditingId(null); resetForm(); }}
         className="w-full py-2.5 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-1.5 active:scale-[0.98]">
         <Plus className="w-4 h-4" /> {isSo ? 'Provider Cusub Ku Dar' : 'Add New Provider'}
       </button>
       {showAdd && (
         <div className="bg-white dark:bg-gray-800 rounded-xl border p-3 space-y-2 animate-in slide-in-from-top-2">
           <div className="text-xs font-bold text-gray-600 dark:text-gray-300">{editingId ? (isSo ? '✏️ Wax ka Beddel' : '✏️ Edit Provider') : (isSo ? '➕ Provider Cusub' : '➕ New Provider')}</div>
-          <input value={newProv.provider_name} onChange={e => setNewProv(p => ({...p, provider_name: e.target.value}))} placeholder={isSo ? 'Magaca Provider' : 'Provider Name'} className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none" />
-          <input value={newProv.evoucher_rate} onChange={e => setNewProv(p => ({...p, evoucher_rate: e.target.value}))} placeholder="E-Voucher Rate %" type="number" className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none" />
-          <ImageUploader value={newProv.provider_logo} onChange={url => setNewProv(p => ({...p, provider_logo: url}))} bucket="provider-logos" label={isSo ? 'Logo-ga Shirkadda' : 'Provider Logo'} />
-          <input value={newProv.promotional_text} onChange={e => setNewProv(p => ({...p, promotional_text: e.target.value}))} placeholder="Promo Text (optional)" className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none" />
+          <input value={newProv.provider_name} onChange={e => setNewProv(p => ({...p, provider_name: e.target.value}))} placeholder={isSo ? 'Magaca Provider (hormuud)' : 'Provider Name (hormuud)'} className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none" />
+          <input value={newProv.display_name} onChange={e => setNewProv(p => ({...p, display_name: e.target.value}))} placeholder={isSo ? 'Magaca la muujinayo (Hormuud)' : 'Display Name (Hormuud)'} className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none" />
+          <input value={newProv.sort_order} onChange={e => setNewProv(p => ({...p, sort_order: e.target.value}))} placeholder="Sort Order" type="number" className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none" />
+          <input value={newProv.ussd_code} onChange={e => setNewProv(p => ({...p, ussd_code: e.target.value}))} placeholder="USSD Code (e.g. *712#)" className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none" />
+          <input value={newProv.phone_prefixes} onChange={e => setNewProv(p => ({...p, phone_prefixes: e.target.value}))} placeholder={isSo ? 'Horgalayaal (61, 77) — kala-saar comma' : 'Phone Prefixes (61, 77) comma-separated'} className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none" />
+          <ImageUploader value={newProv.logo_url} onChange={url => setNewProv(p => ({...p, logo_url: url}))} bucket="provider-logos" label={isSo ? 'Logo-ga Shirkadda' : 'Provider Logo'} />
           <div className="flex gap-2">
             <button onClick={saveProvider} className="flex-1 py-2 bg-green-500 text-white rounded-lg text-sm font-medium active:bg-green-600">
               {editingId ? (isSo ? '💾 Kaydi' : '💾 Save') : (isSo ? '➕ Ku Dar' : '➕ Add')}
@@ -105,17 +122,18 @@ export const ProvidersCustomView = ({ isSo }: { isSo: boolean }) => {
             return (
               <div key={item.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-purple-100/50 dark:border-purple-900/20 overflow-hidden">
                 <button onClick={() => setExpandedId(isExpanded ? null : item.id)} className="w-full px-3 py-2.5 flex items-center gap-3 text-left active:bg-purple-50/50">
-                  {item.provider_logo && <img src={item.provider_logo} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />}
-                  <div className="flex-1 min-w-0"><div className="font-bold text-sm text-gray-800 dark:text-white">{item.provider_name}</div></div>
+                  {item.logo_url && <img src={item.logo_url} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />}
+                  <div className="flex-1 min-w-0"><div className="font-bold text-sm text-gray-800 dark:text-white">{item.display_name || item.provider_name}</div></div>
                   <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${item.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{item.is_active ? 'Active' : 'Off'}</span>
                   <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${isExpanded ? 'rotate-180' : ''}`} />
                 </button>
                 {isExpanded && (
                   <InvoiceAccordionContent isSo={isSo} id={item.id} rows={[
                     { icon: Globe, label: 'Provider', value: item.provider_name, color: 'text-purple-500' },
-                    { icon: DollarSign, label: 'E-Voucher Rate', value: `${item.evoucher_rate}%`, color: 'text-emerald-500' },
-                    { icon: Hash, label: 'Display Order', value: `${item.display_order}`, color: 'text-blue-500' },
-                    { icon: FileText, label: 'Promo', value: item.promotional_text || '—', color: 'text-orange-500' },
+                    { icon: FileText, label: 'Display Name', value: item.display_name || '—', color: 'text-emerald-500' },
+                    { icon: Hash, label: 'Sort Order', value: `${item.sort_order ?? 0}`, color: 'text-blue-500' },
+                    { icon: Code, label: 'USSD Code', value: item.ussd_code || '—', color: 'text-orange-500' },
+                    { icon: Phone, label: 'Prefixes', value: Array.isArray(item.phone_prefixes) ? item.phone_prefixes.join(', ') : '—', color: 'text-pink-500' },
                     { icon: Calendar, label: 'Created', value: formatDate(item.created_at), color: 'text-gray-500' },
                   ]} actions={
                     <>
