@@ -5,25 +5,25 @@
 This folder contains the latest Android APK, automatically built by GitHub Actions.
 
 ### Download Latest APK:
-- **Filename**: `najax-delivery.apk`
+- **Filename**: `awdheegle-data.apk`
 - **Auto-updated**: Every push to `android-app/` folder
-- **Website URL**: `https://yourdomain.com/downloads/najax-delivery.apk`
+- **Website URL**: `https://yourdomain.com/downloads/awdheegle-data.apk`
 
 ---
 
 ## 📦 How to Get the APK
 
 ### Method 1: Download from GitHub Actions
-1. Go to: https://github.com/YOUR-USERNAME/najax-data
+1. Go to: https://github.com/YOUR-USERNAME/awdheegle-data
 2. Click **Actions** tab
 3. Click latest **"Build Android APK"** workflow
 4. Scroll to **Artifacts** section
-5. Download **"najax-delivery-apk"** (ZIP file)
+5. Download **"awdheegle-data-apk"** (ZIP file)
 6. Extract → `app-debug.apk`
 
 ### Method 2: Direct Link (After First Build)
 ```
-https://github.com/YOUR-USERNAME/najax-data/raw/main/public/downloads/najax-delivery.apk
+https://github.com/YOUR-USERNAME/awdheegle-data/raw/main/public/downloads/awdheegle-data.apk
 ```
 
 ---
@@ -47,7 +47,7 @@ https://github.com/YOUR-USERNAME/najax-data/raw/main/public/downloads/najax-deli
 
 ## 📱 Installation Guide
 
-1. Download `najax-delivery.apk`
+1. Download `awdheegle-data.apk`
 2. Enable **"Install from Unknown Sources"**:
    - Settings → Security → Unknown Sources → ON
 3. Open APK file
@@ -89,4 +89,4 @@ Repository → Actions → Latest workflow run
 ---
 
 **Last Updated**: Auto-updated by GitHub Actions
-**Maintainer**: Najax Data Development Team
+**Maintainer**: Awdheegle Data Development Team

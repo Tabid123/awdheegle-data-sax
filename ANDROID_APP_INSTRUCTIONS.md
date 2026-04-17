@@ -13,13 +13,13 @@ Waxaan sameyney Android app oo dhamaystiran oo automatic u shaqeeya delivery sys
 1. Click the **GitHub** icon in the top-right corner of Lovable
 2. Click **"Transfer project to GitHub"**
 3. Your project will be uploaded to your GitHub account
-4. Note the repository URL (e.g., `https://github.com/yourusername/najax-data`)
+4. Note the repository URL (e.g., `https://github.com/yourusername/awdheegle-data`)
 
 ### Step 2: Clone to Your Computer
 
 Open terminal/command prompt and run:
 ```bash
-git clone https://github.com/yourusername/najax-data.git
+git clone https://github.com/yourusername/awdheegle-data.git
 cd najax-data/android-app
 ```
 
@@ -89,7 +89,7 @@ Open app and grant all permissions when asked:
 - ✅ Background running
 
 ### 3. Disable Battery Optimization
-1. Open Najax Delivery app
+1. Open Awdheegle Data app
 2. Tap **"DISABLE BATTERY OPTIMIZATION"** button
 3. Select "Allow" when prompted
 
@@ -100,9 +100,9 @@ Open app and grant all permissions when asked:
 4. Enable **"Stay awake while charging"**
 
 ### 5. Start the Service
-1. Open Najax Delivery app
+1. Open Awdheegle Data app
 2. Tap the green **"START SERVICE"** button
-3. You'll see notification: **"Najax Delivery Active"**
+3. You'll see notification: **"Awdheegle Data Active"**
 4. Done! Service is now running 24/7 🎉
 
 ### 6. Keep Phone Charging
@@ -115,12 +115,12 @@ Open app and grant all permissions when asked:
 ## 🧪 **Testing the Setup**
 
 ### Test 1: Check Service Status
-1. Open Najax Delivery app
+1. Open Awdheegle Data app
 2. Look for **green dot** next to "ACTIVE"
-3. Should show: "Najax Delivery Active"
+3. Should show: "Awdheegle Data Active"
 
 ### Test 2: Create Test Order
-1. Go to your Najax Data website
+1. Go to your Awdheegle Data website
 2. Make a test purchase (Hormuud or Somnet)
 3. Wait 5-10 seconds
 4. Phone should automatically dial USSD code!
