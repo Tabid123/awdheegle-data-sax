@@ -27,7 +27,7 @@ export const CustomersCustomView = ({ isSo }: { isSo: boolean }) => {
     setLoading(true);
     const [phonesRes, ordersRes] = await Promise.all([
       supabase.from('verified_phones').select('*').order('created_at', { ascending: false }),
-      supabase.from('orders').select('customer_phone, created_at, selling_price').order('created_at', { ascending: false }).limit(2000),
+      supabase.from('orders').select('sender_phone, created_at, amount').order('created_at', { ascending: false }).limit(2000),
     ]);
     setPhones(phonesRes.data || []);
     setOrders(ordersRes.data || []);
