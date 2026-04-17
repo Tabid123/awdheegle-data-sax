@@ -1268,6 +1268,54 @@ export type Database = {
           },
         ]
       }
+      pending_online_payments: {
+        Row: {
+          created_at: string
+          expected_amount: number
+          id: string
+          matched_at: string | null
+          matched_order_id: string | null
+          package_id: string | null
+          payment_provider: string | null
+          provider_id: string | null
+          receiver_phone: string
+          sender_phone: string
+          status: string
+          updated_at: string
+          verified_phone: string | null
+        }
+        Insert: {
+          created_at?: string
+          expected_amount: number
+          id?: string
+          matched_at?: string | null
+          matched_order_id?: string | null
+          package_id?: string | null
+          payment_provider?: string | null
+          provider_id?: string | null
+          receiver_phone: string
+          sender_phone: string
+          status?: string
+          updated_at?: string
+          verified_phone?: string | null
+        }
+        Update: {
+          created_at?: string
+          expected_amount?: number
+          id?: string
+          matched_at?: string | null
+          matched_order_id?: string | null
+          package_id?: string | null
+          payment_provider?: string | null
+          provider_id?: string | null
+          receiver_phone?: string
+          sender_phone?: string
+          status?: string
+          updated_at?: string
+          verified_phone?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
