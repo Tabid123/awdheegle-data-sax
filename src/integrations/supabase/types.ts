@@ -565,6 +565,7 @@ export type Database = {
           package_id: string | null
           pin_code: string | null
           provider_name: string | null
+          provider_response: string | null
           receiver_phone: string | null
           scheduled_at: string | null
           sim_slot: number | null
@@ -589,6 +590,7 @@ export type Database = {
           package_id?: string | null
           pin_code?: string | null
           provider_name?: string | null
+          provider_response?: string | null
           receiver_phone?: string | null
           scheduled_at?: string | null
           sim_slot?: number | null
@@ -613,6 +615,7 @@ export type Database = {
           package_id?: string | null
           pin_code?: string | null
           provider_name?: string | null
+          provider_response?: string | null
           receiver_phone?: string | null
           scheduled_at?: string | null
           sim_slot?: number | null
