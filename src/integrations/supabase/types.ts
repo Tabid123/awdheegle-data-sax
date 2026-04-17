@@ -39,6 +39,7 @@ export type Database = {
         Row: {
           android_version: string | null
           app_version: string | null
+          battery_level: number | null
           created_at: string
           device_id: string
           device_name: string
@@ -46,14 +47,21 @@ export type Database = {
           imei: string | null
           is_active: boolean
           last_heartbeat: string | null
+          last_ping_at: string | null
           model: string | null
           notes: string | null
+          provider_name: string | null
+          sim_number: string | null
+          sim1_provider: string | null
+          sim2_number: string | null
+          sim2_provider: string | null
           status: Database["public"]["Enums"]["device_status"]
           updated_at: string
         }
         Insert: {
           android_version?: string | null
           app_version?: string | null
+          battery_level?: number | null
           created_at?: string
           device_id: string
           device_name: string
@@ -61,14 +69,21 @@ export type Database = {
           imei?: string | null
           is_active?: boolean
           last_heartbeat?: string | null
+          last_ping_at?: string | null
           model?: string | null
           notes?: string | null
+          provider_name?: string | null
+          sim_number?: string | null
+          sim1_provider?: string | null
+          sim2_number?: string | null
+          sim2_provider?: string | null
           status?: Database["public"]["Enums"]["device_status"]
           updated_at?: string
         }
         Update: {
           android_version?: string | null
           app_version?: string | null
+          battery_level?: number | null
           created_at?: string
           device_id?: string
           device_name?: string
@@ -76,8 +91,14 @@ export type Database = {
           imei?: string | null
           is_active?: boolean
           last_heartbeat?: string | null
+          last_ping_at?: string | null
           model?: string | null
           notes?: string | null
+          provider_name?: string | null
+          sim_number?: string | null
+          sim1_provider?: string | null
+          sim2_number?: string | null
+          sim2_provider?: string | null
           status?: Database["public"]["Enums"]["device_status"]
           updated_at?: string
         }
@@ -385,6 +406,7 @@ export type Database = {
           created_at: string
           data_amount: string | null
           description: string | null
+          display_order: number | null
           id: string
           is_active: boolean
           is_featured: boolean
@@ -392,8 +414,10 @@ export type Database = {
           price: number
           provider_id: string
           purchase_count: number
+          selling_price: number | null
           sort_order: number
           updated_at: string
+          ussd_code: string | null
           ussd_template: string | null
           validity_days: number | null
         }
@@ -405,6 +429,7 @@ export type Database = {
           created_at?: string
           data_amount?: string | null
           description?: string | null
+          display_order?: number | null
           id?: string
           is_active?: boolean
           is_featured?: boolean
@@ -412,8 +437,10 @@ export type Database = {
           price: number
           provider_id: string
           purchase_count?: number
+          selling_price?: number | null
           sort_order?: number
           updated_at?: string
+          ussd_code?: string | null
           ussd_template?: string | null
           validity_days?: number | null
         }
@@ -425,6 +452,7 @@ export type Database = {
           created_at?: string
           data_amount?: string | null
           description?: string | null
+          display_order?: number | null
           id?: string
           is_active?: boolean
           is_featured?: boolean
@@ -432,8 +460,10 @@ export type Database = {
           price?: number
           provider_id?: string
           purchase_count?: number
+          selling_price?: number | null
           sort_order?: number
           updated_at?: string
+          ussd_code?: string | null
           ussd_template?: string | null
           validity_days?: number | null
         }
@@ -796,6 +826,7 @@ export type Database = {
           created_at: string
           delivered_at: string | null
           delivery_notes: string | null
+          delivery_status: string | null
           device_id: string | null
           id: string
           is_manual: boolean
@@ -819,6 +850,7 @@ export type Database = {
           created_at?: string
           delivered_at?: string | null
           delivery_notes?: string | null
+          delivery_status?: string | null
           device_id?: string | null
           id?: string
           is_manual?: boolean
@@ -842,6 +874,7 @@ export type Database = {
           created_at?: string
           delivered_at?: string | null
           delivery_notes?: string | null
+          delivery_status?: string | null
           device_id?: string | null
           id?: string
           is_manual?: boolean
@@ -901,6 +934,7 @@ export type Database = {
           category_image: string | null
           category_name: string
           created_at: string
+          display_order: number | null
           id: string
           is_active: boolean
           provider_id: string | null
@@ -911,6 +945,7 @@ export type Database = {
           category_image?: string | null
           category_name: string
           created_at?: string
+          display_order?: number | null
           id?: string
           is_active?: boolean
           provider_id?: string | null
@@ -921,6 +956,7 @@ export type Database = {
           category_image?: string | null
           category_name?: string
           created_at?: string
+          display_order?: number | null
           id?: string
           is_active?: boolean
           provider_id?: string | null
@@ -984,10 +1020,13 @@ export type Database = {
           commission_rate: number
           created_at: string
           display_name: string
+          display_order: number | null
           id: string
           is_active: boolean
           logo_url: string | null
+          payment_number: string | null
           payment_phone: string | null
+          provider_logo: string | null
           provider_name: string
           sort_order: number
           updated_at: string
@@ -997,10 +1036,13 @@ export type Database = {
           commission_rate?: number
           created_at?: string
           display_name: string
+          display_order?: number | null
           id?: string
           is_active?: boolean
           logo_url?: string | null
+          payment_number?: string | null
           payment_phone?: string | null
+          provider_logo?: string | null
           provider_name: string
           sort_order?: number
           updated_at?: string
@@ -1010,10 +1052,13 @@ export type Database = {
           commission_rate?: number
           created_at?: string
           display_name?: string
+          display_order?: number | null
           id?: string
           is_active?: boolean
           logo_url?: string | null
+          payment_number?: string | null
           payment_phone?: string | null
+          provider_logo?: string | null
           provider_name?: string
           sort_order?: number
           updated_at?: string
@@ -1122,12 +1167,14 @@ export type Database = {
         Row: {
           created_at: string
           display_name: string
+          display_order: number | null
           evoucher_rate: number
           id: string
           is_active: boolean
           logo_url: string | null
           phone_prefixes: string[] | null
           promotional_text: string | null
+          provider_logo: string | null
           provider_name: string
           sort_order: number
           updated_at: string
@@ -1136,12 +1183,14 @@ export type Database = {
         Insert: {
           created_at?: string
           display_name: string
+          display_order?: number | null
           evoucher_rate?: number
           id?: string
           is_active?: boolean
           logo_url?: string | null
           phone_prefixes?: string[] | null
           promotional_text?: string | null
+          provider_logo?: string | null
           provider_name: string
           sort_order?: number
           updated_at?: string
@@ -1150,12 +1199,14 @@ export type Database = {
         Update: {
           created_at?: string
           display_name?: string
+          display_order?: number | null
           evoucher_rate?: number
           id?: string
           is_active?: boolean
           logo_url?: string | null
           phone_prefixes?: string[] | null
           promotional_text?: string | null
+          provider_logo?: string | null
           provider_name?: string
           sort_order?: number
           updated_at?: string
@@ -1436,6 +1487,7 @@ export type Database = {
           ussd_code: string
         }[]
       }
+      get_admin_analytics_summary: { Args: never; Returns: Json }
       get_customer_order_history: {
         Args: { _phone: string }
         Returns: {
