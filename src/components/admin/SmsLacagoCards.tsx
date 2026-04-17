@@ -115,7 +115,7 @@ export function SmsLacagoCards() {
 
       let query = supabase
         .from('payment_receipts')
-        .select(`*, order:matched_order_id (id, package_name, data_amount, customer_phone, receiver_phone, provider_id, delivery_status, delivery_notes, selling_price)`)
+        .select(`*, order:order_id (id, sender_phone, receiver_phone, provider_id, delivery_status, delivery_notes, amount, package_id)`)
         .order('created_at', { ascending: false });
 
       if (dateFrom) query = query.gte('created_at', dateFrom.toISOString());
