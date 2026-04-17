@@ -113,8 +113,9 @@ serve(async (req) => {
         throw new Error('Package not found');
       }
 
-      // USSD waxaa lagu diraa SELLING PRICE (qiimaha la iibiyay), MA AHA cost price
-      const ussdAmount = Number(pkg.selling_price ?? pkg.price ?? pkg.cost_price);
+      // USSD waxaa lagu diraa COST PRICE (qiimaha Android-ka uu USSD ku diro),
+      // MA AHA selling_price (taas waa qiimaha customer-ka bixiyo).
+      const ussdAmount = Number(pkg.cost_price ?? pkg.price ?? pkg.selling_price);
 
       console.log('Package from DB:', { 
         packageId: order.package_id,
