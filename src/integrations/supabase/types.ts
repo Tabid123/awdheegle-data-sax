@@ -14,16 +14,1377 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      admin_permissions: {
+        Row: {
+          granted_at: string
+          id: string
+          permission_key: string
+          user_id: string
+        }
+        Insert: {
+          granted_at?: string
+          id?: string
+          permission_key: string
+          user_id: string
+        }
+        Update: {
+          granted_at?: string
+          id?: string
+          permission_key?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      android_devices: {
+        Row: {
+          android_version: string | null
+          app_version: string | null
+          created_at: string
+          device_id: string
+          device_name: string
+          id: string
+          imei: string | null
+          is_active: boolean
+          last_heartbeat: string | null
+          model: string | null
+          notes: string | null
+          status: Database["public"]["Enums"]["device_status"]
+          updated_at: string
+        }
+        Insert: {
+          android_version?: string | null
+          app_version?: string | null
+          created_at?: string
+          device_id: string
+          device_name: string
+          id?: string
+          imei?: string | null
+          is_active?: boolean
+          last_heartbeat?: string | null
+          model?: string | null
+          notes?: string | null
+          status?: Database["public"]["Enums"]["device_status"]
+          updated_at?: string
+        }
+        Update: {
+          android_version?: string | null
+          app_version?: string | null
+          created_at?: string
+          device_id?: string
+          device_name?: string
+          id?: string
+          imei?: string | null
+          is_active?: boolean
+          last_heartbeat?: string | null
+          model?: string | null
+          notes?: string | null
+          status?: Database["public"]["Enums"]["device_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      app_settings: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          setting_key: string
+          setting_value: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          setting_key: string
+          setting_value?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          setting_key?: string
+          setting_value?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          target_id: string | null
+          target_type: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          target_id?: string | null
+          target_type?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          target_id?: string | null
+          target_type?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      auto_topup_rules: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          notes: string | null
+          package_id: string | null
+          phone_number: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          package_id?: string | null
+          phone_number: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          package_id?: string | null
+          phone_number?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auto_topup_rules_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "data_packages_config"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      auto_topup_settings: {
+        Row: {
+          created_at: string
+          id: string
+          is_enabled: boolean
+          notes: string | null
+          threshold_amount: number
+          topup_amount: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          notes?: string | null
+          threshold_amount?: number
+          topup_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          notes?: string | null
+          threshold_amount?: number
+          topup_amount?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      banners_config: {
+        Row: {
+          created_at: string
+          id: string
+          image_url: string
+          is_active: boolean
+          link_url: string | null
+          sort_order: number
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_url: string
+          is_active?: boolean
+          link_url?: string | null
+          sort_order?: number
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_url?: string
+          is_active?: boolean
+          link_url?: string | null
+          sort_order?: number
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      blocked_users: {
+        Row: {
+          blocked_at: string
+          blocked_by: string | null
+          id: string
+          phone_number: string
+          reason: string | null
+        }
+        Insert: {
+          blocked_at?: string
+          blocked_by?: string | null
+          id?: string
+          phone_number: string
+          reason?: string | null
+        }
+        Update: {
+          blocked_at?: string
+          blocked_by?: string | null
+          id?: string
+          phone_number?: string
+          reason?: string | null
+        }
+        Relationships: []
+      }
+      bulk_sms_campaigns: {
+        Row: {
+          campaign_name: string
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          failed_count: number
+          id: string
+          message: string
+          recipient_count: number
+          sent_count: number
+          status: string
+        }
+        Insert: {
+          campaign_name: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          failed_count?: number
+          id?: string
+          message: string
+          recipient_count?: number
+          sent_count?: number
+          status?: string
+        }
+        Update: {
+          campaign_name?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          failed_count?: number
+          id?: string
+          message?: string
+          recipient_count?: number
+          sent_count?: number
+          status?: string
+        }
+        Relationships: []
+      }
+      company_finances: {
+        Row: {
+          amount: number
+          category: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          reference_id: string | null
+          transaction_date: string
+          transaction_type: string
+        }
+        Insert: {
+          amount: number
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          reference_id?: string | null
+          transaction_date?: string
+          transaction_type: string
+        }
+        Update: {
+          amount?: number
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          reference_id?: string | null
+          transaction_date?: string
+          transaction_type?: string
+        }
+        Relationships: []
+      }
+      daily_orders: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          order_date: string
+          total_orders: number
+          total_revenue: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          order_date?: string
+          total_orders?: number
+          total_revenue?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          order_date?: string
+          total_orders?: number
+          total_revenue?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      data_packages_config: {
+        Row: {
+          category: string | null
+          created_at: string
+          data_amount: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          is_featured: boolean
+          package_name: string
+          price: number
+          provider_id: string
+          purchase_count: number
+          sort_order: number
+          updated_at: string
+          ussd_template: string | null
+          validity_days: number | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          data_amount?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_featured?: boolean
+          package_name: string
+          price: number
+          provider_id: string
+          purchase_count?: number
+          sort_order?: number
+          updated_at?: string
+          ussd_template?: string | null
+          validity_days?: number | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          data_amount?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_featured?: boolean
+          package_name?: string
+          price?: number
+          provider_id?: string
+          purchase_count?: number
+          sort_order?: number
+          updated_at?: string
+          ussd_template?: string | null
+          validity_days?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_packages_config_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers_config"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      delivery_instructions: {
+        Row: {
+          created_at: string
+          id: string
+          level: string
+          notes: string | null
+          reference_id: string
+          updated_at: string
+          ussd_template: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          level: string
+          notes?: string | null
+          reference_id: string
+          updated_at?: string
+          ussd_template?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          level?: string
+          notes?: string | null
+          reference_id?: string
+          updated_at?: string
+          ussd_template?: string | null
+        }
+        Relationships: []
+      }
+      delivery_queue: {
+        Row: {
+          claimed_at: string | null
+          claimed_by: string | null
+          completed_at: string | null
+          created_at: string
+          delay_seconds: number
+          error_message: string | null
+          execution_order: number
+          id: string
+          order_id: string
+          package_id: string | null
+          status: string
+          ussd_command: string | null
+        }
+        Insert: {
+          claimed_at?: string | null
+          claimed_by?: string | null
+          completed_at?: string | null
+          created_at?: string
+          delay_seconds?: number
+          error_message?: string | null
+          execution_order?: number
+          id?: string
+          order_id: string
+          package_id?: string | null
+          status?: string
+          ussd_command?: string | null
+        }
+        Update: {
+          claimed_at?: string | null
+          claimed_by?: string | null
+          completed_at?: string | null
+          created_at?: string
+          delay_seconds?: number
+          error_message?: string | null
+          execution_order?: number
+          id?: string
+          order_id?: string
+          package_id?: string | null
+          status?: string
+          ussd_command?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_queue_claimed_by_fkey"
+            columns: ["claimed_by"]
+            isOneToOne: false
+            referencedRelation: "android_devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_queue_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_queue_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "data_packages_config"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      device_offline_alerts: {
+        Row: {
+          alert_type: string
+          created_at: string
+          device_id: string
+          id: string
+          message: string | null
+          resolved: boolean
+        }
+        Insert: {
+          alert_type: string
+          created_at?: string
+          device_id: string
+          id?: string
+          message?: string | null
+          resolved?: boolean
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string
+          device_id?: string
+          id?: string
+          message?: string | null
+          resolved?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_offline_alerts_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "android_devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      error_messages: {
+        Row: {
+          created_at: string
+          error_key: string
+          id: string
+          message_en: string | null
+          message_so: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          error_key: string
+          id?: string
+          message_en?: string | null
+          message_so: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          error_key?: string
+          id?: string
+          message_en?: string | null
+          message_so?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      evoucher_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          notes: string | null
+          rate: number | null
+          sim_id: string | null
+          status: string
+          voucher_code: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          rate?: number | null
+          sim_id?: string | null
+          status?: string
+          voucher_code?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          rate?: number | null
+          sim_id?: string | null
+          status?: string
+          voucher_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evoucher_transactions_sim_id_fkey"
+            columns: ["sim_id"]
+            isOneToOne: false
+            referencedRelation: "sims"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fraud_alerts: {
+        Row: {
+          alert_type: string
+          amount: number | null
+          created_at: string
+          description: string | null
+          id: string
+          phone_number: string | null
+          resolved: boolean
+          severity: string
+        }
+        Insert: {
+          alert_type: string
+          amount?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          phone_number?: string | null
+          resolved?: boolean
+          severity?: string
+        }
+        Update: {
+          alert_type?: string
+          amount?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          phone_number?: string | null
+          resolved?: boolean
+          severity?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          id: string
+          is_read: boolean
+          metadata: Json | null
+          notification_type: string | null
+          recipient_phone: string | null
+          title: string
+          user_id: string | null
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          metadata?: Json | null
+          notification_type?: string | null
+          recipient_phone?: string | null
+          title: string
+          user_id?: string | null
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          metadata?: Json | null
+          notification_type?: string | null
+          recipient_phone?: string | null
+          title?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      offline_payment_settings: {
+        Row: {
+          created_at: string
+          id: string
+          instructions: string | null
+          is_active: boolean
+          payment_phone: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          instructions?: string | null
+          is_active?: boolean
+          payment_phone: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          instructions?: string | null
+          is_active?: boolean
+          payment_phone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      offline_registrations: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          provider_id: string | null
+          receiver_phone: string | null
+          sender_phone: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          provider_id?: string | null
+          receiver_phone?: string | null
+          sender_phone: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          provider_id?: string | null
+          receiver_phone?: string | null
+          sender_phone?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offline_registrations_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers_config"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          amount: number
+          cancelled_at: string | null
+          cancelled_by: string | null
+          created_at: string
+          delivered_at: string | null
+          delivery_notes: string | null
+          device_id: string | null
+          id: string
+          is_manual: boolean
+          is_offline: boolean
+          order_number: string
+          package_id: string | null
+          payment_provider_id: string | null
+          payment_reference: string | null
+          payment_status: Database["public"]["Enums"]["payment_status"]
+          provider_id: string | null
+          receiver_phone: string
+          sender_phone: string
+          sim_id: string | null
+          status: Database["public"]["Enums"]["order_status"]
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          delivery_notes?: string | null
+          device_id?: string | null
+          id?: string
+          is_manual?: boolean
+          is_offline?: boolean
+          order_number?: string
+          package_id?: string | null
+          payment_provider_id?: string | null
+          payment_reference?: string | null
+          payment_status?: Database["public"]["Enums"]["payment_status"]
+          provider_id?: string | null
+          receiver_phone: string
+          sender_phone: string
+          sim_id?: string | null
+          status?: Database["public"]["Enums"]["order_status"]
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          delivery_notes?: string | null
+          device_id?: string | null
+          id?: string
+          is_manual?: boolean
+          is_offline?: boolean
+          order_number?: string
+          package_id?: string | null
+          payment_provider_id?: string | null
+          payment_reference?: string | null
+          payment_status?: Database["public"]["Enums"]["payment_status"]
+          provider_id?: string | null
+          receiver_phone?: string
+          sender_phone?: string
+          sim_id?: string | null
+          status?: Database["public"]["Enums"]["order_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "android_devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "data_packages_config"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_payment_provider_id_fkey"
+            columns: ["payment_provider_id"]
+            isOneToOne: false
+            referencedRelation: "payment_providers_config"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers_config"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_sim_id_fkey"
+            columns: ["sim_id"]
+            isOneToOne: false
+            referencedRelation: "sims"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      package_delivery_rules: {
+        Row: {
+          created_at: string
+          delay_seconds: number
+          execution_order: number
+          id: string
+          source_package_id: string
+          target_package_id: string
+        }
+        Insert: {
+          created_at?: string
+          delay_seconds?: number
+          execution_order?: number
+          id?: string
+          source_package_id: string
+          target_package_id: string
+        }
+        Update: {
+          created_at?: string
+          delay_seconds?: number
+          execution_order?: number
+          id?: string
+          source_package_id?: string
+          target_package_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "package_delivery_rules_source_package_id_fkey"
+            columns: ["source_package_id"]
+            isOneToOne: false
+            referencedRelation: "data_packages_config"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "package_delivery_rules_target_package_id_fkey"
+            columns: ["target_package_id"]
+            isOneToOne: false
+            referencedRelation: "data_packages_config"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_providers_config: {
+        Row: {
+          created_at: string
+          display_name: string
+          id: string
+          is_active: boolean
+          logo_url: string | null
+          payment_phone: string | null
+          provider_name: string
+          sort_order: number
+          updated_at: string
+          ussd_template: string | null
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          payment_phone?: string | null
+          provider_name: string
+          sort_order?: number
+          updated_at?: string
+          ussd_template?: string | null
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          payment_phone?: string | null
+          provider_name?: string
+          sort_order?: number
+          updated_at?: string
+          ussd_template?: string | null
+        }
+        Relationships: []
+      }
+      payment_sms_log: {
+        Row: {
+          amount: number | null
+          created_at: string
+          device_id: string | null
+          id: string
+          matched_order_id: string | null
+          raw_sms: string
+          received_at: string
+          reference: string | null
+          sender_phone: string | null
+          sim_id: string | null
+          status: Database["public"]["Enums"]["payment_status"]
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string
+          device_id?: string | null
+          id?: string
+          matched_order_id?: string | null
+          raw_sms: string
+          received_at?: string
+          reference?: string | null
+          sender_phone?: string | null
+          sim_id?: string | null
+          status?: Database["public"]["Enums"]["payment_status"]
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string
+          device_id?: string | null
+          id?: string
+          matched_order_id?: string | null
+          raw_sms?: string
+          received_at?: string
+          reference?: string | null
+          sender_phone?: string | null
+          sim_id?: string | null
+          status?: Database["public"]["Enums"]["payment_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_sms_log_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "android_devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_sms_log_matched_order_id_fkey"
+            columns: ["matched_order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_sms_log_sim_id_fkey"
+            columns: ["sim_id"]
+            isOneToOne: false
+            referencedRelation: "sims"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          phone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      providers_config: {
+        Row: {
+          created_at: string
+          display_name: string
+          id: string
+          is_active: boolean
+          logo_url: string | null
+          phone_prefixes: string[] | null
+          provider_name: string
+          sort_order: number
+          updated_at: string
+          ussd_code: string | null
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          phone_prefixes?: string[] | null
+          provider_name: string
+          sort_order?: number
+          updated_at?: string
+          ussd_code?: string | null
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          phone_prefixes?: string[] | null
+          provider_name?: string
+          sort_order?: number
+          updated_at?: string
+          ussd_code?: string | null
+        }
+        Relationships: []
+      }
+      sims: {
+        Row: {
+          balance: number
+          created_at: string
+          device_id: string | null
+          id: string
+          notes: string | null
+          phone_number: string
+          pin: string | null
+          provider_id: string | null
+          sim_slot: number
+          status: Database["public"]["Enums"]["sim_status"]
+          updated_at: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          device_id?: string | null
+          id?: string
+          notes?: string | null
+          phone_number: string
+          pin?: string | null
+          provider_id?: string | null
+          sim_slot?: number
+          status?: Database["public"]["Enums"]["sim_status"]
+          updated_at?: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          device_id?: string | null
+          id?: string
+          notes?: string | null
+          phone_number?: string
+          pin?: string | null
+          provider_id?: string | null
+          sim_slot?: number
+          status?: Database["public"]["Enums"]["sim_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sims_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "android_devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sims_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers_config"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sms_lacago_cards: {
+        Row: {
+          amount: number
+          card_number: string
+          created_at: string
+          id: string
+          used: boolean
+          used_at: string | null
+        }
+        Insert: {
+          amount: number
+          card_number: string
+          created_at?: string
+          id?: string
+          used?: boolean
+          used_at?: string | null
+        }
+        Update: {
+          amount?: number
+          card_number?: string
+          created_at?: string
+          id?: string
+          used?: boolean
+          used_at?: string | null
+        }
+        Relationships: []
+      }
+      sms_logs: {
+        Row: {
+          created_at: string
+          device_id: string | null
+          direction: string
+          id: string
+          message: string
+          phone_number: string
+          status: string | null
+        }
+        Insert: {
+          created_at?: string
+          device_id?: string | null
+          direction: string
+          id?: string
+          message: string
+          phone_number: string
+          status?: string | null
+        }
+        Update: {
+          created_at?: string
+          device_id?: string | null
+          direction?: string
+          id?: string
+          message?: string
+          phone_number?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sms_logs_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "android_devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      unmatched_payments: {
+        Row: {
+          amount: number | null
+          created_at: string
+          id: string
+          payment_sms_id: string | null
+          reason: string | null
+          resolved: boolean
+          resolved_at: string | null
+          resolved_by: string | null
+          sender_phone: string | null
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string
+          id?: string
+          payment_sms_id?: string | null
+          reason?: string | null
+          resolved?: boolean
+          resolved_at?: string | null
+          resolved_by?: string | null
+          sender_phone?: string | null
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string
+          id?: string
+          payment_sms_id?: string | null
+          reason?: string | null
+          resolved?: boolean
+          resolved_at?: string | null
+          resolved_by?: string | null
+          sender_phone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unmatched_payments_payment_sms_id_fkey"
+            columns: ["payment_sms_id"]
+            isOneToOne: false
+            referencedRelation: "payment_sms_log"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      verified_phones: {
+        Row: {
+          created_at: string
+          id: string
+          last_login_at: string | null
+          phone_number: string
+          verified_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_login_at?: string | null
+          phone_number: string
+          verified_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_login_at?: string | null
+          phone_number?: string
+          verified_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      claim_next_delivery: {
+        Args: { _device_id: string }
+        Returns: {
+          order_id: string
+          package_id: string
+          queue_id: string
+          ussd_command: string
+        }[]
+      }
+      get_customer_order_history: {
+        Args: { _phone: string }
+        Returns: {
+          amount: number
+          created_at: string
+          id: string
+          order_number: string
+          package_name: string
+          provider_name: string
+          receiver_phone: string
+          sender_phone: string
+          status: Database["public"]["Enums"]["order_status"]
+        }[]
+      }
+      get_featured_packages: {
+        Args: never
+        Returns: {
+          data_amount: string
+          description: string
+          id: string
+          logo_url: string
+          package_name: string
+          price: number
+          provider_name: string
+        }[]
+      }
+      get_most_purchased_packages: {
+        Args: never
+        Returns: {
+          data_amount: string
+          description: string
+          id: string
+          logo_url: string
+          package_name: string
+          price: number
+          provider_name: string
+          purchase_count: number
+        }[]
+      }
+      has_permission: {
+        Args: { _permission: string; _user_id: string }
+        Returns: boolean
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "super_admin" | "admin" | "moderator" | "user"
+      device_status: "online" | "offline" | "idle" | "busy"
+      order_status:
+        | "pending"
+        | "processing"
+        | "completed"
+        | "failed"
+        | "cancelled"
+        | "refunded"
+      payment_status:
+        | "pending"
+        | "matched"
+        | "unmatched"
+        | "refunded"
+        | "failed"
+      sim_status: "active" | "inactive" | "low_balance" | "depleted"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +1511,19 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["super_admin", "admin", "moderator", "user"],
+      device_status: ["online", "offline", "idle", "busy"],
+      order_status: [
+        "pending",
+        "processing",
+        "completed",
+        "failed",
+        "cancelled",
+        "refunded",
+      ],
+      payment_status: ["pending", "matched", "unmatched", "refunded", "failed"],
+      sim_status: ["active", "inactive", "low_balance", "depleted"],
+    },
   },
 } as const
