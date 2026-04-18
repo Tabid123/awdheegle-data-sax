@@ -106,12 +106,12 @@ export function TransactionsDashboard() {
   const loadTransactions = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase.rpc('get_admin_transactions_paginated', {
-      p_search: debouncedSearch,
-      p_status: statusFilter,
-      p_provider_id: providerFilter,
+      p_search: debouncedSearch || null,
+      p_status: statusFilter === 'all' ? null : statusFilter,
+      p_provider_id: providerFilter === 'all' ? null : providerFilter,
       p_period: periodFilter,
       p_page_size: PAGE_SIZE,
-      p_page: currentPage,
+      p_page: currentPage + 1,
     });
 
     if (!error && data) {
@@ -165,12 +165,14 @@ export function TransactionsDashboard() {
     }
   };
 
-  const sToday = statsData?.transactions_today ?? 0;
-  const sSalesToday = statsData?.sales_today ?? 0;
-  const sSalesMonth = statsData?.sales_this_month ?? 0;
-  const sProfit = statsData?.total_profit ?? 0;
-  const sCostToday = statsData?.cost_today ?? 0;
-  const sTotalCost = statsData?.totalCost ?? 0;
+  const safeNum = (v: any) => Number(v) || 0;
+  const sToday = safeNum(statsData?.transactions_today);
+  const sSalesToday = safeNum(statsData?.sales_today);
+  const sSalesMonth = safeNum(statsData?.sales_this_month);
+  const sProfit = safeNum(statsData?.total_profit);
+  const sCostToday = safeNum(statsData?.cost_today);
+  const sTotalCost = safeNum(statsData?.total_cost);
+  const sCostMonth = safeNum(statsData?.cost_this_month);
 
   const getPeriodLabel = () => {
     switch (periodFilter) {
