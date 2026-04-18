@@ -1841,7 +1841,50 @@ serve(async (req) => {
       });
     }
 
-    const providerSlug = normalizeProviderSlug(registration.provider_name);
+    const providerSlug = await resolveProviderSlug(
+      supabase,
+      registration.provider_id,
+      registration.provider_name,
+    );
+    console.log(`🎯 Offline reg providerSlug resolved: "${providerSlug}" (id=${registration.provider_id})`);
+
+    if (!providerSlug) {
+      await supabase
+        .from("orders")
+        .update({
+          delivery_status: "failed",
+          delivery_notes: `Cannot route: provider unknown for provider_id ${registration.provider_id}`,
+        })
+        .eq("id", order.id);
+      return new Response(
+        JSON.stringify({ success: false, message: "Provider not resolvable", route }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // STRICT SIM ROUTING: must find a SIM slot matching this provider — NO fallback
+    const offlineSlotInfo = await resolveSimSlotForProvider(supabase, providerSlug);
+    if (!offlineSlotInfo) {
+      console.error(`❌ No active device has a SIM for provider "${providerSlug}". Refusing to dial from wrong SIM.`);
+      await supabase
+        .from("orders")
+        .update({
+          delivery_status: "failed",
+          delivery_notes: `No ${providerSlug.toUpperCase()} SIM available on any active device. Configure a SIM with sim1_provider/sim2_provider='${providerSlug}'.`,
+        })
+        .eq("id", order.id);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: `No SIM available for ${providerSlug}`,
+          order_id: order.id,
+          route,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
+      );
+    }
+    console.log(`✅ Routing to device ${offlineSlotInfo.android_device_id} sim_slot=${offlineSlotInfo.sim_slot}`);
+
     const bundled = await queueDeliveryWithBundling(
       supabase,
       order.id,
@@ -1860,7 +1903,6 @@ serve(async (req) => {
         selectedPackage.ussd_code || "",
       );
       try {
-        const offlineSlotInfo = await resolveSimSlotForProvider(supabase, providerSlug);
         await queueDirectDeliveryIfMissing(supabase, {
           order_id: order.id,
           provider_name: providerSlug,
@@ -1868,9 +1910,9 @@ serve(async (req) => {
           receiver_phone: registration.receiver_phone,
           package_code: selectedPackage.ussd_code,
           status: "pending",
-          sim_slot: offlineSlotInfo?.sim_slot ?? null,
+          sim_slot: offlineSlotInfo.sim_slot,
         });
-        console.log(`📬 Offline reg queued (sim_slot=${offlineSlotInfo?.sim_slot ?? "any"})`);
+        console.log(`📬 Offline reg queued (provider=${providerSlug}, sim_slot=${offlineSlotInfo.sim_slot})`);
       } catch (queueError) {
         console.error("❌ Queue error:", queueError);
         throw queueError;
