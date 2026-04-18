@@ -58,6 +58,7 @@ Deno.serve(async (req) => {
 
     const body: SMSData = await req.json();
     const { sender_phone, receiver_sim, amount, sms_body, tx_id } = body;
+    const device_id: string | undefined = (body as any).device_id;
 
     if (!sender_phone || !amount || !sms_body) {
       return new Response(
@@ -137,6 +138,24 @@ Deno.serve(async (req) => {
         if (recNorm && normalizedTopupSet.has(recNorm)) {
           topupNumber = normalizedTopupSet.get(recNorm);
           console.log('🔄 TIER 1b: sender offline reg → receiver is auto top-up:', topupNumber.phone_number);
+          break;
+        }
+      }
+    }
+
+    // (c) device_id provided → check if any SIM on that device matches an auto top-up number
+    //     (Hormuud SMS doesn't reveal the receiving SIM, but the device that received the SMS
+    //      must own the auto top-up SIM — so we can match by device ownership.)
+    if (!topupNumber && device_id) {
+      const { data: deviceSims } = await supabase
+        .from('sims')
+        .select('phone_number')
+        .eq('device_id', device_id);
+      for (const s of (deviceSims || [])) {
+        const simNorm = normalizeSomaliPhone(s.phone_number || '');
+        if (simNorm && normalizedTopupSet.has(simNorm)) {
+          topupNumber = normalizedTopupSet.get(simNorm);
+          console.log('🔄 TIER 1c: device SIM is auto top-up:', topupNumber.phone_number);
           break;
         }
       }
