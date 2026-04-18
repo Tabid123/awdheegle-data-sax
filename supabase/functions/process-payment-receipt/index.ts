@@ -186,6 +186,7 @@ Deno.serve(async (req) => {
       const matchingAtp = (atpCheck || []).find((a: any) =>
         senderProv ? (a.provider_name || '').toLowerCase() === senderProv : true
       );
+      console.log('🔍 Fallback:', { senderProv, hasPending, atpCount: (atpCheck||[]).length, matchingAtp: matchingAtp?.topup_number_id, regProviderId: regCheck?.[0]?.provider_id });
 
       // Only block auto-topup if a REAL regular order is possible:
       // offline_registration MUST have provider_id AND a matching package at this amount.
