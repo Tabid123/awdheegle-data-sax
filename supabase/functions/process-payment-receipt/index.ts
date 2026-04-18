@@ -144,12 +144,6 @@ Deno.serve(async (req) => {
     }
 
 
-    // Load providers once (used by both flows for prefix → provider lookup)
-    const { data: providersList } = await supabase
-      .from('providers_config')
-      .select('id, provider_name, phone_prefixes')
-      .eq('is_active', true);
-
     const senderPrefix2 = normalizedSender.substring(0, 2);
     let senderProviderName: string | null = null;
     let senderProviderId: string | null = null;
