@@ -123,8 +123,10 @@ export function SmsLacagoCards() {
       let query = supabase
         .from('payment_receipts')
         .select(`*, order:order_id (
-          id, sender_phone, receiver_phone, provider_id, delivery_status, delivery_notes, amount, package_id,
-          package:package_id ( package_name, data_amount, selling_price, price )
+          id, sender_phone, receiver_phone, customer_phone, provider_id, package_name, data_amount,
+          delivery_status, delivery_notes, amount, package_id,
+          package:package_id ( package_name, data_amount, selling_price, price ),
+          provider:provider_id ( provider_name, provider_logo )
         )`)
         .order('created_at', { ascending: false });
 
