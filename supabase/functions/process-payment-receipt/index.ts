@@ -112,10 +112,13 @@ Deno.serve(async (req) => {
       return null;
     };
 
-    // FALLBACK: marka SMS-ku uusan keenin receiver_sim, ka soo akhri auto_topup_numbers
-    // table-ka (halka rasmiga ah). Marwalba dalab cusub markuu soo dhaco, waxaan eegnaa
-    // lambarrada active ee auto top-up oo aan u dhignaa provider-ka SMS tag-gaaga.
-    // Tusaale: SMS [-JEEB-] (Somnet) → eeg auto_topup_numbers-ka oo prefix-kiisu Somnet yahay.
+    // CILAD HORE: fallback-kii hore ee receiver_sim wuxuu ka soo akhrin jiray
+    // auto_topup_numbers table-ka, taas oo keentay in DHAMMAAN dalabyada online & offline ay
+    // si khaldan ugu galaan Auto Top-up flow-ga (sababtoo ah receiver-ka had iyo jeer waa
+    // match auto-topup table). Hadda waxaan ka soocnay:
+    //   - normalizedReceiver: kaliya marka Android-ku si rasmi ah u soo diro receiver_sim
+    //   - autoTopupReceiverHint: receiver lagu helay auto_topup_numbers (Auto Top-up flow oo keliya)
+    let autoTopupReceiverHint = '';
     if (!normalizedReceiver) {
       const recvProvider = detectReceiverProviderFromSms(sms_body);
       const { data: topupNums } = await supabase
@@ -134,20 +137,19 @@ Deno.serve(async (req) => {
       for (const t of (topupNums || [])) {
         const norm = normalizeSomaliPhone(t.phone_number);
         if (!norm) continue;
-        // Haddii provider la garto, ku xir prefix-ka; haddii kale, qaado kii ugu horeeya
         if (recvProvider) {
           const prefixes = providerPrefixes[recvProvider] || [];
           if (prefixes.some((p) => norm.startsWith(p))) {
-            normalizedReceiver = norm;
+            autoTopupReceiverHint = norm;
             break;
           }
         } else {
-          normalizedReceiver = norm;
+          autoTopupReceiverHint = norm;
           break;
         }
       }
-      if (normalizedReceiver) {
-        console.log('🔍 Resolved receiver from auto_topup_numbers:', normalizedReceiver, '(', recvProvider || 'no-provider', ')');
+      if (autoTopupReceiverHint) {
+        console.log('🔍 Auto-topup receiver hint (NOT used for online/offline):', autoTopupReceiverHint, '(', recvProvider || 'no-provider', ')');
       }
     }
 
@@ -203,12 +205,15 @@ Deno.serve(async (req) => {
 
     let topupNumber: any = null;
 
-    // PRIORITY 1: Auto Top-up — only if receiver_sim is known AND matches.
-    // No fallback. If receiver_sim is missing, we move to Priority 2/3.
-    if (normalizedReceiver) {
+    // PRIORITY 1: Auto Top-up — receiver waa in uu si rasmi ah u match noqdo auto_topup_numbers.
+    // Waxaan isticmaalnaa normalizedReceiver (Android) AMA autoTopupReceiverHint (SMS tag fallback).
+    // Si kastaba ha noqotee, mar dambe haddii Auto Top-up package aan la helin, online/offline flow
+    // ayaa la tijaabin doonaa (sababtoo ah autoTopupReceiverHint waxaa laga yaabaa inuu khalad yahay).
+    const autoTopupCandidate = normalizedReceiver || autoTopupReceiverHint;
+    if (autoTopupCandidate) {
       topupNumber = (allTopupNumbers || []).find((t: any) => {
         const n = normalizeSomaliPhone(t.phone_number);
-        return n === normalizedReceiver;
+        return n === autoTopupCandidate;
       }) || null;
       if (topupNumber) {
         console.log('✅ P1 Auto Top-up matched → topup', topupNumber.phone_number);
@@ -229,9 +234,12 @@ Deno.serve(async (req) => {
 
     // ============================================================
     // FLOW A: AUTO TOP-UP (receiver is in auto_topup_numbers)
+    // Haddii Auto Top-up package la waayo OO receiver-ku ka yimid SMS hint (ma rasmi ahayn),
+    // waxaan u gudbeynaa Regular flow (pending online / offline reg) si aan u tijaabino.
     // ============================================================
+    const receiverIsOfficial = !!normalizedReceiver; // Android-ku rasmi ah ayuu soo diray
     if (topupNumber) {
-      console.log('🔁 AUTO TOP-UP FLOW | receiver:', normalizedReceiver, '| topup_id:', topupNumber.id);
+      console.log('🔁 AUTO TOP-UP FLOW | receiver:', autoTopupCandidate, '| topup_id:', topupNumber.id, '| official:', receiverIsOfficial);
 
       const { data: candidatePkgs } = await supabase
         .from('auto_topup_packages')
@@ -240,59 +248,61 @@ Deno.serve(async (req) => {
         .eq('is_active', true)
         .eq('selling_price', amount);
 
-      if (!candidatePkgs || candidatePkgs.length === 0) {
-        await markUnmatched(`Auto top-up: no package matches $${amount} on ${normalizedReceiver}`);
-        return ok({ success: true, matched: false, flow: 'auto_topup', reason: 'no_package_for_amount' });
-      }
+      const pkg = (candidatePkgs && candidatePkgs.length > 0 && senderProviderName)
+        ? candidatePkgs.find((p: any) => (p.provider_name || '').toLowerCase() === senderProviderName)
+        : null;
 
-      if (!senderProviderName) {
-        await markUnmatched(`Auto top-up: unknown sender prefix ${senderPrefix2}`);
-        return ok({ success: true, matched: false, flow: 'auto_topup', reason: 'unknown_prefix' });
-      }
+      if (pkg) {
+        console.log('✅ Auto top-up package:', pkg.package_name, '(', pkg.provider_name, ')');
 
-      const pkg = candidatePkgs.find((p: any) => (p.provider_name || '').toLowerCase() === senderProviderName);
-      if (!pkg) {
-        await markUnmatched(`Auto top-up: no ${senderProviderName} package for $${amount}`);
-        return ok({ success: true, matched: false, flow: 'auto_topup', reason: 'no_provider_package' });
-      }
+        const { data: order, error: orderError } = await supabase
+          .from('orders').insert({
+            sender_phone: normalizedSender,
+            receiver_phone: normalizedSender,
+            amount,
+            status: 'pending',
+            payment_status: 'matched',
+            payment_reference: tx_id || null,
+            is_offline: false,
+            provider_id: senderProviderId,
+            delivery_notes: `Auto top-up: ${pkg.package_name}`,
+          }).select().single();
+        if (orderError) throw orderError;
+        await markMatched(order.id);
 
-      console.log('✅ Auto top-up package:', pkg.package_name, '(', pkg.provider_name, ')');
-
-      const { data: order, error: orderError } = await supabase
-        .from('orders').insert({
-          sender_phone: normalizedSender,
-          receiver_phone: normalizedSender, // auto top-up = self
+        const renderedUssd = renderUssd(pkg.ussd_code || '', {
+          receiver_phone: normalizedSender,
+          cost_price: pkg.cost_price ?? amount,
           amount,
+          sim_password: pkg.sim_password || '',
+          pin: pkg.sim_password || '',
+        });
+
+        await supabase.from('delivery_queue').insert({
+          order_id: order.id,
+          ussd_command: renderedUssd || null,
+          ussd_code: renderedUssd || null,
+          provider_name: (pkg.provider_name || '').toLowerCase() || null,
+          receiver_phone: normalizedSender,
+          package_code: pkg.package_name,
+          pin_code: pkg.sim_password || null,
           status: 'pending',
-          payment_status: 'matched',
-          payment_reference: tx_id || null,
-          is_offline: false,
-          provider_id: senderProviderId,
-          delivery_notes: `Auto top-up: ${pkg.package_name}`,
-        }).select().single();
-      if (orderError) throw orderError;
-      await markMatched(order.id);
+        });
 
-      const renderedUssd = renderUssd(pkg.ussd_code || '', {
-        receiver_phone: normalizedSender,
-        cost_price: pkg.cost_price ?? amount,
-        amount,
-        sim_password: pkg.sim_password || '',
-        pin: pkg.sim_password || '',
-      });
+        return ok({ success: true, matched: true, flow: 'auto_topup', order_id: order.id, package: pkg.package_name });
+      }
 
-      await supabase.from('delivery_queue').insert({
-        order_id: order.id,
-        ussd_command: renderedUssd || null,
-        ussd_code: renderedUssd || null,
-        provider_name: (pkg.provider_name || '').toLowerCase() || null,
-        receiver_phone: normalizedSender,
-        package_code: pkg.package_name,
-        pin_code: pkg.sim_password || null,
-        status: 'pending',
-      });
-
-      return ok({ success: true, matched: true, flow: 'auto_topup', order_id: order.id, package: pkg.package_name });
+      // Auto top-up package lama helin
+      if (receiverIsOfficial) {
+        const reason = !candidatePkgs || candidatePkgs.length === 0
+          ? `Auto top-up: no package matches $${amount} on ${autoTopupCandidate}`
+          : !senderProviderName
+            ? `Auto top-up: unknown sender prefix ${senderPrefix2}`
+            : `Auto top-up: no ${senderProviderName} package for $${amount}`;
+        await markUnmatched(reason);
+        return ok({ success: true, matched: false, flow: 'auto_topup', reason: 'no_match' });
+      }
+      console.log('⤵️ Auto top-up package lama helin via SMS hint, tijaabi regular flow (pending online / offline reg)...');
     }
 
     // ============================================================
