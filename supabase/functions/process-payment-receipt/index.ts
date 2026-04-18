@@ -159,6 +159,28 @@ function normalizeProviderSlug(name: string | null | undefined): string {
   return lower.split(" ")[0] || "";
 }
 
+/**
+ * Resolve the provider slug given an optional name AND a provider_id.
+ * If `name` is empty/null, falls back to looking up providers_config by id.
+ * This prevents empty providerSlug → null sim_slot → wrong SIM dialing.
+ */
+async function resolveProviderSlug(
+  supabase: any,
+  providerId: string | null | undefined,
+  providerName: string | null | undefined,
+): Promise<string> {
+  const fromName = normalizeProviderSlug(providerName);
+  if (fromName) return fromName;
+  if (!providerId) return "";
+  const { data: prov } = await supabase
+    .from("providers_config")
+    .select("provider_name, display_name")
+    .eq("id", providerId)
+    .maybeSingle();
+  if (!prov) return "";
+  return normalizeProviderSlug(prov.provider_name) || normalizeProviderSlug(prov.display_name);
+}
+
 function formatAmountForUssd(amount: number): string {
   const numericAmount = Number(amount);
   if (!Number.isFinite(numericAmount)) return "0";
