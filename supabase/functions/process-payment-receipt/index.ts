@@ -152,6 +152,17 @@ Deno.serve(async (req) => {
 
       const pkg = pkgs?.[0];
       if (pkg) {
+        // Hel provider_id ku salaysan magaca provider-ka package-ka auto top-up
+        let providerId: string | null = null;
+        if (pkg.provider_name) {
+          const { data: prov } = await supabase
+            .from('providers_config')
+            .select('id')
+            .ilike('provider_name', pkg.provider_name)
+            .maybeSingle();
+          providerId = prov?.id || null;
+        }
+
         const { data: order, error: orderError } = await supabase
           .from('orders').insert({
             sender_phone: normalizedSender,
@@ -161,6 +172,7 @@ Deno.serve(async (req) => {
             payment_status: 'matched',
             payment_reference: tx_id || null,
             is_offline: false,
+            provider_id: providerId,
             delivery_notes: `Auto top-up: ${pkg.package_name}`,
           }).select().single();
         if (orderError) throw orderError;
