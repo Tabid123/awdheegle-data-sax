@@ -201,9 +201,20 @@ export const useOrderActions = (setOrders: React.Dispatch<React.SetStateAction<a
   };
 
   const retryDelivery = async (id: string) => {
-    const { error } = await supabase.from('orders').update({ delivery_status: 'pending', status: 'paid' }).eq('id', id);
+    // 1. Reset order
+    const { error } = await supabase.from('orders').update({ delivery_status: 'pending', status: 'pending' }).eq('id', id);
     if (error) { toast.error('Error'); return; }
-    setOrders(prev => prev.map(o => o.id === id ? { ...o, delivery_status: 'pending', status: 'paid' } : o));
+    // 2. Re-trigger delivery via activate-package edge function
+    try {
+      const { data: order } = await supabase.from('orders')
+        .select('id, provider_id, receiver_phone, providers_config:provider_id(provider_name)')
+        .eq('id', id).maybeSingle() as any;
+      const providerName = order?.providers_config?.provider_name || '';
+      await supabase.functions.invoke('activate-package/activate-package', {
+        body: { orderId: id, providerName, receiverPhone: order?.receiver_phone },
+      });
+    } catch (e) { console.error('Retry trigger failed', e); }
+    setOrders(prev => prev.map(o => o.id === id ? { ...o, delivery_status: 'pending', status: 'pending' } : o));
     toast.success(isSo ? 'Dib loo qaaday' : 'Retrying delivery');
   };
 
