@@ -112,10 +112,13 @@ Deno.serve(async (req) => {
       return null;
     };
 
-    // FALLBACK: marka SMS-ku uusan keenin receiver_sim, ka soo akhri auto_topup_numbers
-    // table-ka (halka rasmiga ah). Marwalba dalab cusub markuu soo dhaco, waxaan eegnaa
-    // lambarrada active ee auto top-up oo aan u dhignaa provider-ka SMS tag-gaaga.
-    // Tusaale: SMS [-JEEB-] (Somnet) → eeg auto_topup_numbers-ka oo prefix-kiisu Somnet yahay.
+    // CILAD HORE: fallback-kii hore ee receiver_sim wuxuu ka soo akhrin jiray
+    // auto_topup_numbers table-ka, taas oo keentay in DHAMMAAN dalabyada online & offline ay
+    // si khaldan ugu galaan Auto Top-up flow-ga (sababtoo ah receiver-ka had iyo jeer waa
+    // match auto-topup table). Hadda waxaan ka soocnay:
+    //   - normalizedReceiver: kaliya marka Android-ku si rasmi ah u soo diro receiver_sim
+    //   - autoTopupReceiverHint: receiver lagu helay auto_topup_numbers (Auto Top-up flow oo keliya)
+    let autoTopupReceiverHint = '';
     if (!normalizedReceiver) {
       const recvProvider = detectReceiverProviderFromSms(sms_body);
       const { data: topupNums } = await supabase
@@ -134,20 +137,19 @@ Deno.serve(async (req) => {
       for (const t of (topupNums || [])) {
         const norm = normalizeSomaliPhone(t.phone_number);
         if (!norm) continue;
-        // Haddii provider la garto, ku xir prefix-ka; haddii kale, qaado kii ugu horeeya
         if (recvProvider) {
           const prefixes = providerPrefixes[recvProvider] || [];
           if (prefixes.some((p) => norm.startsWith(p))) {
-            normalizedReceiver = norm;
+            autoTopupReceiverHint = norm;
             break;
           }
         } else {
-          normalizedReceiver = norm;
+          autoTopupReceiverHint = norm;
           break;
         }
       }
-      if (normalizedReceiver) {
-        console.log('🔍 Resolved receiver from auto_topup_numbers:', normalizedReceiver, '(', recvProvider || 'no-provider', ')');
+      if (autoTopupReceiverHint) {
+        console.log('🔍 Auto-topup receiver hint (NOT used for online/offline):', autoTopupReceiverHint, '(', recvProvider || 'no-provider', ')');
       }
     }
 
