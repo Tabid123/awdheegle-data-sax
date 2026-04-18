@@ -1624,33 +1624,56 @@ serve(async (req) => {
             .select("provider_name")
             .eq("id", pendingOrder.provider_id)
             .single();
-          const providerSlug = normalizeProviderSlug(providerData?.provider_name || "");
-          const bundled = await queueDeliveryWithBundling(
+          const providerSlug = await resolveProviderSlug(
             supabase,
-            pendingOrder.id,
-            pendingOrder.package_id,
             pendingOrder.provider_id,
-            pendingOrder.receiver_phone,
-            providerSlug,
+            providerData?.provider_name,
           );
-          if (!bundled) {
-            const ussdCode = buildUssdCode(
-              instruction.code_template,
-              normalizePhoneForProvider(pendingOrder.receiver_phone),
-              Number(orderPackage.cost_price),
-              instruction.sim_password || "5516",
-              orderPackage.ussd_code || "",
+          console.log(`🎯 Pending order providerSlug: "${providerSlug}" (id=${pendingOrder.provider_id})`);
+
+          const orderSlotInfo = providerSlug
+            ? await resolveSimSlotForProvider(supabase, providerSlug)
+            : null;
+
+          if (!providerSlug || !orderSlotInfo) {
+            console.error(`❌ No SIM for "${providerSlug}" — refusing to dial from wrong carrier`);
+            await supabase
+              .from("orders")
+              .update({
+                delivery_status: "failed",
+                delivery_notes: providerSlug
+                  ? `No ${providerSlug.toUpperCase()} SIM available on any active device.`
+                  : `Provider unresolved for provider_id ${pendingOrder.provider_id}`,
+              })
+              .eq("id", pendingOrder.id);
+          } else {
+            const bundled = await queueDeliveryWithBundling(
+              supabase,
+              pendingOrder.id,
+              pendingOrder.package_id,
+              pendingOrder.provider_id,
+              pendingOrder.receiver_phone,
+              providerSlug,
             );
-            const orderSlotInfo = await resolveSimSlotForProvider(supabase, providerSlug);
-            await queueDirectDeliveryIfMissing(supabase, {
-              order_id: pendingOrder.id,
-              provider_name: providerSlug,
-              ussd_code: ussdCode,
-              receiver_phone: pendingOrder.receiver_phone,
-              package_code: orderPackage.ussd_code,
-              status: "pending",
-              sim_slot: orderSlotInfo?.sim_slot ?? null,
-            });
+            if (!bundled) {
+              const ussdCode = buildUssdCode(
+                instruction.code_template,
+                normalizePhoneForProvider(pendingOrder.receiver_phone),
+                Number(orderPackage.cost_price),
+                instruction.sim_password || "5516",
+                orderPackage.ussd_code || "",
+              );
+              await queueDirectDeliveryIfMissing(supabase, {
+                order_id: pendingOrder.id,
+                provider_name: providerSlug,
+                ussd_code: ussdCode,
+                receiver_phone: pendingOrder.receiver_phone,
+                package_code: orderPackage.ussd_code,
+                status: "pending",
+                sim_slot: orderSlotInfo.sim_slot,
+              });
+              console.log(`📬 Online order queued (provider=${providerSlug}, sim_slot=${orderSlotInfo.sim_slot})`);
+            }
           }
         } else {
           await supabase
