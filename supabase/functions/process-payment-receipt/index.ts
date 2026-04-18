@@ -372,12 +372,13 @@ Deno.serve(async (req) => {
       if (orderError) throw orderError;
       await markMatched(order.id);
 
-      const renderedUssd = renderUssd(pkg.ussd_code || pkg.ussd_template || '', {
+      const { template, sim_password } = await resolveUssdTemplate(supabase, pkg);
+      const renderedUssd = renderUssd(template, {
         receiver_phone: receiverPhone,
         cost_price: pkg.cost_price ?? amount,
         amount,
-        sim_password: '',
-        pin: '',
+        sim_password,
+        pin: sim_password,
       });
       await supabase.from('delivery_queue').insert({
         order_id: order.id,
