@@ -111,78 +111,14 @@ Deno.serve(async (req) => {
 
     let topupNumber: any = null;
 
-    // 1) Direct match using receiver_sim
+    // STRICT: only direct match via receiver_sim. If receiver_sim is missing
+    // or does not match an auto_topup_numbers row, this is NOT auto top-up.
     if (normalizedReceiver) {
       topupNumber = (allTopupNumbers || []).find((t: any) => {
         const n = normalizeSomaliPhone(t.phone_number);
         return n === normalizedReceiver;
       }) || null;
     }
-
-    // 2) Fallback: derive receiver from SMS brand tag → provider → auto_topup_number
-    if (!topupNumber && (allTopupNumbers || []).length > 0) {
-      const recvProviderFromSms = detectReceiverProviderFromSms(sms_body);
-      if (recvProviderFromSms) {
-        const recvProvider = (providersList || []).find(
-          (p: any) => (p.provider_name || '').toLowerCase() === recvProviderFromSms,
-        );
-        const recvPrefixes: string[] = ((recvProvider?.phone_prefixes) || []).map((x: string) => String(x));
-
-        const candidates = (allTopupNumbers || []).filter((t: any) => {
-          const n = normalizeSomaliPhone(t.phone_number);
-          return recvPrefixes.includes(n.substring(0, 2));
-        });
-
-        if (candidates.length === 1) {
-          topupNumber = candidates[0];
-          normalizedReceiver = normalizeSomaliPhone(topupNumber.phone_number);
-          console.log(`🔎 Fallback receiver detected via SMS tag → ${recvProviderFromSms} → ${normalizedReceiver}`);
-        } else if (candidates.length > 1) {
-          console.log(`⚠️ Multiple auto-topup numbers match provider ${recvProviderFromSms}; cannot disambiguate without receiver_sim`);
-        }
-      }
-    }
-
-    // 3) LAST-RESORT FALLBACK: receiver missing AND no brand tag.
-    //    If ANY active auto_topup_package matches this exact amount, treat
-    //    as Auto Top-up. If multiple topup numbers exist, pick the one whose
-    //    package matches the SENDER's provider (so Hormuud sender → Hormuud pkg).
-    if (!topupNumber && !normalizedReceiver && (allTopupNumbers || []).length > 0) {
-      // Resolve sender provider quickly (re-used below too)
-      const senderPrefix2Pre = normalizedSender.substring(0, 2);
-      let senderProvName: string | null = null;
-      for (const p of (providersList || [])) {
-        const prefixes: string[] = (p.phone_prefixes || []).map((x: string) => String(x));
-        if (prefixes.includes(senderPrefix2Pre)) {
-          senderProvName = (p.provider_name || '').toLowerCase();
-          break;
-        }
-      }
-
-      const { data: amtPkgs } = await supabase
-        .from('auto_topup_packages')
-        .select('id, topup_number_id, provider_name, selling_price, is_active')
-        .eq('is_active', true)
-        .eq('selling_price', amount);
-
-      if (amtPkgs && amtPkgs.length > 0) {
-        // Prefer a package matching sender's provider
-        let chosenPkg: any = null;
-        if (senderProvName) {
-          chosenPkg = amtPkgs.find((p: any) => (p.provider_name || '').toLowerCase() === senderProvName) || null;
-        }
-        if (!chosenPkg && amtPkgs.length === 1) chosenPkg = amtPkgs[0];
-
-        if (chosenPkg) {
-          topupNumber = (allTopupNumbers || []).find((t: any) => t.id === chosenPkg.topup_number_id) || null;
-          if (topupNumber) {
-            normalizedReceiver = normalizeSomaliPhone(topupNumber.phone_number);
-            console.log(`🔎 Last-resort fallback: amount $${amount} matches auto_topup pkg → receiver ${normalizedReceiver}`);
-          }
-        }
-      }
-    }
-
 
     const senderPrefix2 = normalizedSender.substring(0, 2);
     let senderProviderName: string | null = null;
