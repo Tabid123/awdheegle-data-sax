@@ -46,7 +46,20 @@ Deno.serve(async (req) => {
     }
 
     const normalizedSender = normalizeSomaliPhone(sender_phone);
-    const normalizedReceiver = receiver_sim ? normalizeSomaliPhone(receiver_sim) : '';
+    let normalizedReceiver = receiver_sim ? normalizeSomaliPhone(receiver_sim) : '';
+
+    // SMS brand tag → provider name (used as fallback when receiver_sim is missing)
+    // [-JEEB-]/[-Somnet-] = Somnet, [-EVCPlus-] = Hormuud, [-Somtel-] = Somtel, etc.
+    const detectReceiverProviderFromSms = (body: string): string | null => {
+      const b = (body || '').toLowerCase();
+      if (b.includes('[-jeeb-]') || b.includes('[-somnet-]') || b.includes('somnet telecom')) return 'somnet';
+      if (b.includes('[-evcplus-]') || b.includes('[-evc plus-]') || b.includes('evcplus')) return 'hormuud';
+      if (b.includes('[-somtel-]') || b.includes('somtel')) return 'somtel';
+      if (b.includes('[-amtel-]') || b.includes('amtel')) return 'amtel';
+      if (b.includes('[-somlink-]') || b.includes('somlink')) return 'somlink';
+      return null;
+    };
+
     console.log('📱 SMS:', { sender: normalizedSender, receiver: normalizedReceiver, amount, tx_id });
 
     // Log raw SMS
@@ -79,26 +92,57 @@ Deno.serve(async (req) => {
     };
 
     // ============================================================
-    // GATE: Is receiver_sim an Auto Top-Up number?
+    // GATE: Is this payment for an Auto Top-Up number?
+    // Primary: receiver_sim sent by Android app
+    // Fallback: detect receiver-provider from SMS brand tag, then match
+    //          a single active auto_topup_number whose phone prefix maps
+    //          to that provider.
     // ============================================================
-    let topupNumber: any = null;
-    if (normalizedReceiver) {
-      const { data: topupNumbers } = await supabase
-        .from('auto_topup_numbers')
-        .select('id, phone_number, is_active')
-        .eq('is_active', true);
-
-      topupNumber = (topupNumbers || []).find((t: any) => {
-        const n = normalizeSomaliPhone(t.phone_number);
-        return n === normalizedReceiver;
-      }) || null;
-    }
+    const { data: allTopupNumbers } = await supabase
+      .from('auto_topup_numbers')
+      .select('id, phone_number, is_active')
+      .eq('is_active', true);
 
     // Load providers once (used by both flows for prefix → provider lookup)
     const { data: providersList } = await supabase
       .from('providers_config')
       .select('id, provider_name, phone_prefixes')
       .eq('is_active', true);
+
+    let topupNumber: any = null;
+
+    // 1) Direct match using receiver_sim
+    if (normalizedReceiver) {
+      topupNumber = (allTopupNumbers || []).find((t: any) => {
+        const n = normalizeSomaliPhone(t.phone_number);
+        return n === normalizedReceiver;
+      }) || null;
+    }
+
+    // 2) Fallback: derive receiver from SMS brand tag → provider → auto_topup_number
+    if (!topupNumber && (allTopupNumbers || []).length > 0) {
+      const recvProviderFromSms = detectReceiverProviderFromSms(sms_body);
+      if (recvProviderFromSms) {
+        const recvProvider = (providersList || []).find(
+          (p: any) => (p.provider_name || '').toLowerCase() === recvProviderFromSms,
+        );
+        const recvPrefixes: string[] = ((recvProvider?.phone_prefixes) || []).map((x: string) => String(x));
+
+        const candidates = (allTopupNumbers || []).filter((t: any) => {
+          const n = normalizeSomaliPhone(t.phone_number);
+          return recvPrefixes.includes(n.substring(0, 2));
+        });
+
+        if (candidates.length === 1) {
+          topupNumber = candidates[0];
+          normalizedReceiver = normalizeSomaliPhone(topupNumber.phone_number);
+          console.log(`🔎 Fallback receiver detected via SMS tag → ${recvProviderFromSms} → ${normalizedReceiver}`);
+        } else if (candidates.length > 1) {
+          console.log(`⚠️ Multiple auto-topup numbers match provider ${recvProviderFromSms}; cannot disambiguate without receiver_sim`);
+        }
+      }
+    }
+
 
     const senderPrefix2 = normalizedSender.substring(0, 2);
     let senderProviderName: string | null = null;
