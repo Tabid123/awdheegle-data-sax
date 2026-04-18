@@ -99,17 +99,38 @@ Deno.serve(async (req) => {
       if (receipt?.id) await supabase.from('payment_receipts').update({ status: 'matched', matched: true, order_id: orderId }).eq('id', receipt.id);
     };
 
-    // ============ TIER 1: AUTO TOP-UP (FUDUD) ============
-    // Logic: Haddii amount-ku waafaqsan yahay xirmo auto top-up firfircoon,
-    // dir dalabka SENDER-ka. Iska illoow receiver_sim, device_id, offline reg.
-    const { data: matchingPkgs } = await supabase
-      .from('auto_topup_packages')
-      .select('*, auto_topup_numbers!inner(id, phone_number, is_active)')
-      .eq('is_active', true)
-      .eq('selling_price', amount)
-      .eq('auto_topup_numbers.is_active', true);
+    // ============ TIER 1: AUTO TOP-UP ============
+    // Logic FUDUD: Haddii lacagta loo soo diray (receiver_sim) tahay lambar
+    // auto top-up la save-gareeyay → raadi xirmo amount-keedu match-gareeyo
+    // lambarkaas → dalabka u dir SENDER-ka.
+    const normalizedReceiver = receiver_sim ? normalizeSomaliPhone(receiver_sim) : '';
+    const receiverVariants = normalizedReceiver
+      ? [normalizedReceiver, `0${normalizedReceiver}`, `252${normalizedReceiver}`, `+252${normalizedReceiver}`]
+      : [];
 
-    const pkg = matchingPkgs?.[0];
+    let pkg: any = null;
+    if (receiverVariants.length > 0) {
+      const { data: topupNum } = await supabase
+        .from('auto_topup_numbers')
+        .select('id, phone_number, is_active')
+        .in('phone_number', receiverVariants)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (topupNum) {
+        const { data: matchingPkgs } = await supabase
+          .from('auto_topup_packages')
+          .select('*')
+          .eq('topup_number_id', topupNum.id)
+          .eq('is_active', true)
+          .eq('selling_price', amount);
+        pkg = matchingPkgs?.[0] || null;
+        if (!pkg) {
+          console.log(`⚠️ Auto top-up number ${topupNum.phone_number} matched, laakiin amount $${amount} ma waafaqsana xirmo.`);
+        }
+      }
+    }
+
     if (pkg) {
       console.log('🔄 AUTO TOP-UP MATCH: amount $' + amount + ' → ' + pkg.package_name);
 
