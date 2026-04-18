@@ -832,18 +832,149 @@ serve(async (req) => {
 
       if (!customPkg) {
         console.log(`⚠️ Auto top-up: no package found for $${amount} on ${detectedProvider.provider_name}`);
+        console.log(`🔄 FALLBACK: Trying offline_registrations for sender ${normalizedSender}...`);
+
+        // FALLBACK: Try offline_registrations before marking unmatched
+        const { data: fallbackReg } = await supabase
+          .from("offline_registrations")
+          .select("*")
+          .in("sender_phone", senderVariants)
+          .eq("is_active", true)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (fallbackReg) {
+          console.log(`✅ Offline registration found as fallback:`, {
+            sender: fallbackReg.sender_phone,
+            receiver: fallbackReg.receiver_phone,
+            provider: fallbackReg.provider_name,
+          });
+
+          // Try to find a matching data_packages_config for this provider + amount
+          const priceNum = Number(amount);
+          const { data: fbPkgs } = await supabase
+            .from("data_packages_config")
+            .select("*, category_id")
+            .eq("provider_id", fallbackReg.provider_id)
+            .eq("selling_price", priceNum)
+            .eq("is_active", true)
+            .limit(1);
+
+          const fbPkg = fbPkgs && fbPkgs.length > 0 ? fbPkgs[0] : null;
+
+          if (fbPkg) {
+            console.log(`📦 Fallback package found via offline_reg:`, fbPkg.package_name);
+
+            const { data: fbPaymentProvider } = await supabase
+              .from("payment_providers_config")
+              .select("id, payment_number")
+              .eq("is_active", true)
+              .order("created_at", { ascending: true })
+              .limit(1)
+              .single();
+
+            const { data: fbOrder, error: fbOrderErr } = await supabase
+              .from("orders")
+              .insert({
+                customer_phone: normalizedSender,
+                sender_phone: normalizedSender,
+                receiver_phone: fallbackReg.receiver_phone,
+                provider_id: fallbackReg.provider_id,
+                package_id: fbPkg.id,
+                package_name: fbPkg.package_name,
+                data_amount: fbPkg.data_amount || "",
+                selling_price: priceNum,
+                payment_provider_id: fbPaymentProvider?.id,
+                payment_number: fbPaymentProvider?.payment_number || "",
+                payment_source: "auto_topup_offline_fallback",
+                tx_id: effectiveTxId || null,
+                status: "completed",
+                delivery_status: "queued",
+              })
+              .select()
+              .single();
+
+            if (!fbOrderErr && fbOrder) {
+              await supabase
+                .from("payment_receipts")
+                .update({
+                  status: "matched",
+                  matched_order_id: fbOrder.id,
+                  matching_strategy: "auto_topup_offline_fallback",
+                  processed_at: new Date().toISOString(),
+                  admin_notes: `Route: auto_topup→offline_reg | ${fbPkg.package_name} for ${fallbackReg.receiver_phone} | SIM: ${resolvedSimNumber}`,
+                })
+                .eq("id", receipt.id);
+
+              const fbInstr = await getDeliveryInstruction(
+                supabase,
+                fallbackReg.provider_id,
+                fbPkg.id,
+                fbPkg.category_id,
+              );
+              const fbProviderSlug = normalizeProviderSlug(fallbackReg.provider_name || detectedProvider.provider_name);
+
+              const fbBundled = await queueDeliveryWithBundling(
+                supabase,
+                fbOrder.id,
+                fbPkg.id,
+                fallbackReg.provider_id,
+                fallbackReg.receiver_phone,
+                fbProviderSlug,
+              );
+
+              if (!fbBundled && fbInstr?.code_template) {
+                const fbUssd = buildUssdCode(
+                  fbInstr.code_template,
+                  normalizePhoneForProvider(fallbackReg.receiver_phone),
+                  Number(fbPkg.cost_price),
+                  fbInstr.sim_password || "5516",
+                  fbPkg.ussd_code || "",
+                );
+                await queueDirectDeliveryIfMissing(supabase, {
+                  order_id: fbOrder.id,
+                  provider_name: fbProviderSlug,
+                  ussd_code: fbUssd,
+                  receiver_phone: fallbackReg.receiver_phone,
+                  package_code: fbPkg.ussd_code,
+                  status: "pending",
+                });
+              }
+
+              return new Response(
+                JSON.stringify({
+                  success: true,
+                  message: "Matched via offline_registrations fallback",
+                  order_id: fbOrder.id,
+                  matching_strategy: "auto_topup_offline_fallback",
+                  route: "auto_topup",
+                }),
+                { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
+              );
+            } else {
+              console.error("❌ Fallback order creation failed:", fbOrderErr);
+            }
+          } else {
+            console.log(`⚠️ Fallback: offline_reg found but no package for $${amount} on ${fallbackReg.provider_name}`);
+          }
+        } else {
+          console.log(`⚠️ Fallback: no offline_registration found for sender ${normalizedSender}`);
+        }
+
+        // All fallbacks exhausted → unmatched
         await supabase
           .from("payment_receipts")
           .update({
             status: "unmatched",
-            admin_notes: `Route: auto_topup | No package for $${amount} on ${detectedProvider.provider_name} (prefix: ${senderPrefix2}) | SIM: ${resolvedSimNumber}`,
+            admin_notes: `Route: auto_topup | No package for $${amount} on ${detectedProvider.provider_name} (prefix: ${senderPrefix2}) | No offline_reg fallback | SIM: ${resolvedSimNumber}`,
           })
           .eq("id", receipt.id);
         return new Response(
           JSON.stringify({
             success: true,
-            message: "Auto top-up number matched but no package found",
-            matching_strategy: "auto_topup_no_package",
+            message: "Auto top-up + offline_reg fallback both failed",
+            matching_strategy: "auto_topup_no_package_no_fallback",
           }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
         );
