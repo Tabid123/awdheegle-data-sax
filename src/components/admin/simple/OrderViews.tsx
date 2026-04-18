@@ -116,7 +116,7 @@ export const DailyOrdersCustomView = ({ isSo }: { isSo: boolean }) => {
         cost_price: o.package?.cost_price ?? 0,
         customer_phone: o.sender_phone,
         provider_name: o.provider?.display_name || o.provider?.provider_name,
-        payment_source: o.is_offline ? 'sms_offline' : (o.is_manual ? 'manual' : (o.delivery_notes?.startsWith('Auto top-up') ? 'auto_topup' : 'ussd_online')),
+        payment_source: o.payment_source || (o.delivery_notes?.startsWith('Auto top-up') ? 'auto_topup' : (o.is_manual ? 'manual' : (o.is_offline ? 'sms_offline' : 'ussd_online'))),
       }));
       setOrders(enriched);
     } catch { toast.error('Failed to load orders'); }
