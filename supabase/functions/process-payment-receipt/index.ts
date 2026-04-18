@@ -527,14 +527,17 @@ serve(async (req) => {
     const effectiveTxId = extractedTxReference || stableTxId || incomingTxId;
 
     // ========================================
-    // RESOLVE RECEIVER SIM TO ACTUAL NUMBER
+    // RESOLVE RECEIVER SIM TO ACTUAL NUMBER + PROVIDER
     // ========================================
-    const resolvedSimNumber = await resolveReceiverSimNumber(supabase, receiver_sim);
+    const simInfo = await resolveReceiverSimInfo(supabase, receiver_sim);
+    const resolvedSimNumber = simInfo.simNumber;
+    const resolvedSimProvider = simInfo.provider; // e.g. 'hormuud', 'Somnet'
     console.log("📱 SMS Received:", {
       sender_phone,
       normalizedSender,
       receiver_sim,
       resolvedSimNumber,
+      resolvedSimProvider,
       amount,
       tx_id: incomingTxId,
       effectiveTxId,
