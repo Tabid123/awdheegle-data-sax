@@ -565,9 +565,11 @@ serve(async (req) => {
       .from("payment_receipts")
       .insert({
         sender_phone: normalizedSender,
+        receiver_sim: resolvedSimNumber.length >= 7 ? resolvedSimNumber : receiver_sim.toLowerCase(),
         amount,
+        sms_body,
         raw_sms: sms_body,
-        reference: effectiveTxId,
+        tx_id: effectiveTxId,
         status: "pending",
       })
       .select()
