@@ -147,14 +147,16 @@ async function pendingAlreadyMatched(supabase: any, pendingId: string): Promise<
   return data?.status === "matched";
 }
 
-function normalizeProviderSlug(name: string): string {
-  const lower = name.toLowerCase();
+function normalizeProviderSlug(name: string | null | undefined): string {
+  if (!name || typeof name !== "string") return "";
+  const lower = name.toLowerCase().trim();
+  if (!lower) return "";
   if (lower.includes("hormuud")) return "hormuud";
   if (lower.includes("somnet")) return "somnet";
   if (lower.includes("somtel")) return "somtel";
   if (lower.includes("amtel")) return "amtel";
   if (lower.includes("somlink")) return "somlink";
-  return lower.split(" ")[0];
+  return lower.split(" ")[0] || "";
 }
 
 function formatAmountForUssd(amount: number): string {
