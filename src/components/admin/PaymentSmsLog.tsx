@@ -121,7 +121,14 @@ export function PaymentSmsLog() {
             delivery_status,
             delivery_notes,
             amount,
-            package_id
+            package_id,
+            package:package_id (
+              id,
+              package_name,
+              data_amount,
+              selling_price,
+              price
+            )
           )
         `)
         .order('created_at', { ascending: false });
@@ -143,7 +150,7 @@ export function PaymentSmsLog() {
 
       if (error) throw error;
 
-      // Now fetch provider info for matched orders
+      // Now fetch provider info + flatten package fields for matched orders
       if (data) {
         const receiptsWithProviders = await Promise.all(
           data.map(async (receipt: any) => {
@@ -157,6 +164,16 @@ export function PaymentSmsLog() {
               if (providerData) {
                 receipt.order.provider = providerData;
               }
+            }
+            // Flatten package fields so the dialog can read them directly
+            if (receipt.order) {
+              const pkg = receipt.order.package;
+              receipt.order.package_name = pkg?.package_name ?? receipt.order.delivery_notes ?? '-';
+              receipt.order.data_amount = pkg?.data_amount ?? '-';
+              receipt.order.selling_price = Number(
+                pkg?.selling_price ?? pkg?.price ?? receipt.order.amount ?? 0,
+              );
+              receipt.order.customer_phone = receipt.order.sender_phone;
             }
             return receipt as PaymentReceipt;
           })
