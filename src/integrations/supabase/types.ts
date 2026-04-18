@@ -1241,25 +1241,37 @@ export type Database = {
       package_delivery_rules: {
         Row: {
           created_at: string
+          delay_minutes: number
           delay_seconds: number
+          delivery_count: number
           execution_order: number
           id: string
+          is_active: boolean
+          notes: string | null
           source_package_id: string
           target_package_id: string
         }
         Insert: {
           created_at?: string
+          delay_minutes?: number
           delay_seconds?: number
+          delivery_count?: number
           execution_order?: number
           id?: string
+          is_active?: boolean
+          notes?: string | null
           source_package_id: string
           target_package_id: string
         }
         Update: {
           created_at?: string
+          delay_minutes?: number
           delay_seconds?: number
+          delivery_count?: number
           execution_order?: number
           id?: string
+          is_active?: boolean
+          notes?: string | null
           source_package_id?: string
           target_package_id?: string
         }
