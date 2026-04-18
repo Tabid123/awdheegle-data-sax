@@ -99,17 +99,25 @@ Deno.serve(async (req) => {
     };
 
     // ============ TIER 1: AUTO TOP-UP NUMBER ============
-    // Haddii sender lambar auto top-up ah, raadi auto_topup_packages. Hadii laga helo dir, hadii la waayo unmatched.
-    const { data: topupNumbers } = await supabase
-      .from('auto_topup_numbers')
-      .select('id, phone_number, is_active')
-      .in('phone_number', variants)
-      .eq('is_active', true)
-      .limit(1);
+    // Haddii RECEIVER (lambarka lacagta lagu shubay) yahay lambar auto top-up ah,
+    // raadi auto_topup_packages oo qiimaha la mid yahay → dir lambarka SENDER (qofka lacagta soo diray).
+    // Hadii la waayo package qiimaha la mid ah → unmatched.
+    const normalizedReceiver = receiver_sim ? normalizeSomaliPhone(receiver_sim) : '';
+    const receiverVariants = normalizedReceiver ? senderVariants(normalizedReceiver) : [];
 
-    const topupNumber = topupNumbers?.[0];
+    let topupNumber: any = null;
+    if (receiverVariants.length > 0) {
+      const { data: topupByReceiver } = await supabase
+        .from('auto_topup_numbers')
+        .select('id, phone_number, is_active')
+        .in('phone_number', receiverVariants)
+        .eq('is_active', true)
+        .limit(1);
+      topupNumber = topupByReceiver?.[0] || null;
+    }
+
     if (topupNumber) {
-      console.log('🔄 TIER 1: Auto top-up sender:', topupNumber.phone_number);
+      console.log('🔄 TIER 1: Auto top-up RECEIVER:', topupNumber.phone_number, '→ delivering to SENDER:', normalizedSender);
       const { data: pkgs } = await supabase
         .from('auto_topup_packages')
         .select('*')
