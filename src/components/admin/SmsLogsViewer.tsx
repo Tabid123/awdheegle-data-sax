@@ -4,9 +4,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Loader2, ArrowDownLeft, ArrowUpRight, Smartphone, RefreshCw, MessageSquare, CalendarDays, ArrowLeft, ChevronRight, Search } from 'lucide-react';
+import { toast } from 'sonner';
+import { Loader2, ArrowDownLeft, ArrowUpRight, Smartphone, RefreshCw, MessageSquare, CalendarDays, ArrowLeft, ChevronRight, Search, Trash2 } from 'lucide-react';
 
 interface SmsLog {
   id: string;
@@ -63,6 +65,49 @@ const SmsLogsViewer = () => {
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedSenderCode, setSelectedSenderCode] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [deleting, setDeleting] = useState(false);
+
+  const toggleSelect = (key: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  };
+
+  const clearSelection = () => setSelectedIds(new Set());
+
+  const handleDelete = async () => {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`Tirtir ${selectedIds.size} SMS? Tani ma laga noqon karo.`)) return;
+    setDeleting(true);
+    try {
+      const smsLogIds: string[] = [];
+      const paySmsIds: string[] = [];
+      selectedIds.forEach(key => {
+        const [source, id] = key.split('::');
+        if (source === 'sms_logs') smsLogIds.push(id);
+        else if (source === 'payment_sms_log') paySmsIds.push(id);
+      });
+      if (smsLogIds.length > 0) {
+        const { error } = await supabase.from('sms_logs').delete().in('id', smsLogIds);
+        if (error) throw error;
+      }
+      if (paySmsIds.length > 0) {
+        const { error } = await supabase.from('payment_sms_log').delete().in('id', paySmsIds);
+        if (error) throw error;
+      }
+      toast.success(`Waa la tirtiray ${selectedIds.size} SMS`);
+      clearSelection();
+      fetchLogs();
+    } catch (e: any) {
+      console.error('Delete error:', e);
+      toast.error(e?.message || 'Khalad ayaa dhacay');
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   useEffect(() => {
     const fetchDevices = async () => {
@@ -319,51 +364,95 @@ const SmsLogsViewer = () => {
           </Button>
 
           <div className={`rounded-lg p-2 bg-gradient-to-r ${getProviderColor(getProviderFromSender(selectedSenderCode))}`}>
-            <div className="flex items-center gap-2">
-              <span className={`text-lg font-bold ${getProviderTextColor(getProviderFromSender(selectedSenderCode))}`}>
-                {selectedSenderCode}
-              </span>
-              {getProviderFromSender(selectedSenderCode) && (
-                <Badge variant="secondary" className="text-[10px]">
-                  {getProviderFromSender(selectedSenderCode)}
-                </Badge>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <Checkbox
+                  checked={filteredLogs.length > 0 && filteredLogs.every(l => selectedIds.has(`${l.source}::${l.id}`))}
+                  onCheckedChange={(v) => {
+                    if (v) {
+                      setSelectedIds(prev => {
+                        const next = new Set(prev);
+                        filteredLogs.forEach(l => next.add(`${l.source}::${l.id}`));
+                        return next;
+                      });
+                    } else {
+                      setSelectedIds(prev => {
+                        const next = new Set(prev);
+                        filteredLogs.forEach(l => next.delete(`${l.source}::${l.id}`));
+                        return next;
+                      });
+                    }
+                  }}
+                />
+                <span className={`text-lg font-bold ${getProviderTextColor(getProviderFromSender(selectedSenderCode))} truncate`}>
+                  {selectedSenderCode}
+                </span>
+                {getProviderFromSender(selectedSenderCode) && (
+                  <Badge variant="secondary" className="text-[10px]">
+                    {getProviderFromSender(selectedSenderCode)}
+                  </Badge>
+                )}
+                <Badge variant="outline" className="text-[10px]">{filteredLogs.length} SMS</Badge>
+              </div>
+              {selectedIds.size > 0 && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="h-7 text-[11px] gap-1"
+                >
+                  <Trash2 className="h-3 w-3" />
+                  Tirtir ({selectedIds.size})
+                </Button>
               )}
-              <Badge variant="outline" className="text-[10px]">{filteredLogs.length} SMS</Badge>
             </div>
           </div>
 
-          {filteredLogs.map(log => (
-            <Card key={`${log.source}-${log.id}`} className="overflow-hidden">
+          {filteredLogs.map(log => {
+            const key = `${log.source}::${log.id}`;
+            const isSelected = selectedIds.has(key);
+            return (
+            <Card key={key} className={`overflow-hidden ${isSelected ? 'ring-2 ring-primary' : ''}`}>
               <CardContent className="p-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className={`p-1.5 rounded-full shrink-0 ${
-                      getSmartDirection(log) === 'incoming' 
-                        ? 'bg-green-100 dark:bg-green-900/40' 
-                        : 'bg-red-100 dark:bg-red-900/40'
-                    }`}>
-                      {getSmartDirection(log) === 'incoming' 
-                        ? <ArrowDownLeft className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
-                        : <ArrowUpRight className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />
-                      }
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        {log.counterpart_phone && (
-                          <span className="text-sm font-semibold truncate">{log.counterpart_phone}</span>
-                        )}
-                        {log.amount != null && (
-                          <span className="text-sm font-bold text-green-600 dark:text-green-400">${log.amount}</span>
-                        )}
+                <div className="flex items-start gap-2">
+                  <Checkbox
+                    checked={isSelected}
+                    onCheckedChange={() => toggleSelect(key)}
+                    className="mt-1"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className={`p-1.5 rounded-full shrink-0 ${
+                          getSmartDirection(log) === 'incoming' 
+                            ? 'bg-green-100 dark:bg-green-900/40' 
+                            : 'bg-red-100 dark:bg-red-900/40'
+                        }`}>
+                          {getSmartDirection(log) === 'incoming' 
+                            ? <ArrowDownLeft className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+                            : <ArrowUpRight className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />
+                          }
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {log.counterpart_phone && (
+                              <span className="text-sm font-semibold truncate">{log.counterpart_phone}</span>
+                            )}
+                            {log.amount != null && (
+                              <span className="text-sm font-bold text-green-600 dark:text-green-400">${log.amount}</span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 capitalize">
+                              {log.source === 'payment_sms_log' ? 'Payment' : 'SMS'}
+                            </Badge>
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 capitalize">
-                          {log.source === 'payment_sms_log' ? 'Payment' : 'SMS'}
-                        </Badge>
-                      </div>
+                      <span className="text-[10px] text-muted-foreground whitespace-nowrap shrink-0">{formatTime(log.created_at)}</span>
                     </div>
                   </div>
-                  <span className="text-[10px] text-muted-foreground whitespace-nowrap shrink-0">{formatTime(log.created_at)}</span>
                 </div>
                 
                 <div className="mt-2 bg-muted/50 rounded-md px-2.5 py-2">
@@ -381,7 +470,8 @@ const SmsLogsViewer = () => {
                 </div>
               </CardContent>
             </Card>
-          ))}
+          );
+          })}
         </div>
       )}
     </div>

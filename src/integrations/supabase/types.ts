@@ -1848,6 +1848,21 @@ export type Database = {
         }[]
       }
       get_admin_analytics_summary: { Args: never; Returns: Json }
+      get_admin_transactions_paginated: {
+        Args: {
+          p_page?: number
+          p_page_size?: number
+          p_period?: string
+          p_provider_id?: string
+          p_search?: string
+          p_status?: string
+        }
+        Returns: Json
+      }
+      get_admin_transactions_summary: {
+        Args: { p_period?: string; p_provider_id?: string }
+        Returns: Json
+      }
       get_customer_order_history: {
         Args: { _phone: string }
         Returns: {
