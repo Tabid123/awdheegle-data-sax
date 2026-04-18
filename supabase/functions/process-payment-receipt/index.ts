@@ -143,6 +143,24 @@ Deno.serve(async (req) => {
       }
     }
 
+    // (c) device_id provided → check if any SIM on that device matches an auto top-up number
+    //     (Hormuud SMS doesn't reveal the receiving SIM, but the device that received the SMS
+    //      must own the auto top-up SIM — so we can match by device ownership.)
+    if (!topupNumber && device_id) {
+      const { data: deviceSims } = await supabase
+        .from('sims')
+        .select('phone_number')
+        .eq('device_id', device_id);
+      for (const s of (deviceSims || [])) {
+        const simNorm = normalizeSomaliPhone(s.phone_number || '');
+        if (simNorm && normalizedTopupSet.has(simNorm)) {
+          topupNumber = normalizedTopupSet.get(simNorm);
+          console.log('🔄 TIER 1c: device SIM is auto top-up:', topupNumber.phone_number);
+          break;
+        }
+      }
+    }
+
     if (topupNumber) {
       const { data: pkgs } = await supabase
         .from('auto_topup_packages')
