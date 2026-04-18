@@ -112,28 +112,42 @@ Deno.serve(async (req) => {
       return null;
     };
 
-    // FALLBACK: when device didn't pass receiver_sim, look it up from android_devices
-    // using the SMS provider tag ([-JEEB-]=Somnet → SIM that has somnet provider, etc.).
+    // FALLBACK: marka SMS-ku uusan keenin receiver_sim, ka soo akhri auto_topup_numbers
+    // table-ka (halka rasmiga ah). Marwalba dalab cusub markuu soo dhaco, waxaan eegnaa
+    // lambarrada active ee auto top-up oo aan u dhignaa provider-ka SMS tag-gaaga.
+    // Tusaale: SMS [-JEEB-] (Somnet) → eeg auto_topup_numbers-ka oo prefix-kiisu Somnet yahay.
     if (!normalizedReceiver) {
       const recvProvider = detectReceiverProviderFromSms(sms_body);
-      if (recvProvider) {
-        const { data: devs } = await supabase
-          .from('android_devices')
-          .select('sim_number, sim1_provider, sim2_number, sim2_provider')
-          .eq('is_active', true);
-        for (const d of (devs || [])) {
-          if ((d.sim1_provider || '').toLowerCase() === recvProvider && d.sim_number) {
-            normalizedReceiver = normalizeSomaliPhone(d.sim_number);
+      const { data: topupNums } = await supabase
+        .from('auto_topup_numbers')
+        .select('phone_number')
+        .eq('is_active', true);
+
+      const providerPrefixes: Record<string, string[]> = {
+        somnet: ['615'],
+        hormuud: ['61', '619', '612', '613', '617', '618'],
+        somtel: ['634', '658'],
+        amtel: ['636'],
+        somlink: ['680'],
+      };
+
+      for (const t of (topupNums || [])) {
+        const norm = normalizeSomaliPhone(t.phone_number);
+        if (!norm) continue;
+        // Haddii provider la garto, ku xir prefix-ka; haddii kale, qaado kii ugu horeeya
+        if (recvProvider) {
+          const prefixes = providerPrefixes[recvProvider] || [];
+          if (prefixes.some((p) => norm.startsWith(p))) {
+            normalizedReceiver = norm;
             break;
           }
-          if ((d.sim2_provider || '').toLowerCase() === recvProvider && d.sim2_number) {
-            normalizedReceiver = normalizeSomaliPhone(d.sim2_number);
-            break;
-          }
+        } else {
+          normalizedReceiver = norm;
+          break;
         }
-        if (normalizedReceiver) {
-          console.log('🔍 Resolved receiver SIM from android_devices:', normalizedReceiver, '(', recvProvider, ')');
-        }
+      }
+      if (normalizedReceiver) {
+        console.log('🔍 Resolved receiver from auto_topup_numbers:', normalizedReceiver, '(', recvProvider || 'no-provider', ')');
       }
     }
 
