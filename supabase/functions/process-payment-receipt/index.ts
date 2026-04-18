@@ -1047,7 +1047,9 @@ serve(async (req) => {
           if (qErr) console.error("❌ Auto top-up chained queue error:", qErr);
           else {
             console.log(`📬 Auto top-up: ${inserted.length} target deliveries queued (source skipped)`);
-            // cost_price tracking removed (column not in orders schema)
+            if (totalChainedCost > 0) {
+              await supabase.from("orders").update({ cost_price: totalChainedCost }).eq("id", autoOrder.id);
+            }
           }
         } else {
           await supabase
