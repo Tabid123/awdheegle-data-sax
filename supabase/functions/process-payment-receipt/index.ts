@@ -21,6 +21,14 @@ function normalizeSomaliPhone(phone: string): string {
   return digits.length >= 9 ? digits.slice(-9) : digits;
 }
 
+function renderUssd(template: string, vars: Record<string, string | number | null | undefined>): string {
+  let out = String(template || '');
+  for (const [k, v] of Object.entries(vars)) {
+    out = out.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v ?? ''));
+  }
+  return out;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
@@ -30,7 +38,7 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, serviceKey);
 
     const body: SMSData = await req.json();
-    const { sender_phone, amount, sms_body, tx_id } = body;
+    const { sender_phone, receiver_sim, amount, sms_body, tx_id } = body;
 
     if (!sender_phone || !amount || !sms_body) {
       return new Response(JSON.stringify({ error: 'Missing required fields' }),
@@ -38,7 +46,8 @@ Deno.serve(async (req) => {
     }
 
     const normalizedSender = normalizeSomaliPhone(sender_phone);
-    console.log('📱 SMS:', { normalizedSender, amount, tx_id });
+    const normalizedReceiver = receiver_sim ? normalizeSomaliPhone(receiver_sim) : '';
+    console.log('📱 SMS:', { sender: normalizedSender, receiver: normalizedReceiver, amount, tx_id });
 
     // Log raw SMS
     const { data: smsLog } = await supabase
@@ -50,7 +59,11 @@ Deno.serve(async (req) => {
       .insert({ sender_phone: normalizedSender, amount, raw_sms: sms_body, reference: tx_id || null, status: 'pending', matched: false })
       .select().single();
 
+    const ok = (payload: Record<string, unknown>) =>
+      new Response(JSON.stringify(payload), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
+
     const markUnmatched = async (reason: string) => {
+      console.log('❌ Unmatched:', reason);
       if (smsLog?.id) await supabase.from('payment_sms_log').update({ status: 'unmatched' }).eq('id', smsLog.id);
       if (receipt?.id) await supabase.from('payment_receipts').update({ status: 'unmatched' }).eq('id', receipt.id);
       await supabase.from('unmatched_payments').insert({
@@ -65,113 +78,269 @@ Deno.serve(async (req) => {
       if (receipt?.id) await supabase.from('payment_receipts').update({ status: 'matched', matched: true, order_id: orderId }).eq('id', receipt.id);
     };
 
-    // ===== LOGIC KALIYA: AUTO TOP-UP =====
-    // 1) Hel dhamman auto-topup numbers (firfircoon).
-    // 2) Hel dhamman packages-ka ku xiran qiimaha = amount.
-    // 3) Sender prefix (61=Hormuud, 68=Somnet, 90=Somtel, ...) → dooro package provider-ka u dhigma.
-    // 4) Abuur order + queue USSD. Receiver = sender (auto top-up = isku lambar).
+    // ============================================================
+    // GATE: Is receiver_sim an Auto Top-Up number?
+    // ============================================================
+    let topupNumber: any = null;
+    if (normalizedReceiver) {
+      const { data: topupNumbers } = await supabase
+        .from('auto_topup_numbers')
+        .select('id, phone_number, is_active')
+        .eq('is_active', true);
 
-    const { data: topupNumbers } = await supabase
-      .from('auto_topup_numbers')
-      .select('id, phone_number, is_active')
-      .eq('is_active', true);
-
-    if (!topupNumbers || topupNumbers.length === 0) {
-      await markUnmatched('No active auto top-up numbers configured');
-      return new Response(JSON.stringify({ success: true, matched: false, reason: 'no_topup_numbers' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
+      topupNumber = (topupNumbers || []).find((t: any) => {
+        const n = normalizeSomaliPhone(t.phone_number);
+        return n === normalizedReceiver;
+      }) || null;
     }
 
-    const topupNumberIds = topupNumbers.map((t: any) => t.id);
-    const { data: candidatePkgs } = await supabase
-      .from('auto_topup_packages')
-      .select('*')
-      .in('topup_number_id', topupNumberIds)
-      .eq('is_active', true)
-      .eq('selling_price', amount);
-
-    if (!candidatePkgs || candidatePkgs.length === 0) {
-      await markUnmatched(`No auto top-up package matches $${amount}`);
-      return new Response(JSON.stringify({ success: true, matched: false, reason: 'no_package_for_amount' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
-    }
-
-    // Sender prefix → provider
+    // Load providers once (used by both flows for prefix → provider lookup)
     const { data: providersList } = await supabase
       .from('providers_config')
-      .select('provider_name, phone_prefixes')
+      .select('id, provider_name, phone_prefixes')
       .eq('is_active', true);
 
     const senderPrefix2 = normalizedSender.substring(0, 2);
-    let senderProvider: string | null = null;
+    let senderProviderName: string | null = null;
+    let senderProviderId: string | null = null;
     for (const p of (providersList || [])) {
       const prefixes: string[] = (p.phone_prefixes || []).map((x: string) => String(x));
       if (prefixes.includes(senderPrefix2)) {
-        senderProvider = (p.provider_name || '').toLowerCase();
+        senderProviderName = (p.provider_name || '').toLowerCase();
+        senderProviderId = p.id;
         break;
       }
     }
-    console.log('🎯 Prefix:', senderPrefix2, '→ provider:', senderProvider, '| candidates:', candidatePkgs.length);
 
-    if (!senderProvider) {
-      await markUnmatched(`Unknown sender prefix ${senderPrefix2}`);
-      return new Response(JSON.stringify({ success: true, matched: false, reason: 'unknown_prefix' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
-    }
+    // ============================================================
+    // FLOW A: AUTO TOP-UP (receiver is in auto_topup_numbers)
+    // ============================================================
+    if (topupNumber) {
+      console.log('🔁 AUTO TOP-UP FLOW | receiver:', normalizedReceiver, '| topup_id:', topupNumber.id);
 
-    const pkg = candidatePkgs.find((p: any) => (p.provider_name || '').toLowerCase() === senderProvider);
-    if (!pkg) {
-      await markUnmatched(`No ${senderProvider} package matches $${amount}`);
-      return new Response(JSON.stringify({ success: true, matched: false, reason: 'no_provider_package' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
-    }
+      const { data: candidatePkgs } = await supabase
+        .from('auto_topup_packages')
+        .select('*')
+        .eq('topup_number_id', topupNumber.id)
+        .eq('is_active', true)
+        .eq('selling_price', amount);
 
-    console.log('✅ Matched package:', pkg.package_name, '(', pkg.provider_name, ')');
+      if (!candidatePkgs || candidatePkgs.length === 0) {
+        await markUnmatched(`Auto top-up: no package matches $${amount} on ${normalizedReceiver}`);
+        return ok({ success: true, matched: false, flow: 'auto_topup', reason: 'no_package_for_amount' });
+      }
 
-    // Hel provider_id
-    let providerId: string | null = null;
-    if (pkg.provider_name) {
-      const { data: prov } = await supabase
-        .from('providers_config').select('id').ilike('provider_name', pkg.provider_name).maybeSingle();
-      providerId = prov?.id || null;
-    }
+      if (!senderProviderName) {
+        await markUnmatched(`Auto top-up: unknown sender prefix ${senderPrefix2}`);
+        return ok({ success: true, matched: false, flow: 'auto_topup', reason: 'unknown_prefix' });
+      }
 
-    const { data: order, error: orderError } = await supabase
-      .from('orders').insert({
-        sender_phone: normalizedSender,
+      const pkg = candidatePkgs.find((p: any) => (p.provider_name || '').toLowerCase() === senderProviderName);
+      if (!pkg) {
+        await markUnmatched(`Auto top-up: no ${senderProviderName} package for $${amount}`);
+        return ok({ success: true, matched: false, flow: 'auto_topup', reason: 'no_provider_package' });
+      }
+
+      console.log('✅ Auto top-up package:', pkg.package_name, '(', pkg.provider_name, ')');
+
+      const { data: order, error: orderError } = await supabase
+        .from('orders').insert({
+          sender_phone: normalizedSender,
+          receiver_phone: normalizedSender, // auto top-up = self
+          amount,
+          status: 'pending',
+          payment_status: 'matched',
+          payment_reference: tx_id || null,
+          is_offline: false,
+          provider_id: senderProviderId,
+          delivery_notes: `Auto top-up: ${pkg.package_name}`,
+        }).select().single();
+      if (orderError) throw orderError;
+      await markMatched(order.id);
+
+      const renderedUssd = renderUssd(pkg.ussd_code || '', {
         receiver_phone: normalizedSender,
+        cost_price: pkg.cost_price ?? amount,
         amount,
+        sim_password: pkg.sim_password || '',
+        pin: pkg.sim_password || '',
+      });
+
+      await supabase.from('delivery_queue').insert({
+        order_id: order.id,
+        ussd_command: renderedUssd || null,
+        ussd_code: renderedUssd || null,
+        provider_name: (pkg.provider_name || '').toLowerCase() || null,
+        receiver_phone: normalizedSender,
+        package_code: pkg.package_name,
+        pin_code: pkg.sim_password || null,
         status: 'pending',
-        payment_status: 'matched',
-        payment_reference: tx_id || null,
-        is_offline: false,
-        provider_id: providerId,
-        delivery_notes: `Auto top-up: ${pkg.package_name}`,
-      }).select().single();
-    if (orderError) throw orderError;
-    await markMatched(order.id);
+      });
 
-    // Render USSD
-    const renderedUssd = String(pkg.ussd_code || '')
-      .replace(/\{receiver_phone\}/g, normalizedSender)
-      .replace(/\{cost_price\}/g, String(pkg.cost_price ?? amount))
-      .replace(/\{amount\}/g, String(amount))
-      .replace(/\{sim_password\}/g, pkg.sim_password || '')
-      .replace(/\{pin\}/g, pkg.sim_password || '');
+      return ok({ success: true, matched: true, flow: 'auto_topup', order_id: order.id, package: pkg.package_name });
+    }
 
-    await supabase.from('delivery_queue').insert({
-      order_id: order.id,
-      ussd_command: renderedUssd || null,
-      ussd_code: renderedUssd || null,
-      provider_name: (pkg.provider_name || '').toLowerCase() || null,
-      receiver_phone: normalizedSender,
-      package_code: pkg.package_name,
-      pin_code: pkg.sim_password || null,
-      status: 'pending',
-    });
+    // ============================================================
+    // FLOW B: REGULAR (receiver is NOT auto-topup, or unknown)
+    // ============================================================
+    console.log('🟢 REGULAR FLOW | receiver:', normalizedReceiver || '(none)');
 
-    return new Response(JSON.stringify({ success: true, matched: true, order_id: order.id, package: pkg.package_name }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
+    // ---- Tier A: Pending Online Payments ----
+    const { data: pendingPayments } = await supabase
+      .from('pending_online_payments')
+      .select('*')
+      .eq('sender_phone', normalizedSender)
+      .eq('expected_amount', amount)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    const pending = pendingPayments?.[0];
+    if (pending) {
+      console.log('✅ Tier A match: pending_online_payments', pending.id);
+
+      // Get package details for USSD rendering
+      let pkg: any = null;
+      if (pending.package_id) {
+        const { data: p } = await supabase
+          .from('data_packages_config').select('*').eq('id', pending.package_id).maybeSingle();
+        pkg = p;
+      }
+
+      const receiverPhone = normalizeSomaliPhone(pending.receiver_phone || normalizedSender);
+
+      const { data: order, error: orderError } = await supabase
+        .from('orders').insert({
+          sender_phone: normalizedSender,
+          receiver_phone: receiverPhone,
+          amount,
+          status: 'pending',
+          payment_status: 'matched',
+          payment_reference: tx_id || null,
+          is_offline: false,
+          provider_id: pending.provider_id || null,
+          package_id: pending.package_id || null,
+          delivery_notes: pkg ? `Online order: ${pkg.package_name}` : 'Online order',
+        }).select().single();
+      if (orderError) throw orderError;
+
+      await supabase.from('pending_online_payments')
+        .update({ status: 'matched', matched_order_id: order.id, matched_at: new Date().toISOString() })
+        .eq('id', pending.id);
+      await markMatched(order.id);
+
+      if (pkg) {
+        const renderedUssd = renderUssd(pkg.ussd_code || pkg.ussd_template || '', {
+          receiver_phone: receiverPhone,
+          cost_price: pkg.cost_price ?? amount,
+          amount,
+          sim_password: '',
+          pin: '',
+        });
+        await supabase.from('delivery_queue').insert({
+          order_id: order.id,
+          package_id: pkg.id,
+          ussd_command: renderedUssd || null,
+          ussd_code: renderedUssd || null,
+          provider_name: null,
+          receiver_phone: receiverPhone,
+          package_code: pkg.package_name,
+          status: 'pending',
+        });
+      }
+
+      return ok({ success: true, matched: true, flow: 'pending_online', order_id: order.id });
+    }
+
+    // ---- Tier B: Offline Registrations ----
+    const { data: regs } = await supabase
+      .from('offline_registrations')
+      .select('*')
+      .eq('sender_phone', normalizedSender)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    const reg = regs?.[0];
+    if (reg) {
+      const receiverPhone = normalizeSomaliPhone(reg.receiver_phone || normalizedSender);
+
+      // Determine receiver provider via prefix
+      const recvPrefix2 = receiverPhone.substring(0, 2);
+      let recvProviderId: string | null = reg.provider_id || null;
+      let recvProviderName: string | null = (reg.provider_name || '').toLowerCase() || null;
+      if (!recvProviderId) {
+        for (const p of (providersList || [])) {
+          const prefixes: string[] = (p.phone_prefixes || []).map((x: string) => String(x));
+          if (prefixes.includes(recvPrefix2)) {
+            recvProviderId = p.id;
+            recvProviderName = (p.provider_name || '').toLowerCase();
+            break;
+          }
+        }
+      }
+
+      if (!recvProviderId) {
+        await markUnmatched(`Offline reg: cannot resolve provider for receiver ${receiverPhone}`);
+        return ok({ success: true, matched: false, flow: 'offline_reg', reason: 'no_provider' });
+      }
+
+      // Find package matching provider + amount
+      const { data: pkgs } = await supabase
+        .from('data_packages_config')
+        .select('*')
+        .eq('provider_id', recvProviderId)
+        .eq('is_active', true)
+        .or(`selling_price.eq.${amount},price.eq.${amount}`);
+
+      const pkg = (pkgs || [])[0];
+      if (!pkg) {
+        await markUnmatched(`Offline reg: no ${recvProviderName} package for $${amount}`);
+        return ok({ success: true, matched: false, flow: 'offline_reg', reason: 'no_package' });
+      }
+
+      console.log('✅ Tier B match: offline_registration → package', pkg.package_name);
+
+      const { data: order, error: orderError } = await supabase
+        .from('orders').insert({
+          sender_phone: normalizedSender,
+          receiver_phone: receiverPhone,
+          amount,
+          status: 'pending',
+          payment_status: 'matched',
+          payment_reference: tx_id || null,
+          is_offline: true,
+          provider_id: recvProviderId,
+          package_id: pkg.id,
+          delivery_notes: `Offline reg: ${pkg.package_name}`,
+        }).select().single();
+      if (orderError) throw orderError;
+      await markMatched(order.id);
+
+      const renderedUssd = renderUssd(pkg.ussd_code || pkg.ussd_template || '', {
+        receiver_phone: receiverPhone,
+        cost_price: pkg.cost_price ?? amount,
+        amount,
+        sim_password: '',
+        pin: '',
+      });
+      await supabase.from('delivery_queue').insert({
+        order_id: order.id,
+        package_id: pkg.id,
+        ussd_command: renderedUssd || null,
+        ussd_code: renderedUssd || null,
+        provider_name: recvProviderName,
+        receiver_phone: receiverPhone,
+        package_code: pkg.package_name,
+        status: 'pending',
+      });
+
+      return ok({ success: true, matched: true, flow: 'offline_reg', order_id: order.id, package: pkg.package_name });
+    }
+
+    // ---- Tier C: Unmatched ----
+    await markUnmatched(`No pending order or offline registration for sender ${normalizedSender} ($${amount})`);
+    return ok({ success: true, matched: false, flow: 'regular', reason: 'no_match' });
 
   } catch (error: any) {
     console.error('❌ Error:', error);
