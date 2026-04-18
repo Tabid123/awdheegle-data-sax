@@ -173,6 +173,86 @@ export type Database = {
         }
         Relationships: []
       }
+      auto_topup_numbers: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          label: string | null
+          phone_number: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          phone_number: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          phone_number?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      auto_topup_packages: {
+        Row: {
+          cost_price: number
+          created_at: string
+          data_amount: string | null
+          id: string
+          is_active: boolean
+          package_name: string
+          provider_name: string | null
+          selling_price: number
+          sim_password: string | null
+          topup_number_id: string
+          updated_at: string
+          ussd_code: string | null
+        }
+        Insert: {
+          cost_price?: number
+          created_at?: string
+          data_amount?: string | null
+          id?: string
+          is_active?: boolean
+          package_name: string
+          provider_name?: string | null
+          selling_price: number
+          sim_password?: string | null
+          topup_number_id: string
+          updated_at?: string
+          ussd_code?: string | null
+        }
+        Update: {
+          cost_price?: number
+          created_at?: string
+          data_amount?: string | null
+          id?: string
+          is_active?: boolean
+          package_name?: string
+          provider_name?: string | null
+          selling_price?: number
+          sim_password?: string | null
+          topup_number_id?: string
+          updated_at?: string
+          ussd_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auto_topup_packages_topup_number_id_fkey"
+            columns: ["topup_number_id"]
+            isOneToOne: false
+            referencedRelation: "auto_topup_numbers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       auto_topup_rules: {
         Row: {
           created_at: string

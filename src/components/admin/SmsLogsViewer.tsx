@@ -10,21 +10,21 @@ import { Loader2, ArrowDownLeft, ArrowUpRight, Smartphone, RefreshCw, MessageSqu
 
 interface SmsLog {
   id: string;
-  device_id: string;
+  device_id: string | null;
   sim_slot: number;
   sim_number: string | null;
-  sms_type: string;
-  sms_sender: string | null;
-  sms_body: string;
+  sms_type: string;       // direction
+  sms_sender: string | null; // phone_number
+  sms_body: string;       // message
   amount: number | null;
   tx_type: string | null;
   tx_id: string | null;
   counterpart_phone: string | null;
   created_at: string;
   received_at: string;
+  source: 'sms_logs' | 'payment_sms_log';
 }
 
-// Provider detection from SMS sender codes
 const getProviderFromSender = (sender: string): string | null => {
   const s = sender?.toLowerCase()?.trim() || '';
   if (['801', '898', 'somnet'].includes(s)) return 'Somnet';
@@ -57,9 +57,8 @@ const getProviderTextColor = (provider: string | null): string => {
 const SmsLogsViewer = () => {
   const [logs, setLogs] = useState<SmsLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [devices, setDevices] = useState<{ device_id: string; device_name: string; sim_number: string; sim2_number: string | null }[]>([]);
+  const [devices, setDevices] = useState<{ device_id: string; device_name: string; sim_number: string; sim2_number: string | null; id: string }[]>([]);
   const [selectedDevice, setSelectedDevice] = useState<string>('all');
-  const [selectedTxType, setSelectedTxType] = useState<string>('all');
   const [selectedSmsType, setSelectedSmsType] = useState<string>('all');
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedSenderCode, setSelectedSenderCode] = useState<string | null>(null);
@@ -69,7 +68,7 @@ const SmsLogsViewer = () => {
     const fetchDevices = async () => {
       const { data } = await supabase
         .from('android_devices')
-        .select('device_id, device_name, sim_number, sim2_number')
+        .select('id, device_id, device_name, sim_number, sim2_number')
         .eq('is_active', true);
       setDevices(data || []);
     };
@@ -79,30 +78,72 @@ const SmsLogsViewer = () => {
   const fetchLogs = async () => {
     setIsLoading(true);
     try {
-      let query = supabase
-        .from('sms_logs')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(500);
+      // Fetch from both sms_logs and payment_sms_log in parallel
+      const startOfDay = selectedDate ? `${selectedDate}T00:00:00.000Z` : null;
+      const endOfDay = selectedDate ? `${selectedDate}T23:59:59.999Z` : null;
+
+      let smsQuery = supabase.from('sms_logs')
+        .select('id, device_id, direction, phone_number, message, status, created_at')
+        .order('created_at', { ascending: false }).limit(300);
+      let paySmsQuery = supabase.from('payment_sms_log')
+        .select('id, device_id, sender_phone, raw_sms, amount, reference, status, created_at, received_at')
+        .order('created_at', { ascending: false }).limit(300);
 
       if (selectedDevice !== 'all') {
-        query = query.eq('device_id', selectedDevice);
-      }
-      if (selectedTxType !== 'all') {
-        query = query.eq('tx_type', selectedTxType);
+        // device_id in sms_logs/payment_sms_log is the android_devices.id (UUID)
+        const dev = devices.find(d => d.device_id === selectedDevice);
+        const deviceUuid = dev?.id || selectedDevice;
+        smsQuery = smsQuery.eq('device_id', deviceUuid);
+        paySmsQuery = paySmsQuery.eq('device_id', deviceUuid);
       }
       if (selectedSmsType !== 'all') {
-        query = query.eq('sms_type', selectedSmsType);
+        smsQuery = smsQuery.eq('direction', selectedSmsType);
       }
-      if (selectedDate) {
-        const startOfDay = `${selectedDate}T00:00:00.000Z`;
-        const endOfDay = `${selectedDate}T23:59:59.999Z`;
-        query = query.gte('created_at', startOfDay).lte('created_at', endOfDay);
+      if (startOfDay && endOfDay) {
+        smsQuery = smsQuery.gte('created_at', startOfDay).lte('created_at', endOfDay);
+        paySmsQuery = paySmsQuery.gte('created_at', startOfDay).lte('created_at', endOfDay);
       }
 
-      const { data, error } = await query;
-      if (error) throw error;
-      setLogs((data as SmsLog[]) || []);
+      const [smsRes, payRes] = await Promise.all([smsQuery, paySmsQuery]);
+
+      const smsLogs: SmsLog[] = (smsRes.data || []).map((r: any) => ({
+        id: r.id,
+        device_id: r.device_id,
+        sim_slot: 1,
+        sim_number: null,
+        sms_type: r.direction || 'incoming',
+        sms_sender: r.phone_number,
+        sms_body: r.message || '',
+        amount: null,
+        tx_type: null,
+        tx_id: null,
+        counterpart_phone: r.phone_number,
+        created_at: r.created_at,
+        received_at: r.created_at,
+        source: 'sms_logs',
+      }));
+
+      const paySmsLogs: SmsLog[] = (payRes.data || []).map((r: any) => ({
+        id: r.id,
+        device_id: r.device_id,
+        sim_slot: 1,
+        sim_number: null,
+        sms_type: 'incoming',
+        sms_sender: r.sender_phone,
+        sms_body: r.raw_sms || '',
+        amount: r.amount,
+        tx_type: 'payment',
+        tx_id: r.reference,
+        counterpart_phone: r.sender_phone,
+        created_at: r.created_at,
+        received_at: r.received_at || r.created_at,
+        source: 'payment_sms_log',
+      }));
+
+      const combined = [...smsLogs, ...paySmsLogs].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+      setLogs(combined.slice(0, 500));
     } catch (err) {
       console.error('Error fetching SMS logs:', err);
     } finally {
@@ -112,23 +153,17 @@ const SmsLogsViewer = () => {
 
   useEffect(() => {
     fetchLogs();
-  }, [selectedDevice, selectedTxType, selectedSmsType, selectedDate]);
+  }, [selectedDevice, selectedSmsType, selectedDate, devices.length]);
 
-  // Realtime subscription
+  // Realtime subscription for both tables
   useEffect(() => {
     const channel = supabase
-      .channel('sms-logs-realtime')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sms_logs' }, (payload) => {
-        const newLog = payload.new as SmsLog;
-        if (selectedDevice !== 'all' && newLog.device_id !== selectedDevice) return;
-        if (selectedTxType !== 'all' && newLog.tx_type !== selectedTxType) return;
-        if (selectedSmsType !== 'all' && newLog.sms_type !== selectedSmsType) return;
-        setLogs(prev => [newLog, ...prev].slice(0, 500));
-      })
+      .channel('sms-combined-realtime')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sms_logs' }, () => fetchLogs())
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'payment_sms_log' }, () => fetchLogs())
       .subscribe();
-
     return () => { supabase.removeChannel(channel); };
-  }, [selectedDevice, selectedTxType, selectedSmsType]);
+  }, [selectedDevice, selectedSmsType, selectedDate]);
 
   const formatTime = (dateStr: string) => {
     return new Date(dateStr).toLocaleString('en-US', {
@@ -136,9 +171,10 @@ const SmsLogsViewer = () => {
     });
   };
 
-  const getDeviceName = (deviceId: string) => {
-    const device = devices.find(d => d.device_id === deviceId);
-    return device?.device_name || deviceId;
+  const getDeviceName = (deviceId: string | null) => {
+    if (!deviceId) return 'Unknown';
+    const device = devices.find(d => d.id === deviceId || d.device_id === deviceId);
+    return device?.device_name || deviceId.slice(0, 8);
   };
 
   const getSmartDirection = (log: SmsLog): string => {
@@ -148,8 +184,6 @@ const SmsLogsViewer = () => {
     return log.sms_type;
   };
 
-
-  // Search filter on SMS messages
   const searchFilteredLogs = searchQuery
     ? logs.filter(l => {
         const q = searchQuery.toLowerCase();
@@ -160,7 +194,6 @@ const SmsLogsViewer = () => {
       })
     : logs;
 
-  // Group logs by sender code (use search-filtered)
   const senderGroups2 = searchFilteredLogs.reduce<Record<string, SmsLog[]>>((acc, log) => {
     const sender = log.sms_sender || 'Unknown';
     if (!acc[sender]) acc[sender] = [];
@@ -180,7 +213,6 @@ const SmsLogsViewer = () => {
 
   return (
     <div className="space-y-3">
-      {/* Search */}
       <div className="relative">
         <Search className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
         <Input
@@ -191,12 +223,9 @@ const SmsLogsViewer = () => {
         />
       </div>
 
-      {/* Filters */}
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-3 gap-2">
         <Select value={selectedDevice} onValueChange={setSelectedDevice}>
-          <SelectTrigger className="h-9 text-xs">
-            <SelectValue placeholder="Device" />
-          </SelectTrigger>
+          <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Device" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Devices</SelectItem>
             {devices.map(d => (
@@ -205,21 +234,8 @@ const SmsLogsViewer = () => {
           </SelectContent>
         </Select>
 
-        <Select value={selectedTxType} onValueChange={setSelectedTxType}>
-          <SelectTrigger className="h-9 text-xs">
-            <SelectValue placeholder="Type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Types</SelectItem>
-            <SelectItem value="evc_plus">EVC Plus</SelectItem>
-            <SelectItem value="evoucher">E-Voucher Jeeb</SelectItem>
-          </SelectContent>
-        </Select>
-
         <Select value={selectedSmsType} onValueChange={setSelectedSmsType}>
-          <SelectTrigger className="h-9 text-xs">
-            <SelectValue placeholder="Direction" />
-          </SelectTrigger>
+          <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Direction" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All</SelectItem>
             <SelectItem value="incoming">Soo galay</SelectItem>
@@ -227,7 +243,7 @@ const SmsLogsViewer = () => {
           </SelectContent>
         </Select>
 
-        <div className="relative h-9 w-9 rounded-md border border-input bg-background hover:bg-accent flex items-center justify-center overflow-hidden">
+        <div className="relative h-9 rounded-md border border-input bg-background hover:bg-accent flex items-center justify-center overflow-hidden">
           <CalendarDays className="h-4 w-4 text-muted-foreground pointer-events-none" />
           <input
             type="date"
@@ -238,7 +254,6 @@ const SmsLogsViewer = () => {
         </div>
       </div>
 
-      {/* Refresh */}
       <div className="flex items-center justify-between">
         <p className="text-xs text-muted-foreground">{logs.length} SMS logs</p>
         <Button variant="ghost" size="sm" onClick={fetchLogs} disabled={isLoading} className="h-8 text-xs">
@@ -259,7 +274,6 @@ const SmsLogsViewer = () => {
           </CardContent>
         </Card>
       ) : !selectedSenderCode ? (
-        /* === SENDER CODES LIST === */
         <div className="space-y-2">
           {sortedCodes2.map(code => {
             const provider = getProviderFromSender(code);
@@ -273,14 +287,11 @@ const SmsLogsViewer = () => {
                 className="cursor-pointer hover:scale-[1.02] transition-transform"
                 onClick={() => setSelectedSenderCode(code)}
               >
-                {/* Code number - big colored box */}
                 <div className={`rounded-t-lg bg-gradient-to-r ${getProviderColor(provider)} px-4 py-3 flex items-center justify-between`}>
                   <span className={`text-2xl font-extrabold ${getProviderTextColor(provider)}`}>{code}</span>
                   <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                      {count} SMS
-                    </Badge>
-                    {totalAmount > 0 && /^\d+$/.test(code) && (
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{count} SMS</Badge>
+                    {totalAmount > 0 && (
                       <span className="text-xs font-semibold text-green-600 dark:text-green-400">
                         ${totalAmount.toLocaleString()}
                       </span>
@@ -288,7 +299,6 @@ const SmsLogsViewer = () => {
                     <ChevronRight className="h-4 w-4 text-muted-foreground" />
                   </div>
                 </div>
-                {/* Provider name - bottom bar */}
                 <div className="rounded-b-lg bg-muted/60 dark:bg-muted/30 border border-t-0 border-border px-4 py-1.5">
                   <span className={`text-xs font-semibold ${getProviderTextColor(provider)}`}>
                     {provider || 'Aan la aqoon'}
@@ -302,14 +312,8 @@ const SmsLogsViewer = () => {
           })}
         </div>
       ) : (
-        /* === MESSAGES FOR SELECTED CODE === */
         <div className="space-y-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setSelectedSenderCode(null)}
-            className="h-8 text-xs gap-1 -ml-1"
-          >
+          <Button variant="ghost" size="sm" onClick={() => setSelectedSenderCode(null)} className="h-8 text-xs gap-1 -ml-1">
             <ArrowLeft className="h-3.5 w-3.5" />
             Dhamaan Codes
           </Button>
@@ -324,14 +328,12 @@ const SmsLogsViewer = () => {
                   {getProviderFromSender(selectedSenderCode)}
                 </Badge>
               )}
-              <Badge variant="outline" className="text-[10px]">
-                {filteredLogs.length} SMS
-              </Badge>
+              <Badge variant="outline" className="text-[10px]">{filteredLogs.length} SMS</Badge>
             </div>
           </div>
 
           {filteredLogs.map(log => (
-            <Card key={log.id} className="overflow-hidden">
+            <Card key={`${log.source}-${log.id}`} className="overflow-hidden">
               <CardContent className="p-3">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
@@ -355,12 +357,9 @@ const SmsLogsViewer = () => {
                         )}
                       </div>
                       <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                        <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                          SIM {log.sim_slot}
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 capitalize">
+                          {log.source === 'payment_sms_log' ? 'Payment' : 'SMS'}
                         </Badge>
-                        {log.sim_number && (
-                          <span className="text-[10px] text-muted-foreground">{log.sim_number}</span>
-                        )}
                       </div>
                     </div>
                   </div>
