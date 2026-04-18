@@ -340,55 +340,75 @@ async function queueDeliveryWithBundling(
 }
 
 /**
- * Resolve the actual receiving SIM phone number.
- * Android may send a provider name ("hormuud", "somnet") or an actual phone number.
- * We try to resolve it to the actual phone number using android_devices table.
+ * Resolve the actual receiving SIM phone number AND its provider.
+ * Looks up android_devices to find the SIM slot that owns this number/provider
+ * and returns the matching sim1_provider or sim2_provider.
  */
-async function resolveReceiverSimNumber(supabase: any, receiverSim: string): Promise<string> {
+async function resolveReceiverSimInfo(
+  supabase: any,
+  receiverSim: string,
+): Promise<{ simNumber: string; provider: string | null }> {
   const normalized = normalizeSomaliPhone(receiverSim);
-
-  // If it's already a valid phone number (9 digits, starts with valid prefix), return it
-  if (normalized.length === 9 && /^[0-9]/.test(normalized)) {
-    const firstTwo = normalized.substring(0, 2);
-    if (["61", "62", "63", "64", "68", "69", "71", "77"].includes(firstTwo)) {
-      return normalized;
-    }
-  }
-
-  // It's a provider name - try to find the actual SIM number from android_devices
   const receiverLower = (receiverSim || "").toLowerCase().trim();
-  console.log(`📡 receiver_sim "${receiverSim}" is a provider name, attempting to resolve actual SIM number`);
 
-  // Check if any device has this as sim_number or sim2_number
   const { data: devices } = await supabase
     .from("android_devices")
     .select("sim_number, sim2_number, sim1_provider, sim2_provider")
     .eq("is_active", true)
     .is("archived_at", null);
 
+  // CASE 1: receiver_sim is a phone number — find matching slot to get its provider
+  if (normalized.length === 9 && /^[0-9]/.test(normalized)) {
+    const firstTwo = normalized.substring(0, 2);
+    const looksLikePhone = ["61", "62", "63", "64", "68", "69", "71", "77"].includes(firstTwo);
+
+    if (looksLikePhone && devices) {
+      for (const device of devices) {
+        const sim1 = normalizeSomaliPhone(device.sim_number || "");
+        const sim2 = normalizeSomaliPhone(device.sim2_number || "");
+        if (sim1 === normalized && device.sim1_provider) {
+          console.log(`✅ Resolved SIM ${normalized} → slot 1, provider: ${device.sim1_provider}`);
+          return { simNumber: normalized, provider: device.sim1_provider };
+        }
+        if (sim2 === normalized && device.sim2_provider) {
+          console.log(`✅ Resolved SIM ${normalized} → slot 2, provider: ${device.sim2_provider}`);
+          return { simNumber: normalized, provider: device.sim2_provider };
+        }
+      }
+      console.log(`⚠️ SIM ${normalized} is a phone number but not found in android_devices`);
+      return { simNumber: normalized, provider: null };
+    }
+  }
+
+  // CASE 2: receiver_sim is a provider name — find a SIM slot with that provider
+  console.log(`📡 receiver_sim "${receiverSim}" looks like a provider name, resolving to SIM number`);
   if (devices) {
     for (const device of devices) {
-      // Match by provider name to SIM slot
       if (device.sim1_provider && device.sim1_provider.toLowerCase().includes(receiverLower) && device.sim_number) {
         const simNum = normalizeSomaliPhone(device.sim_number);
         if (simNum.length === 9) {
-          console.log(`✅ Resolved receiver_sim "${receiverSim}" → SIM1: ${simNum}`);
-          return simNum;
+          console.log(`✅ Resolved provider "${receiverSim}" → SIM1 ${simNum} (${device.sim1_provider})`);
+          return { simNumber: simNum, provider: device.sim1_provider };
         }
       }
       if (device.sim2_provider && device.sim2_provider.toLowerCase().includes(receiverLower) && device.sim2_number) {
         const simNum = normalizeSomaliPhone(device.sim2_number);
         if (simNum.length === 9) {
-          console.log(`✅ Resolved receiver_sim "${receiverSim}" → SIM2: ${simNum}`);
-          return simNum;
+          console.log(`✅ Resolved provider "${receiverSim}" → SIM2 ${simNum} (${device.sim2_provider})`);
+          return { simNumber: simNum, provider: device.sim2_provider };
         }
       }
     }
   }
 
-  // Could not resolve - return the original
-  console.log(`⚠️ Could not resolve receiver_sim "${receiverSim}" to a phone number`);
-  return receiverLower;
+  console.log(`⚠️ Could not resolve receiver_sim "${receiverSim}"`);
+  return { simNumber: receiverLower, provider: null };
+}
+
+// Backwards-compat shim for callers that only need the SIM number.
+async function resolveReceiverSimNumber(supabase: any, receiverSim: string): Promise<string> {
+  const info = await resolveReceiverSimInfo(supabase, receiverSim);
+  return info.simNumber;
 }
 
 /**
