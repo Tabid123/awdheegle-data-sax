@@ -145,13 +145,42 @@ Deno.serve(async (req) => {
 
     let topupNumber: any = null;
 
-    // STRICT: only direct match via receiver_sim. If receiver_sim is missing
-    // or does not match an auto_topup_numbers row, this is NOT auto top-up.
+    // PRIMARY: direct match via receiver_sim sent by Android.
     if (normalizedReceiver) {
       topupNumber = (allTopupNumbers || []).find((t: any) => {
         const n = normalizeSomaliPhone(t.phone_number);
         return n === normalizedReceiver;
       }) || null;
+    }
+
+    // FALLBACK: receiver_sim is missing/blank. Many SMS payment receipts
+    // do NOT include the receiver number. In that case, treat as Auto Top-up
+    // ONLY when ALL of the following hold:
+    //   1. Sender has NO active offline_registration (so this can't be a
+    //      regular customer payment).
+    //   2. Sender has NO matching pending_online_payment.
+    //   3. There exists at least one active auto_topup_packages row whose
+    //      selling_price equals the SMS amount.
+    // This protects regular customer flows from being hijacked.
+    if (!topupNumber && !normalizedReceiver) {
+      const [{ data: regCheck }, { data: pendCheck }, { data: atpCheck }] = await Promise.all([
+        supabase.from('offline_registrations')
+          .select('id').eq('sender_phone', normalizedSender).eq('is_active', true).limit(1),
+        supabase.from('pending_online_payments')
+          .select('id').eq('sender_phone', normalizedSender).eq('expected_amount', amount).eq('status', 'pending').limit(1),
+        supabase.from('auto_topup_packages')
+          .select('topup_number_id').eq('is_active', true).eq('selling_price', amount).limit(1),
+      ]);
+      const hasReg = (regCheck || []).length > 0;
+      const hasPending = (pendCheck || []).length > 0;
+      const hasAtp = (atpCheck || []).length > 0;
+      if (!hasReg && !hasPending && hasAtp) {
+        const topupId = atpCheck![0].topup_number_id;
+        topupNumber = (allTopupNumbers || []).find((t: any) => t.id === topupId) || null;
+        if (topupNumber) {
+          console.log('🔁 Auto top-up fallback (no receiver_sim, no offline_reg) → topup', topupNumber.phone_number);
+        }
+      }
     }
 
     const senderPrefix2 = normalizedSender.substring(0, 2);
