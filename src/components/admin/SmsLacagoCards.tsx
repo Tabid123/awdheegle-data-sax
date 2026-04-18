@@ -422,15 +422,15 @@ export function SmsLacagoCards() {
                     </div>
                     <div>
                       <span className="text-[9px] text-gray-400">{isSo ? 'Xirmo' : 'Package'}</span>
-                      <div className="font-semibold text-[11px] text-gray-800 dark:text-gray-100">{r.order?.package_name || '-'}</div>
+                      <div className="font-semibold text-[11px] text-gray-800 dark:text-gray-100">{(r.order as any)?.package?.package_name || r.order?.package_name || '-'}</div>
                     </div>
                     <div>
                       <span className="text-[9px] text-gray-400">Data</span>
-                      <div className="font-semibold text-[11px] text-gray-800 dark:text-gray-100">{r.order?.data_amount || '-'}</div>
+                      <div className="font-semibold text-[11px] text-gray-800 dark:text-gray-100">{(r.order as any)?.package?.data_amount || r.order?.data_amount || '-'}</div>
                     </div>
                     <div>
                       <span className="text-[9px] text-gray-400">{isSo ? 'Qiimaha' : 'Price'}</span>
-                      <div className="font-semibold text-[11px] text-gray-800 dark:text-gray-100">${r.order?.selling_price?.toFixed(2) || '-'}</div>
+                      <div className="font-semibold text-[11px] text-gray-800 dark:text-gray-100">${(Number((r.order as any)?.package?.selling_price ?? (r.order as any)?.package?.price ?? r.order?.amount ?? r.amount) || 0).toFixed(2)}</div>
                     </div>
                     <div>
                       <span className="text-[9px] text-gray-400">{isSo ? 'Lacag Bixiye' : 'Payment From'}</span>
