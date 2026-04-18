@@ -145,13 +145,13 @@ export const generateInvoiceImage = async (order: InvoiceData): Promise<Blob> =>
     { label: 'Habka Lacag Bixinta:', value: 'EVC' },
     { label: 'Lambarka xirmada u rabtid:', value: order.receiverPhone },
     { label: 'Tariikhda Dalabka:', value: order.dateTime },
-    ...(order.payment_source ? [{ label: 'Nooca Dalabka:', value: 
+    { label: 'Nooca Dalabka:', value:
       order.payment_source === 'ussd_online' ? 'Online' :
       order.payment_source === 'sms_offline' ? 'Offline (SMS)' :
       order.payment_source === 'auto_topup' ? 'Auto Top-Up' :
       order.payment_source === 'manual' ? 'Manual' :
-      order.payment_source
-    }] : []),
+      'Online'
+    },
   ];
   
   let yPos = 340;
