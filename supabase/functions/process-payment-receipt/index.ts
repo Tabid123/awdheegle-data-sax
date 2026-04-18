@@ -46,7 +46,20 @@ Deno.serve(async (req) => {
     }
 
     const normalizedSender = normalizeSomaliPhone(sender_phone);
-    const normalizedReceiver = receiver_sim ? normalizeSomaliPhone(receiver_sim) : '';
+    let normalizedReceiver = receiver_sim ? normalizeSomaliPhone(receiver_sim) : '';
+
+    // SMS brand tag → provider name (used as fallback when receiver_sim is missing)
+    // [-JEEB-]/[-Somnet-] = Somnet, [-EVCPlus-] = Hormuud, [-Somtel-] = Somtel, etc.
+    const detectReceiverProviderFromSms = (body: string): string | null => {
+      const b = (body || '').toLowerCase();
+      if (b.includes('[-jeeb-]') || b.includes('[-somnet-]') || b.includes('somnet telecom')) return 'somnet';
+      if (b.includes('[-evcplus-]') || b.includes('[-evc plus-]') || b.includes('evcplus')) return 'hormuud';
+      if (b.includes('[-somtel-]') || b.includes('somtel')) return 'somtel';
+      if (b.includes('[-amtel-]') || b.includes('amtel')) return 'amtel';
+      if (b.includes('[-somlink-]') || b.includes('somlink')) return 'somlink';
+      return null;
+    };
+
     console.log('📱 SMS:', { sender: normalizedSender, receiver: normalizedReceiver, amount, tx_id });
 
     // Log raw SMS
