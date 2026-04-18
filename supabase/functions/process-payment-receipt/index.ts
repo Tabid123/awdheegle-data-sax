@@ -1579,13 +1579,30 @@ serve(async (req) => {
       });
     }
 
+    // Resolve provider name (case-insensitive) — fall back to providers_config join
+    // when offline_registrations.provider_name column is null but provider_id is set.
+    let registrationProviderName: string | null = registration.provider_name || null;
+    if (!registrationProviderName && registration.provider_id) {
+      const { data: provRow } = await supabase
+        .from("providers_config")
+        .select("provider_name")
+        .eq("id", registration.provider_id)
+        .maybeSingle();
+      registrationProviderName = provRow?.provider_name || null;
+    }
+
     console.log("✅ Registration found:", {
       sender: registration.sender_phone,
       receiver: registration.receiver_phone,
-      provider: registration.provider_name,
+      provider_id: registration.provider_id,
+      provider_name: registrationProviderName,
+      sim_provider: resolvedSimProvider,
     });
+    console.log(
+      `🔎 Resolved Provider for package lookup: ${registrationProviderName || "(unknown)"} (id: ${registration.provider_id})`,
+    );
 
-    // Find matching package
+    // Find matching package by provider_id (strict link)
     const price = Number(amount);
     const min = Number((price - 0.005).toFixed(3));
     const max = Number((price + 0.005).toFixed(3));
@@ -1625,11 +1642,14 @@ serve(async (req) => {
         crossProviderHint = ` | ⚠️ waa xirmo ${otherProviders} ah (${pkgNames})`;
       }
 
+      const providerLabel = registrationProviderName || "(unknown provider)";
+      console.log(`❌ Package Found: NONE for $${amount} on provider "${providerLabel}"`);
+
       await supabase
         .from("payment_receipts")
         .update({
           status: "unmatched",
-          admin_notes: `Route: ${route} | No package for $${amount} on ${registration.provider_name}${crossProviderHint} | SIM: ${resolvedSimNumber}`,
+          admin_notes: `Route: ${route} | No package for $${amount} on ${providerLabel}${crossProviderHint} | SIM: ${resolvedSimNumber} (${resolvedSimProvider || "?"})`,
         })
         .eq("id", receipt.id);
 
@@ -1637,6 +1657,8 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    console.log(`✅ Package Found: ${packages[0].package_name} ($${packages[0].selling_price}) for provider_id ${registration.provider_id}`);
 
     const selectedPackage = packages[0];
     console.log("📦 Package found:", selectedPackage.package_name);
