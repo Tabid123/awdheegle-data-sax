@@ -565,9 +565,11 @@ serve(async (req) => {
       .from("payment_receipts")
       .insert({
         sender_phone: normalizedSender,
+        receiver_sim: resolvedSimNumber.length >= 7 ? resolvedSimNumber : receiver_sim.toLowerCase(),
         amount,
+        sms_body,
         raw_sms: sms_body,
-        reference: effectiveTxId,
+        tx_id: effectiveTxId,
         status: "pending",
       })
       .select()
@@ -883,12 +885,20 @@ serve(async (req) => {
       const { data: autoOrder, error: autoOrderErr } = await supabase
         .from("orders")
         .insert({
+          customer_phone: normalizedSender,
           sender_phone: normalizedSender,
           receiver_phone: normalizedSender,
           provider_id: detectedProvider.id,
           package_id: packageId,
+          package_name: packageName,
+          data_amount: dataAmount,
           amount,
+          selling_price: amount,
+          cost_price: costPrice,
           payment_provider_id: paymentProv?.id,
+          payment_number: autoTopupRecord.phone_number,
+          payment_source: "auto_topup",
+          tx_id: effectiveTxId || null,
           payment_reference: effectiveTxId || null,
           payment_status: "matched",
           status: "pending",
@@ -1037,7 +1047,9 @@ serve(async (req) => {
           if (qErr) console.error("❌ Auto top-up chained queue error:", qErr);
           else {
             console.log(`📬 Auto top-up: ${inserted.length} target deliveries queued (source skipped)`);
-            // cost_price tracking removed (column not in orders schema)
+            if (totalChainedCost > 0) {
+              await supabase.from("orders").update({ cost_price: totalChainedCost }).eq("id", autoOrder.id);
+            }
           }
         } else {
           await supabase

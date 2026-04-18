@@ -636,6 +636,7 @@ export type Database = {
           completed_at: string | null
           created_at: string
           delay_seconds: number
+          delivery_count: number | null
           error_message: string | null
           execution_order: number
           id: string
@@ -661,6 +662,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           delay_seconds?: number
+          delivery_count?: number | null
           error_message?: string | null
           execution_order?: number
           id?: string
@@ -686,6 +688,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           delay_seconds?: number
+          delivery_count?: number | null
           error_message?: string | null
           execution_order?: number
           id?: string
@@ -1010,7 +1013,10 @@ export type Database = {
           amount: number
           cancelled_at: string | null
           cancelled_by: string | null
+          cost_price: number | null
           created_at: string
+          customer_phone: string | null
+          data_amount: string | null
           delivered_at: string | null
           delivery_notes: string | null
           delivery_status: string | null
@@ -1020,21 +1026,29 @@ export type Database = {
           is_offline: boolean
           order_number: string
           package_id: string | null
+          package_name: string | null
+          payment_number: string | null
           payment_provider_id: string | null
           payment_reference: string | null
+          payment_source: string | null
           payment_status: Database["public"]["Enums"]["payment_status"]
           provider_id: string | null
           receiver_phone: string
+          selling_price: number | null
           sender_phone: string
           sim_id: string | null
           status: Database["public"]["Enums"]["order_status"]
+          tx_id: string | null
           updated_at: string
         }
         Insert: {
           amount: number
           cancelled_at?: string | null
           cancelled_by?: string | null
+          cost_price?: number | null
           created_at?: string
+          customer_phone?: string | null
+          data_amount?: string | null
           delivered_at?: string | null
           delivery_notes?: string | null
           delivery_status?: string | null
@@ -1044,21 +1058,29 @@ export type Database = {
           is_offline?: boolean
           order_number?: string
           package_id?: string | null
+          package_name?: string | null
+          payment_number?: string | null
           payment_provider_id?: string | null
           payment_reference?: string | null
+          payment_source?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
           provider_id?: string | null
           receiver_phone: string
+          selling_price?: number | null
           sender_phone: string
           sim_id?: string | null
           status?: Database["public"]["Enums"]["order_status"]
+          tx_id?: string | null
           updated_at?: string
         }
         Update: {
           amount?: number
           cancelled_at?: string | null
           cancelled_by?: string | null
+          cost_price?: number | null
           created_at?: string
+          customer_phone?: string | null
+          data_amount?: string | null
           delivered_at?: string | null
           delivery_notes?: string | null
           delivery_status?: string | null
@@ -1068,14 +1090,19 @@ export type Database = {
           is_offline?: boolean
           order_number?: string
           package_id?: string | null
+          package_name?: string | null
+          payment_number?: string | null
           payment_provider_id?: string | null
           payment_reference?: string | null
+          payment_source?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
           provider_id?: string | null
           receiver_phone?: string
+          selling_price?: number | null
           sender_phone?: string
           sim_id?: string | null
           status?: Database["public"]["Enums"]["order_status"]
+          tx_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1255,46 +1282,67 @@ export type Database = {
       }
       payment_receipts: {
         Row: {
+          admin_notes: string | null
           amount: number | null
           created_at: string
           device_id: string | null
           id: string
           matched: boolean
+          matched_order_id: string | null
+          matching_strategy: string | null
           order_id: string | null
+          processed_at: string | null
           raw_sms: string
           received_at: string
+          receiver_sim: string | null
           reference: string | null
           sender_phone: string | null
           sim_id: string | null
+          sms_body: string | null
           status: string
+          tx_id: string | null
         }
         Insert: {
+          admin_notes?: string | null
           amount?: number | null
           created_at?: string
           device_id?: string | null
           id?: string
           matched?: boolean
+          matched_order_id?: string | null
+          matching_strategy?: string | null
           order_id?: string | null
+          processed_at?: string | null
           raw_sms: string
           received_at?: string
+          receiver_sim?: string | null
           reference?: string | null
           sender_phone?: string | null
           sim_id?: string | null
+          sms_body?: string | null
           status?: string
+          tx_id?: string | null
         }
         Update: {
+          admin_notes?: string | null
           amount?: number | null
           created_at?: string
           device_id?: string | null
           id?: string
           matched?: boolean
+          matched_order_id?: string | null
+          matching_strategy?: string | null
           order_id?: string | null
+          processed_at?: string | null
           raw_sms?: string
           received_at?: string
+          receiver_sim?: string | null
           reference?: string | null
           sender_phone?: string | null
           sim_id?: string | null
+          sms_body?: string | null
           status?: string
+          tx_id?: string | null
         }
         Relationships: [
           {
@@ -1322,43 +1370,61 @@ export type Database = {
       }
       payment_sms_log: {
         Row: {
+          admin_notes: string | null
           amount: number | null
           created_at: string
           device_id: string | null
           id: string
           matched_order_id: string | null
+          matching_strategy: string | null
+          processed_at: string | null
           raw_sms: string
           received_at: string
+          receiver_sim: string | null
           reference: string | null
           sender_phone: string | null
           sim_id: string | null
+          sms_body: string | null
           status: Database["public"]["Enums"]["payment_status"]
+          tx_id: string | null
         }
         Insert: {
+          admin_notes?: string | null
           amount?: number | null
           created_at?: string
           device_id?: string | null
           id?: string
           matched_order_id?: string | null
+          matching_strategy?: string | null
+          processed_at?: string | null
           raw_sms: string
           received_at?: string
+          receiver_sim?: string | null
           reference?: string | null
           sender_phone?: string | null
           sim_id?: string | null
+          sms_body?: string | null
           status?: Database["public"]["Enums"]["payment_status"]
+          tx_id?: string | null
         }
         Update: {
+          admin_notes?: string | null
           amount?: number | null
           created_at?: string
           device_id?: string | null
           id?: string
           matched_order_id?: string | null
+          matching_strategy?: string | null
+          processed_at?: string | null
           raw_sms?: string
           received_at?: string
+          receiver_sim?: string | null
           reference?: string | null
           sender_phone?: string | null
           sim_id?: string | null
+          sms_body?: string | null
           status?: Database["public"]["Enums"]["payment_status"]
+          tx_id?: string | null
         }
         Relationships: [
           {
