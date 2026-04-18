@@ -248,12 +248,19 @@ Deno.serve(async (req) => {
         .eq('is_active', true)
         .eq('selling_price', amount);
 
-      const pkg = (candidatePkgs && candidatePkgs.length > 0 && senderProviderName)
-        ? candidatePkgs.find((p: any) => (p.provider_name || '').toLowerCase() === senderProviderName)
-        : null;
+      // STRICT: kaliya isticmaal package-ka uu provider_name-kiisu MATCH-ka sender-ka noqdo.
+      // Haddii sender provider la garan waayo ama package la match gareyn waayo, MA samayno dalab khaldan.
+      let pkg: any = null;
+      if (candidatePkgs && candidatePkgs.length > 0 && senderProviderName) {
+        pkg = candidatePkgs.find((p: any) => (p.provider_name || '').toLowerCase() === senderProviderName) || null;
+        if (!pkg) {
+          console.log(`⚠️ Auto top-up: ${candidatePkgs.length} package(s) found for $${amount} laakiin midna ma uusan match-garayn sender provider "${senderProviderName}". Available:`,
+            candidatePkgs.map((p: any) => `${p.package_name}(${p.provider_name})`).join(', '));
+        }
+      }
 
       if (pkg) {
-        console.log('✅ Auto top-up package:', pkg.package_name, '(', pkg.provider_name, ')');
+        console.log('✅ Auto top-up package:', pkg.package_name, '(', pkg.provider_name, ')', '→ USSD:', pkg.ussd_code);
 
         const { data: order, error: orderError } = await supabase
           .from('orders').insert({
