@@ -150,7 +150,34 @@ Deno.serve(async (req) => {
         .eq('is_active', true)
         .eq('selling_price', amount);
 
-      const pkg = pkgs?.[0];
+      // Doorashada package-ka saxda ah marka dhowr la mid ah qiimaha:
+      // U eeg prefix-ka sender-ka oo ku xir provider-ka saxda ah.
+      // Soo qaado prefix-yada provider kasta oo firfircoon database-ka.
+      let pkg: any = pkgs?.[0];
+      if (pkgs && pkgs.length > 1) {
+        const { data: providersList } = await supabase
+          .from('providers_config')
+          .select('provider_name, phone_prefixes')
+          .eq('is_active', true);
+
+        // Hel provider-ka u dhigma prefix-ka sender-ka (2 lambar bilow)
+        const senderPrefix2 = normalizedSender.substring(0, 2);
+        let senderProvider: string | null = null;
+        for (const p of (providersList || [])) {
+          const prefixes: string[] = (p.phone_prefixes || []).map((x: string) => String(x));
+          if (prefixes.includes(senderPrefix2)) {
+            senderProvider = (p.provider_name || '').toLowerCase();
+            break;
+          }
+        }
+        console.log('🎯 Multi-package match. Sender prefix:', senderPrefix2, '→ provider:', senderProvider);
+
+        if (senderProvider) {
+          const matched = pkgs.find((p: any) => (p.provider_name || '').toLowerCase() === senderProvider);
+          if (matched) pkg = matched;
+        }
+      }
+
       if (pkg) {
         // Hel provider_id ku salaysan magaca provider-ka package-ka auto top-up
         let providerId: string | null = null;
