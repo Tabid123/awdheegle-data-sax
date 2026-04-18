@@ -124,7 +124,7 @@ Deno.serve(async (req) => {
         .eq('is_active', true);
 
       const providerPrefixes: Record<string, string[]> = {
-        somnet: ['615'],
+        somnet: ['615', '687', '686'],
         hormuud: ['61', '619', '612', '613', '617', '618'],
         somtel: ['634', '658'],
         amtel: ['636'],
