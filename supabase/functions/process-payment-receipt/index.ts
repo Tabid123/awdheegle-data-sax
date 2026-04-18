@@ -213,19 +213,27 @@ Deno.serve(async (req) => {
 
     const reg = offlineRegs?.[0];
     if (reg) {
-      console.log('✅ TIER 3: Offline registration matched:', reg.id);
+      console.log('✅ TIER 3: Offline registration matched:', reg.id, 'provider:', reg.provider_id, 'receiver:', reg.receiver_phone);
 
-      // 3A: try existing pending order with package_id
+      // 3A: try existing pending order — MUST match the CURRENT registration
+      // (same provider AND same receiver) to avoid linking to old/stale orders
+      // from a previous registration with different provider/receiver.
       const { data: existingPending } = await supabase
         .from('orders')
         .select('*')
         .in('sender_phone', variants)
         .eq('status', 'pending')
+        .eq('payment_status', 'pending')
         .not('package_id', 'is', null)
+        .eq('amount', amount)
         .order('created_at', { ascending: false })
-        .limit(1);
+        .limit(5);
 
-      const pendingOrder = existingPending?.[0];
+      const pendingOrder = (existingPending || []).find((o: any) =>
+        (!reg.provider_id || o.provider_id === reg.provider_id) &&
+        (!reg.receiver_phone || o.receiver_phone === reg.receiver_phone)
+      );
+
       if (pendingOrder) {
         console.log('🔗 Linking offline payment to existing pending order:', pendingOrder.id);
         await supabase.from('orders')
