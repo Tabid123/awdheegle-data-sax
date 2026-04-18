@@ -58,6 +58,7 @@ Deno.serve(async (req) => {
 
     const body: SMSData = await req.json();
     const { sender_phone, receiver_sim, amount, sms_body, tx_id } = body;
+    const device_id: string | undefined = (body as any).device_id;
 
     if (!sender_phone || !amount || !sms_body) {
       return new Response(
