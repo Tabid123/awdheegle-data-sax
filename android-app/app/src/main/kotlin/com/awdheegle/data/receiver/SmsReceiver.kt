@@ -394,7 +394,6 @@ class SmsReceiver : BroadcastReceiver() {
     private fun sendToApi(context: Context, paymentInfo: PaymentInfo, txId: String, smsTimestamp: Long) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val deviceId = getDeviceId(context)
                 val json = JSONObject().apply {
                     put("sender_phone", paymentInfo.senderPhone)
                     put("receiver_sim", paymentInfo.receiverSim)
@@ -402,7 +401,6 @@ class SmsReceiver : BroadcastReceiver() {
                     put("sms_body", paymentInfo.smsBody)
                     put("tx_id", txId)  // Unique transaction ID
                     put("sms_timestamp", smsTimestamp)  // Exact SMS timestamp
-                    if (deviceId.isNotEmpty()) put("device_id", deviceId)
                 }
                 
                 Log.d(TAG, "⚡ Sending to API with tx_id: $txId")
