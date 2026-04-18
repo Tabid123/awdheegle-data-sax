@@ -155,30 +155,55 @@ Deno.serve(async (req) => {
 
     // FALLBACK: receiver_sim is missing/blank. Many SMS payment receipts
     // do NOT include the receiver number. In that case, treat as Auto Top-up
-    // ONLY when ALL of the following hold:
-    //   1. Sender has NO active offline_registration (so this can't be a
-    //      regular customer payment).
-    //   2. Sender has NO matching pending_online_payment.
-    //   3. There exists at least one active auto_topup_packages row whose
-    //      selling_price equals the SMS amount.
-    // This protects regular customer flows from being hijacked.
+    // when:
+    //   1. Sender has NO matching pending_online_payment (online order takes priority).
+    //   2. There exists at least one active auto_topup_packages row whose
+    //      selling_price equals the SMS amount AND whose provider_name matches
+    //      the sender's prefix-derived provider.
+    //   3. EITHER the sender has no active offline_registration, OR the offline
+    //      registration's provider has no regular data_packages_config matching
+    //      this amount (so this can't be a normal customer purchase).
     if (!topupNumber && !normalizedReceiver) {
-      const [{ data: regCheck }, { data: pendCheck }, { data: atpCheck }] = await Promise.all([
-        supabase.from('offline_registrations')
-          .select('id').eq('sender_phone', normalizedSender).eq('is_active', true).limit(1),
+      const senderPrefix2early = normalizedSender.substring(0, 2);
+      let senderProv: string | null = null;
+      for (const p of (providersList || [])) {
+        const prefixes: string[] = (p.phone_prefixes || []).map((x: string) => String(x));
+        if (prefixes.includes(senderPrefix2early)) {
+          senderProv = (p.provider_name || '').toLowerCase();
+          break;
+        }
+      }
+
+      const [{ data: pendCheck }, { data: atpCheck }, { data: regCheck }] = await Promise.all([
         supabase.from('pending_online_payments')
           .select('id').eq('sender_phone', normalizedSender).eq('expected_amount', amount).eq('status', 'pending').limit(1),
         supabase.from('auto_topup_packages')
-          .select('topup_number_id').eq('is_active', true).eq('selling_price', amount).limit(1),
+          .select('topup_number_id, provider_name').eq('is_active', true).eq('selling_price', amount),
+        supabase.from('offline_registrations')
+          .select('id, provider_id').eq('sender_phone', normalizedSender).eq('is_active', true).limit(1),
       ]);
-      const hasReg = (regCheck || []).length > 0;
       const hasPending = (pendCheck || []).length > 0;
-      const hasAtp = (atpCheck || []).length > 0;
-      if (!hasReg && !hasPending && hasAtp) {
-        const topupId = atpCheck![0].topup_number_id;
-        topupNumber = (allTopupNumbers || []).find((t: any) => t.id === topupId) || null;
+      const matchingAtp = (atpCheck || []).find((a: any) =>
+        senderProv ? (a.provider_name || '').toLowerCase() === senderProv : true
+      );
+
+      let regularPackageExists = false;
+      if (regCheck && regCheck.length > 0 && regCheck[0].provider_id) {
+        const { data: rp } = await supabase
+          .from('data_packages_config')
+          .select('id')
+          .eq('provider_id', regCheck[0].provider_id)
+          .eq('is_active', true)
+          .or(`selling_price.eq.${amount},price.eq.${amount}`)
+          .limit(1);
+        regularPackageExists = (rp || []).length > 0;
+      }
+
+      if (!hasPending && matchingAtp && !regularPackageExists) {
+        topupNumber = (allTopupNumbers || []).find((t: any) => t.id === matchingAtp.topup_number_id) || null;
         if (topupNumber) {
-          console.log('🔁 Auto top-up fallback (no receiver_sim, no offline_reg) → topup', topupNumber.phone_number);
+          console.log('🔁 Auto top-up fallback → topup', topupNumber.phone_number,
+            '| sender_provider:', senderProv, '| amount:', amount);
         }
       }
     }
