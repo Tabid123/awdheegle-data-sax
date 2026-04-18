@@ -153,6 +153,24 @@ Deno.serve(async (req) => {
       }) || null;
     }
 
+    // PRIORITY CHECK: Online orders ALWAYS win when sender+amount matches
+    // a pending_online_payment, even if receiver_sim is missing.
+    // This prevents online orders from being mis-routed to Auto Top-up.
+    let onlinePaymentExists = false;
+    if (!topupNumber) {
+      const { data: pendCheckEarly } = await supabase
+        .from('pending_online_payments')
+        .select('id')
+        .eq('sender_phone', normalizedSender)
+        .eq('expected_amount', amount)
+        .eq('status', 'pending')
+        .limit(1);
+      onlinePaymentExists = (pendCheckEarly || []).length > 0;
+      if (onlinePaymentExists) {
+        console.log('🛡️ Online payment exists for sender+amount → SKIP auto-topup fallback');
+      }
+    }
+
     // FALLBACK: receiver_sim is missing/blank. Many SMS payment receipts
     // do NOT include the receiver number. In that case, treat as Auto Top-up
     // when:
@@ -163,7 +181,7 @@ Deno.serve(async (req) => {
     //   3. EITHER the sender has no active offline_registration, OR the offline
     //      registration's provider has no regular data_packages_config matching
     //      this amount (so this can't be a normal customer purchase).
-    if (!topupNumber && !normalizedReceiver) {
+    if (!topupNumber && !normalizedReceiver && !onlinePaymentExists) {
       const senderPrefix2early = normalizedSender.substring(0, 2);
       let senderProv: string | null = null;
       for (const p of (providersList || [])) {
