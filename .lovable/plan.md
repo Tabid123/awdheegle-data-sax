@@ -1,66 +1,63 @@
 
 
-# Awdheegle Full-System Sync Plan
+# 6 Final Fixes — Awdheegle Sync
 
-Wax shan ah ayaan isku mar xalin doonaa: Payment matching, Auto Top-Up, Dashboard analytics realtime, SMS sync, Notifications, iyo CRUD audit.
+## Cilladaha la helay
 
-## Cilladaha la helay (root cause)
+1. **Auto Top-Up "no trigger"**: Edge function-ku waa raadiya `auto_topup_packages` saxda ah. Cilladu waxay tahay in `markMatched` la dejiyay ka hor abuurka `unmatched_payments`, oo sidoo kale `pending_online_payments` tier-ka ka hor wuxuu ka ilaaliyaa in lacagta loo isticmaalo auto top-up. **Habka cusub**: Hubi `auto_topup_numbers` UGU HOREYN ka hor pending_online_payments — sidaas auto top-up uu nooqdo special path.
+2. **Offline mode "Auto-created"**: `offline_registrations` ma hayso `package_id`, sidaa darteed order la abuuro ma hayo waxa la diro → ma galo `delivery_queue`. Tan lama xalin karo si automatic ah haddii aan la helin package mapping.
+3. **Transactions tab madhan + $NaN**: RPCs (`get_admin_transactions_summary`, `get_admin_transactions_paginated`) MA jiraan database-ka. Sidaa darteed `selling_price` waa undefined → `$NaN`.
+4. **SMS tab**: Hadda card-yada wuu sameeyaa, laakin Select All + Delete ma jiraan.
 
-1. **Auto Top-Up `Could not find table 'auto_topup_numbers'`**: UI-gu wuxuu insert/select ka sameynayaa jadwalada `auto_topup_numbers` iyo `auto_topup_packages`, laakin database-ka kuma jiraan (kaliya `auto_topup_rules` + `auto_topup_settings`). Migration-ka ayaa la lumiyay.
-2. **Payment matching aan dhamaystirneyn**: `process-payment-receipt` wuxuu raadiyaa `pending_online_payments` oo keliya. Haddii la waayo, durba `unmatched` ayuu sheegaa — MA hubiyo `offline_registrations` MA hubiyo `auto_topup_numbers`.
-3. **Dashboard analytics**: Wuxuu ku tiirsanyahay `get_admin_analytics_summary()` RPC oo aan u soo celin xog `today/week/month/year` (kaliya wuxuu soo celiyaa `total_orders`, `total_revenue`, etc). Sidaa darteed `todaySales/Profit` waa 0. Faa'iidada qaacidada saxda ah waa: `(selling_price × (1 + evoucher_rate)) - cost_price`.
-4. **SMS Tab madhan**: `SmsLogsViewer` wuxuu select-gareeyaa `sms_body, sms_sender, sim_slot, tx_id, tx_type` — laakin jadwalka `sms_logs` columns-kiisu waa `message, phone_number, direction, status`. Schema mismatch → 0 results.
-5. **Notifications-ka admin-ka**: `useRealtimeRefresh` wuxuu kaliya muujiyaa toast + beep, balse browser/system notification (Notification API) ma uusan triggerin. Sidoo kale `device_alerts` table magaceedu waa `device_offline_alerts`.
-6. **Tab kasta CRUD**: Inta badan tabs-ku waa shaqaynayaan, laakin `AutoTopUpDeliveryRules` iyo `AutoTopUpSettings` waa "Coming soon" placeholders.
+## Qorshaha
 
-## Qorshaha hagaajinta
+### Fix 1: Payment matching — Auto Top-Up FIRST
+File: `supabase/functions/process-payment-receipt/index.ts`
+- Beddel order-ka tier-yada: **TIER 1 = auto_topup_numbers** (haddii sender uu yahay registered auto-topup number, kaliya isaga ayaa la galayaa — haddii amount aan match-garayn package, durba unmatched).
+- TIER 2 = pending_online_payments (sida hadda).
+- TIER 3 = offline_registrations (sida hadda — order la abuuro).
+- TIER 4 = unmatched.
 
-### 1. Database migrations (SQL)
-- Abuur `auto_topup_numbers` (id, phone_number unique, label, is_active, created_at).
-- Abuur `auto_topup_packages` (id, topup_number_id FK, package_name, selling_price, cost_price, data_amount, ussd_code, sim_password, provider_name, is_active).
-- Renew `get_admin_analytics_summary()` si ay u soo celiso JSON: `{ today:{revenue,cost,profit,delivered,failed,pending,orders}, week:{...}, month:{...}, year:{...}, delivered_orders, pending_orders, failed_orders, devices_online }`. Faa'iidada: `SUM(selling_price*(1+evoucher_rate)) - SUM(cost_price)` oo orders-ka `delivered`.
-- Enable Supabase Realtime on: `orders, payment_receipts, payment_sms_log, sms_logs, delivery_queue, offline_registrations, auto_topup_numbers, device_offline_alerts`.
+### Fix 2: Offline mode delivery
+File: `supabase/functions/process-payment-receipt/index.ts`
+- Marka offline registration la helo, raadi `pending` order kale oo isla sender_phone leh oo `package_id` leh, oo update-gareyn (mark matched + queue USSD) halkii la abuuri lahaa order cusub oon waxba haynin.
+- Haddii la waayo pending order, abuur order pending oo `delivery_notes='Awaiting admin assignment'` (wuxuu noqonayaa task admin-ku gacanta ku qabto). Tan ayaa qiyaaska saxda ah maadaama offline_registrations aan haysan package_id.
 
-### 2. Edge function `process-payment-receipt` (cusboonaysii matching hierarchy)
-Marka SMS lacageed soo gasho:
-1. Raadi `pending_online_payments` (sida hadda).
-2. Hadii la waayo → raadi `auto_topup_numbers` (sender-ka). Hadii la helo + qiimuhu match-gareynayo `auto_topup_packages.selling_price`, abuur order + queue USSD-ga (provider/ussd_code/sim_password ka soo qaado package).
-3. Hadii la waayo → raadi `offline_registrations` (sender_phone). Hadii la helo, abuur "auto-offline" order is_offline=true status pending oo admin daawan karo (ama match-gareeyo `pending` order kale ee sender-kaas leh). 
-4. Marka labadaba la waayo OO ay tahay auto-topup number laakin amount mismatch → unmatched + reason=`auto_topup_amount_mismatch`.
-5. Kale → unmatched (sida hadda).
+### Fix 3: Transactions RPCs (Migration cusub)
+- Abuur `get_admin_transactions_summary(p_provider_id uuid, p_period text)` → returns JSON `{ transactions_today, sales_today, sales_this_month, cost_today, cost_this_month, total_profit, totalCost }`.
+- Abuur `get_admin_transactions_paginated(p_search, p_status, p_provider_id, p_period, p_page_size, p_page)` → returns JSON `{ rows: [...], total_count, total_sales, total_profit }` with joined provider/package data.
 
-### 3. SMS Tab fix
-- Hagaaji `SmsLogsViewer.tsx` si uu u select-gareeyo column-yada saxda ah ee `sms_logs`: `phone_number, message, direction, status, device_id, created_at`. Map UI fields-ka kuwaas. Sidoo kale ku dar source `payment_sms_log` oo lagu daro list-ka (combine view) si admin-ku u arko dhammaan SMS-yada lacagta.
+### Fix 4: $NaN guard
+File: `src/components/admin/TransactionsDashboard.tsx` (+ image-3/image-4 dialogs)
+- Wrap dhammaan `Number(x).toFixed(2)` calls with `(Number(x) || 0).toFixed(2)`.
+- Sidoo kale `SimpleAdminDetail` iyo `OrderViews` (kuwaas oo muujinaya `$NaN`).
 
-### 4. Notifications system-ka admin-ka
-- Ku dar `Notification.requestPermission()` marka admin login-gareeyo.
-- Cusboonaysii `useRealtimeRefresh`: marka payload eventType=INSERT, ku dar `new Notification(...)` (browser native) iyada oo lagu daray toast + beep ee jiray.
-- Hagaaji magaca jadwalka `device_alerts` → `device_offline_alerts` ee `SimpleAdminDashboard` subscription.
-- Subscriptions ku dar: `payment_sms_log, sms_logs, offline_registrations, auto_topup_numbers`.
+### Fix 5: SMS tab — Select All + Delete
+File: `src/components/admin/SmsLogsViewer.tsx`
+- Ku dar checkbox kasta SMS card kasta (filteredLogs view kaliya, marka card la furo).
+- "Select All" header iyo "Delete (N)" button.
+- Delete: kala saar `sms_logs` vs `payment_sms_log` IDs → laba delete call. Ku dar RLS policy migration haddii loo baahdo.
 
-### 5. Dashboard realtime + xisaab sax ah
-- Dashboard-ka hadda waa realtime (`useRealtimeRefresh`), laakin xogtu waa eber sababtoo ah RPC-gu ma soo celiyo `today/week/month/year` periods. Markaan RPC-da dib u qoro (step 1), dashboard-ku tooska ayuu shaqayn doonaa.
-- Ku dar polling 30s ah backup ahaan haddii realtime fashilmo.
+### Fix 6: Auto top-up trigger logic
+Tabarakii Fix 1 ayaa xalisay. Sidoo kale:
+- Hubi in `auto_topup_packages.selling_price` `numeric` yahay (sax compare).
+- Markii la helo, ku queue `delivery_queue` provider_name + ussd_code + receiver_phone = sender (Auto top-up = isku lambar).
 
-### 6. Auto Top-Up admin tabs (placeholders ka saar)
-- `AutoTopUpSettings.tsx` & `AutoTopUpDeliveryRules.tsx`: ka dhig functional iyaga oo isticmaalaya jadwalada cusub (`auto_topup_settings` oo hore u jiray + `auto_topup_numbers/packages`).
-
-### 7. CRUD audit (xaqiijin)
-Tabs intooda kale (Providers, Packages, Categories, Featured, Banners, Blocked Users, Bulk SMS, App Settings, Admin Management, Audit Log, Fraud Alerts, etc.) waa la xaqiijin doonaa inay si fiican ugu xirantahay tables-ka saxda ah. Wax cusub laguma dari doono haddii ay shaqeynayaan — kaliya nooc kasta oo jaban ayaa la hagaajin doonaa.
+## Migration cusub (SQL)
+- `CREATE OR REPLACE FUNCTION get_admin_transactions_summary(...)` 
+- `CREATE OR REPLACE FUNCTION get_admin_transactions_paginated(...)`
+- RLS policy: admins can DELETE from `sms_logs` iyo `payment_sms_log` (haddii hadda aanay jirin).
 
 ## Faylasha la beddeli doono
-
-| Fayl | Beddel |
+| File | Beddel |
 |---|---|
-| Migration cusub | Tables `auto_topup_numbers`, `auto_topup_packages`; Renew `get_admin_analytics_summary()`; Enable realtime |
-| `supabase/functions/process-payment-receipt/index.ts` | 3-tier matching (pending → auto_topup → offline_registrations → unmatched) |
-| `src/components/admin/SmsLogsViewer.tsx` | Column mapping sax + `payment_sms_log` union |
-| `src/hooks/useRealtimeRefresh.ts` | Browser Notification API + permission request |
-| `src/components/admin/AutoTopUpSettings.tsx` | Functional UI |
-| `src/components/admin/AutoTopUpDeliveryRules.tsx` | Functional UI |
-| `src/pages/SimpleAdminDashboard.tsx` | Magaca `device_alerts` → `device_offline_alerts`; ku dar `payment_sms_log`, `offline_registrations` realtime |
+| Migration cusub SQL | 2 RPCs cusub + DELETE RLS policies |
+| `supabase/functions/process-payment-receipt/index.ts` | Reorder tiers + offline order matching to existing pending |
+| `src/components/admin/SmsLogsViewer.tsx` | Add checkbox select + bulk delete |
+| `src/components/admin/TransactionsDashboard.tsx` | NaN guards on all `.toFixed()` |
+| `src/components/admin/simple/OrderViews.tsx` (haddii loo baahdo) | NaN guard on price display |
 
 ## Waxa aan beddelin
-- UI theme/CSS — sida memory-ga qabsan, naqshadda hadda waa la ilaalin.
-- Android app code (sida la qoray, USSD format-ka waa hagaagsanyahay).
+- UI theme/CSS — sida memory-ga, naqshadda waa la ilaalin.
+- Android app code.
 
