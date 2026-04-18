@@ -438,7 +438,7 @@ export function SmsLacagoCards() {
                     </div>
                     <div>
                       <span className="text-[9px] text-gray-400">Customer</span>
-                      <div className="font-mono font-semibold text-[11px] text-gray-800 dark:text-gray-100">{r.order?.customer_phone ? formatPhone(r.order.customer_phone) : '-'}</div>
+                      <div className="font-mono font-semibold text-[11px] text-gray-800 dark:text-gray-100">{r.order?.sender_phone ? formatPhone(r.order.sender_phone) : formatPhone(r.sender_phone)}</div>
                     </div>
                     <div>
                       <span className="text-[9px] text-gray-400">Receiver</span>
