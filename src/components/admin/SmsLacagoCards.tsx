@@ -64,17 +64,24 @@ export function SmsLacagoCards() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [deliveryResponses, setDeliveryResponses] = useState<{ ussd_code: string; provider_response: string | null; status: string }[]>([]);
 
-  // Fetch delivery queue responses when expanding a receipt
+  // Fetch delivery queue responses when expanding a receipt.
+  // Only show entries created at/after the SMS was received — filters out stale
+  // retries from earlier orders that share the same order_id.
   useEffect(() => {
     if (!expandedId) { setDeliveryResponses([]); return; }
     const r = receipts.find(rec => rec.id === expandedId);
     if (!r?.order?.id) return;
-    supabase
+    // 60s buffer for clock skew between phone and server
+    const smsCutoff = r.created_at
+      ? new Date(new Date(r.created_at).getTime() - 60_000).toISOString()
+      : null;
+    let q = supabase
       .from('delivery_queue')
-      .select('ussd_code, provider_response, status')
+      .select('ussd_code, provider_response, status, created_at')
       .eq('order_id', r.order.id)
-      .order('created_at', { ascending: true })
-      .then(({ data }) => setDeliveryResponses(data || []));
+      .order('created_at', { ascending: true });
+    if (smsCutoff) q = q.gte('created_at', smsCutoff);
+    q.then(({ data }) => setDeliveryResponses(data || []));
   }, [expandedId]);
 
   useEffect(() => {
