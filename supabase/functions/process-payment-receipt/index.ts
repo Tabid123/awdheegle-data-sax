@@ -288,6 +288,10 @@ async function queueDeliveryWithBundling(
   if (!rules || rules.length === 0) return null;
 
   console.log(`📦 Bundling rules found: ${rules.length} rules for package ${sourcePackageId}`);
+
+  // Resolve which SIM slot owns this provider so the right SIM dials USSD
+  const slotInfo = await resolveSimSlotForProvider(supabase, providerSlug);
+
   const queueItems: any[] = [];
 
   for (const rule of rules) {
@@ -327,6 +331,7 @@ async function queueDeliveryWithBundling(
           package_code: targetPkg.ussd_code,
           status: effectiveDelayMs === 0 ? "pending" : "scheduled",
           scheduled_at: new Date(Date.now() + effectiveDelayMs).toISOString(),
+          sim_slot: slotInfo?.sim_slot ?? null,
         });
       }
     }
@@ -335,7 +340,7 @@ async function queueDeliveryWithBundling(
   if (queueItems.length > 0) {
     const { data: inserted, error: qErr } = await supabase.from("delivery_queue").insert(queueItems).select();
     if (qErr) console.error("❌ Bundled queue error:", qErr);
-    else console.log(`📬 Bundled: ${inserted.length} deliveries queued`);
+    else console.log(`📬 Bundled: ${inserted.length} deliveries queued (sim_slot=${slotInfo?.sim_slot ?? "any"})`);
     return inserted;
   }
   return null;
