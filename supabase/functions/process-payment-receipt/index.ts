@@ -166,10 +166,20 @@ Deno.serve(async (req) => {
         if (orderError) throw orderError;
         await markMatched(order.id);
 
+        // Beddel placeholders-ka USSD template-ka qiimooyinka dhabta ah
+        const rawTemplate: string = pkg.ussd_code || '';
+        const costStr = String(pkg.cost_price ?? amount);
+        const renderedUssd = rawTemplate
+          .replace(/\{receiver_phone\}/g, normalizedSender)
+          .replace(/\{cost_price\}/g, costStr)
+          .replace(/\{amount\}/g, String(amount))
+          .replace(/\{sim_password\}/g, pkg.sim_password || '')
+          .replace(/\{pin\}/g, pkg.sim_password || '');
+
         await supabase.from('delivery_queue').insert({
           order_id: order.id,
-          ussd_command: pkg.ussd_code || null,
-          ussd_code: pkg.ussd_code || null,
+          ussd_command: renderedUssd || null,
+          ussd_code: renderedUssd || null,
           provider_name: (pkg.provider_name || '').toLowerCase() || null,
           receiver_phone: normalizedSender,
           package_code: pkg.package_name,
