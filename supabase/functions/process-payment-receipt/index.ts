@@ -98,18 +98,18 @@ Deno.serve(async (req) => {
       if (receipt?.id) await supabase.from('payment_receipts').update({ status: 'matched', matched: true, order_id: orderId }).eq('id', receipt.id);
     };
 
-    // ============ TIER 1: AUTO TOP-UP NUMBERS (HIGHEST PRIORITY) ============
-    // Haddii sender uu yahay registered auto-topup number, KALIYA isaga ayaa la galaa.
+    // ============ TIER 1: AUTO TOP-UP NUMBER ============
+    // Haddii sender lambar auto top-up ah, raadi auto_topup_packages. Hadii laga helo dir, hadii la waayo unmatched.
     const { data: topupNumbers } = await supabase
       .from('auto_topup_numbers')
-      .select('id, phone_number, label, is_active')
+      .select('id, phone_number, is_active')
       .in('phone_number', variants)
       .eq('is_active', true)
       .limit(1);
 
     const topupNumber = topupNumbers?.[0];
     if (topupNumber) {
-      console.log('🔄 TIER 1: Auto top-up number registered:', topupNumber.phone_number);
+      console.log('🔄 TIER 1: Auto top-up sender:', topupNumber.phone_number);
       const { data: pkgs } = await supabase
         .from('auto_topup_packages')
         .select('*')
@@ -119,12 +119,10 @@ Deno.serve(async (req) => {
 
       const pkg = pkgs?.[0];
       if (pkg) {
-        console.log('✅ TIER 1 matched auto_topup_package:', pkg.package_name, '$', amount);
         const { data: order, error: orderError } = await supabase
-          .from('orders')
-          .insert({
+          .from('orders').insert({
             sender_phone: normalizedSender,
-            receiver_phone: normalizedSender, // Auto top-up = isku lambar
+            receiver_phone: normalizedSender,
             amount,
             status: 'pending',
             payment_status: 'matched',
@@ -132,11 +130,9 @@ Deno.serve(async (req) => {
             is_offline: false,
             delivery_notes: `Auto top-up: ${pkg.package_name}`,
           }).select().single();
-
         if (orderError) throw orderError;
         await markMatched(order.id);
 
-        // Queue USSD directly to delivery_queue
         await supabase.from('delivery_queue').insert({
           order_id: order.id,
           ussd_command: pkg.ussd_code || null,
@@ -150,16 +146,14 @@ Deno.serve(async (req) => {
 
         return new Response(JSON.stringify({ success: true, matched: true, tier: 'auto_topup', order_id: order.id }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
-      } else {
-        // Auto top-up number registered, BUT no package matches this amount → unmatched immediately
-        console.log('⚠️ Auto top-up number registered but NO PACKAGE matches amount $', amount);
-        await markUnmatched(`No package matches this amount ($${amount}) for auto top-up number ${topupNumber.phone_number}`);
-        return new Response(JSON.stringify({ success: true, matched: false, tier: 'auto_topup_no_package', reason: 'No package matches this amount' }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
       }
+      await markUnmatched(`Auto top-up: no package matches $${amount}`);
+      return new Response(JSON.stringify({ success: true, matched: false, tier: 'auto_topup_no_package' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
     }
 
-    // ============ TIER 2: pending_online_payments ============
+    // ============ TIER 2: PENDING ONLINE ORDER ============
+    // Raadi pending order sender + amount. Hadii laga helo, dir.
     const { data: pendingPayments } = await supabase
       .from('pending_online_payments')
       .select('*')
@@ -171,10 +165,9 @@ Deno.serve(async (req) => {
 
     const pending = pendingPayments?.[0];
     if (pending) {
-      console.log('✅ TIER 2: Matched pending_online_payment:', pending.id);
+      console.log('✅ TIER 2: Pending online order matched:', pending.id);
       const { data: order, error: orderError } = await supabase
-        .from('orders')
-        .insert({
+        .from('orders').insert({
           sender_phone: pending.sender_phone,
           receiver_phone: pending.receiver_phone,
           amount: pending.expected_amount,
@@ -185,7 +178,6 @@ Deno.serve(async (req) => {
           payment_reference: tx_id || null,
           is_offline: false,
         }).select().single();
-
       if (orderError) throw orderError;
 
       await supabase.from('pending_online_payments')
@@ -198,12 +190,12 @@ Deno.serve(async (req) => {
           .from('providers_config').select('provider_name').eq('id', pending.provider_id).maybeSingle();
         await callActivatePackage(supabaseUrl, serviceKey, order.id, provider?.provider_name || '', pending.receiver_phone);
       }
-
       return new Response(JSON.stringify({ success: true, matched: true, tier: 'pending_online', order_id: order.id }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
     }
 
-    // ============ TIER 3: offline_registrations ============
+    // ============ TIER 3: OFFLINE REGISTRATION ============
+    // Hadii sender diiwaan gashan yahay offline mode, raadi package amount-ka, dir. Hadii la waayo, awaiting admin.
     const { data: offlineRegs } = await supabase
       .from('offline_registrations')
       .select('*')
@@ -213,15 +205,12 @@ Deno.serve(async (req) => {
 
     const reg = offlineRegs?.[0];
     if (reg) {
-      console.log('✅ TIER 3: Offline registration matched:', reg.id, 'provider:', reg.provider_id, 'receiver:', reg.receiver_phone);
-
-      // 3B: AUTO-MATCH by amount within registered provider's packages
-      // (e.g. registration for Somnet, $0.50 received → find Somnet package selling at $0.50)
+      console.log('✅ TIER 3: Offline registration:', reg.id);
       let matchedPkg: any = null;
       if (reg.provider_id) {
         const { data: pkgs } = await supabase
           .from('data_packages_config')
-          .select('id, package_name, data_amount, selling_price, price, ussd_code, ussd_template, provider_id')
+          .select('id, package_name, selling_price, price, provider_id')
           .eq('provider_id', reg.provider_id)
           .eq('is_active', true);
         matchedPkg = (pkgs || []).find((p: any) =>
@@ -229,59 +218,37 @@ Deno.serve(async (req) => {
         );
       }
 
-      if (matchedPkg) {
-        console.log('✅ TIER 3B: Auto-matched offline payment to package:', matchedPkg.package_name);
-        const receiverPhone = reg.receiver_phone || reg.sender_phone;
-        const { data: order, error: orderError } = await supabase
-          .from('orders')
-          .insert({
-            sender_phone: reg.sender_phone,
-            receiver_phone: receiverPhone,
-            amount,
-            provider_id: reg.provider_id,
-            package_id: matchedPkg.id,
-            status: 'pending',
-            payment_status: 'matched',
-            payment_reference: tx_id || null,
-            is_offline: true,
-            delivery_notes: `Offline match: ${matchedPkg.package_name}`,
-          }).select().single();
-
-        if (orderError) throw orderError;
-        await markMatched(order.id);
-
-        const { data: provider } = await supabase
-          .from('providers_config').select('provider_name').eq('id', reg.provider_id).maybeSingle();
-        await callActivatePackage(supabaseUrl, serviceKey, order.id, provider?.provider_name || '', receiverPhone);
-
-        return new Response(JSON.stringify({ success: true, matched: true, tier: 'offline_auto_package', order_id: order.id, package_id: matchedPkg.id }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
-      }
-
-      // 3C: No package match → awaiting-admin
+      const receiverPhone = reg.receiver_phone || reg.sender_phone;
       const { data: order, error: orderError } = await supabase
-        .from('orders')
-        .insert({
+        .from('orders').insert({
           sender_phone: reg.sender_phone,
-          receiver_phone: reg.receiver_phone || reg.sender_phone,
+          receiver_phone: receiverPhone,
           amount,
           provider_id: reg.provider_id,
+          package_id: matchedPkg?.id || null,
           status: 'pending',
           payment_status: 'matched',
           payment_reference: tx_id || null,
           is_offline: true,
-          delivery_notes: `Awaiting admin — no package matches $${amount} for this provider`,
+          delivery_notes: matchedPkg
+            ? `Offline match: ${matchedPkg.package_name}`
+            : `Awaiting admin — no package matches $${amount}`,
         }).select().single();
-
       if (orderError) throw orderError;
       await markMatched(order.id);
 
-      return new Response(JSON.stringify({ success: true, matched: true, tier: 'offline_awaiting_admin', order_id: order.id }),
+      if (matchedPkg) {
+        const { data: provider } = await supabase
+          .from('providers_config').select('provider_name').eq('id', reg.provider_id).maybeSingle();
+        await callActivatePackage(supabaseUrl, serviceKey, order.id, provider?.provider_name || '', receiverPhone);
+      }
+
+      return new Response(JSON.stringify({ success: true, matched: true, tier: matchedPkg ? 'offline_auto_package' : 'offline_awaiting_admin', order_id: order.id }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
     }
 
     // ============ TIER 4: UNMATCHED ============
-    console.log('⚠️ No match found in any tier');
+    console.log('⚠️ No match in any tier');
     await markUnmatched('No matching auto top-up, pending order, or offline registration');
     return new Response(JSON.stringify({ success: true, matched: false, tier: 'unmatched' }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
