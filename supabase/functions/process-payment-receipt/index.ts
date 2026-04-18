@@ -391,19 +391,83 @@ Deno.serve(async (req) => {
     if (reg) {
       const receiverPhone = normalizeSomaliPhone(reg.receiver_phone || normalizedSender);
 
-      // Determine receiver provider via prefix
-      const recvPrefix2 = receiverPhone.substring(0, 2);
-      let recvProviderId: string | null = reg.provider_id || null;
-      let recvProviderName: string | null = (reg.provider_name || '').toLowerCase() || null;
-      if (!recvProviderId) {
-        for (const p of (providersList || [])) {
-          const prefixes: string[] = (p.phone_prefixes || []).map((x: string) => String(x));
-          if (prefixes.includes(recvPrefix2)) {
-            recvProviderId = p.id;
-            recvProviderName = (p.provider_name || '').toLowerCase();
-            break;
-          }
+      // ⚠️ MUHIIM: Haddii receiver-ka offline_registration uu yahay auto_topup_number,
+      // markaa tani waa Auto Top-up dalab — MAHA dalab caadi ah. U beddel Auto Top-up flow-ga.
+      const matchingTopup = (allTopupNumbers || []).find((t: any) => {
+        const n = normalizeSomaliPhone(t.phone_number);
+        return n === receiverPhone;
+      });
+      if (matchingTopup) {
+        console.log('🔁 Receiver waa auto_topup_number → switch Auto Top-up flow:', receiverPhone);
+
+        const { data: candidatePkgs } = await supabase
+          .from('auto_topup_packages')
+          .select('*')
+          .eq('topup_number_id', matchingTopup.id)
+          .eq('is_active', true)
+          .eq('selling_price', amount);
+
+        const pkg = (candidatePkgs && candidatePkgs.length > 0 && senderProviderName)
+          ? candidatePkgs.find((p: any) => (p.provider_name || '').toLowerCase() === senderProviderName)
+          : null;
+
+        if (!pkg) {
+          await markUnmatched(`Auto top-up (via reg): no ${senderProviderName || 'provider'} package for $${amount} on ${receiverPhone}`);
+          return ok({ success: true, matched: false, flow: 'auto_topup_via_reg', reason: 'no_package' });
         }
+
+        const { data: order, error: orderError } = await supabase
+          .from('orders').insert({
+            sender_phone: normalizedSender,
+            receiver_phone: normalizedSender,
+            amount,
+            status: 'pending',
+            payment_status: 'matched',
+            payment_reference: tx_id || null,
+            is_offline: false,
+            provider_id: senderProviderId,
+            delivery_notes: `Auto top-up: ${pkg.package_name}`,
+          }).select().single();
+        if (orderError) throw orderError;
+        await markMatched(order.id);
+
+        const renderedUssd = renderUssd(pkg.ussd_code || '', {
+          receiver_phone: normalizedSender,
+          cost_price: pkg.cost_price ?? amount,
+          amount,
+          sim_password: pkg.sim_password || '',
+          pin: pkg.sim_password || '',
+        });
+        await supabase.from('delivery_queue').insert({
+          order_id: order.id,
+          ussd_command: renderedUssd || null,
+          ussd_code: renderedUssd || null,
+          provider_name: (pkg.provider_name || '').toLowerCase() || null,
+          receiver_phone: normalizedSender,
+          package_code: pkg.package_name,
+          pin_code: pkg.sim_password || null,
+          status: 'pending',
+        });
+
+        return ok({ success: true, matched: true, flow: 'auto_topup_via_reg', order_id: order.id, package: pkg.package_name });
+      }
+
+      // OFFLINE REGULAR FLOW: ka soocnaa provider via prefix (lama aamino reg.provider_id-ka).
+      // Tani waxay xallisaa kiisaska ay reg.provider_id khaldan tahay.
+      const recvPrefix2 = receiverPhone.substring(0, 2);
+      let recvProviderId: string | null = null;
+      let recvProviderName: string | null = null;
+      for (const p of (providersList || [])) {
+        const prefixes: string[] = (p.phone_prefixes || []).map((x: string) => String(x));
+        if (prefixes.includes(recvPrefix2)) {
+          recvProviderId = p.id;
+          recvProviderName = (p.provider_name || '').toLowerCase();
+          break;
+        }
+      }
+      if (!recvProviderId) {
+        recvProviderId = reg.provider_id || null;
+        recvProviderName = (reg.provider_name || '').toLowerCase() || null;
       }
 
       if (!recvProviderId) {
@@ -411,7 +475,6 @@ Deno.serve(async (req) => {
         return ok({ success: true, matched: false, flow: 'offline_reg', reason: 'no_provider' });
       }
 
-      // Find package matching provider + amount
       const { data: pkgs } = await supabase
         .from('data_packages_config')
         .select('*')
@@ -425,7 +488,7 @@ Deno.serve(async (req) => {
         return ok({ success: true, matched: false, flow: 'offline_reg', reason: 'no_package' });
       }
 
-      console.log('✅ Tier B match: offline_registration → package', pkg.package_name);
+      console.log('✅ Tier B match: offline_registration → package', pkg.package_name, '(', recvProviderName, ')');
 
       const { data: order, error: orderError } = await supabase
         .from('orders').insert({
