@@ -1,8 +1,7 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-// Simple beep sound using Web Audio API
 const playNotificationSound = () => {
   try {
     const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -16,22 +15,34 @@ const playNotificationSound = () => {
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
     oscillator.start(ctx.currentTime);
     oscillator.stop(ctx.currentTime + 0.5);
-  } catch { /* silent fail */ }
+  } catch { /* silent */ }
 };
 
 const triggerVibration = () => {
-  try {
-    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-  } catch { /* silent fail */ }
+  try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch { /* silent */ }
 };
 
-// Table-specific notification messages
+const showBrowserNotification = (title: string, body: string) => {
+  try {
+    if (typeof window === 'undefined' || !('Notification' in window)) return;
+    if (Notification.permission === 'granted') {
+      new Notification(title, { body, icon: '/favicon.ico', badge: '/favicon.ico', tag: 'admin-realtime' });
+    } else if (Notification.permission !== 'denied') {
+      Notification.requestPermission().then((p) => {
+        if (p === 'granted') new Notification(title, { body, icon: '/favicon.ico' });
+      });
+    }
+  } catch { /* silent */ }
+};
+
 const TABLE_NOTIFICATIONS: Record<string, { so: string; en: string; icon: string }> = {
   orders: { so: '📦 Dalab cusub soo galay!', en: '📦 New order received!', icon: '📦' },
   android_devices: { so: '📱 Aalad cusub oo la cusboonaysiiyay', en: '📱 Device updated', icon: '📱' },
   sim_balances: { so: '💰 Haraaga SIM-ka waa la cusboonaysiiyay', en: '💰 SIM balance updated', icon: '💰' },
   delivery_queue: { so: '🚀 Delivery queue waa la cusboonaysiiyay', en: '🚀 Delivery queue updated', icon: '🚀' },
   payment_receipts: { so: '💳 Lacag cusub soo gashay!', en: '💳 New payment received!', icon: '💳' },
+  payment_sms_log: { so: '💬 SMS lacageed cusub', en: '💬 New payment SMS', icon: '💬' },
+  sms_logs: { so: '📨 SMS cusub', en: '📨 New SMS log', icon: '📨' },
   verified_phones: { so: '✅ Macmiil cusub oo is diwaangeliyay', en: '✅ New customer registered', icon: '✅' },
   providers_config: { so: '⚙️ Provider config waa la bedelay', en: '⚙️ Provider config changed', icon: '⚙️' },
   data_packages_config: { so: '📋 Package waa la cusboonaysiiyay', en: '📋 Package updated', icon: '📋' },
@@ -39,14 +50,9 @@ const TABLE_NOTIFICATIONS: Record<string, { so: string; en: string; icon: string
   fraud_alerts: { so: '🚨 Digniin khatar ah!', en: '🚨 Fraud alert detected!', icon: '🚨' },
   blocked_users: { so: '🚫 Blocked users waa la cusboonaysiiyay', en: '🚫 Blocked users updated', icon: '🚫' },
   offline_registrations: { so: '📝 Diiwaangelin cusub', en: '📝 New offline registration', icon: '📝' },
-  device_alerts: { so: '⚠️ Aalad digniin!', en: '⚠️ Device alert!', icon: '⚠️' },
+  device_offline_alerts: { so: '⚠️ Aalad offline ah!', en: '⚠️ Device offline alert!', icon: '⚠️' },
 };
 
-/**
- * Subscribe to Supabase Realtime changes on one or more tables.
- * Calls `onRefresh` whenever an INSERT, UPDATE, or DELETE occurs.
- * Optionally plays sound, vibrates, and shows toast on INSERT events.
- */
 export function useRealtimeRefresh(
   tables: string[],
   onRefresh: () => void,
@@ -56,9 +62,17 @@ export function useRealtimeRefresh(
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isFirstLoad = useRef(true);
   const optionsRef = useRef(options);
-  optionsRef.current = options; // always latest
+  optionsRef.current = options;
 
-  // After 3 seconds, allow notifications (skip initial load events)
+  // Request notification permission once
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission().catch(() => {});
+      }
+    } catch { /* silent */ }
+  }, []);
+
   useEffect(() => {
     const t = setTimeout(() => { isFirstLoad.current = false; }, 3000);
     return () => clearTimeout(t);
@@ -77,19 +91,19 @@ export function useRealtimeRefresh(
       const shouldNotify = currentOptions?.notify !== false;
       const lang = currentOptions?.lang || 'so';
 
-      // Notify on INSERT only, skip initial load
       if (shouldNotify && payload.eventType === 'INSERT' && !isFirstLoad.current) {
         const info = TABLE_NOTIFICATIONS[table];
         if (info) {
+          const msg = lang === 'so' ? info.so : info.en;
           playNotificationSound();
           triggerVibration();
-          toast.success(lang === 'so' ? info.so : info.en, { duration: 4000 });
+          toast.success(msg, { duration: 4000 });
+          showBrowserNotification('Awdheegle Admin', msg);
         }
       }
     };
 
     let channel = supabase.channel(channelName);
-
     tables.forEach((table) => {
       channel = channel.on(
         'postgres_changes',
@@ -97,7 +111,6 @@ export function useRealtimeRefresh(
         (payload) => handleChange(payload, table)
       );
     });
-
     channel.subscribe();
 
     return () => {

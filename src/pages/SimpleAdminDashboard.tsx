@@ -337,7 +337,18 @@ const SimpleAdminDashboard = () => {
   useEffect(() => { fetchData(); }, [selectedPeriod, selectedDate]);
 
   // Real-time: auto-refresh when orders, devices, balances, or delivery queue change
-  useRealtimeRefresh(['orders', 'android_devices', 'sim_balances', 'delivery_queue', 'payment_receipts', 'device_alerts'], fetchDataCb, 800, { notify: notificationsEnabled, lang: isSo ? 'so' : 'en' });
+  useRealtimeRefresh(
+    ['orders', 'android_devices', 'sim_balances', 'delivery_queue', 'payment_receipts', 'payment_sms_log', 'sms_logs', 'offline_registrations', 'auto_topup_numbers', 'device_offline_alerts'],
+    fetchDataCb,
+    800,
+    { notify: notificationsEnabled, lang: isSo ? 'so' : 'en' }
+  );
+
+  // 30s polling backup
+  useEffect(() => {
+    const t = setInterval(() => fetchData(), 30000);
+    return () => clearInterval(t);
+  }, [selectedPeriod, selectedDate]);
 
   const periodLabel = selectedDate ? format(selectedDate, 'dd/MM') : selectedPeriod === 'today' ? 'Maanta' : selectedPeriod === 'week' ? 'Isbuucan' : selectedPeriod === 'month' ? 'Bisha' : 'Sanadka';
 
