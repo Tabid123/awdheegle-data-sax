@@ -98,26 +98,51 @@ Deno.serve(async (req) => {
       if (receipt?.id) await supabase.from('payment_receipts').update({ status: 'matched', matched: true, order_id: orderId }).eq('id', receipt.id);
     };
 
-    // ============ TIER 1: AUTO TOP-UP NUMBER ============
-    // Haddii RECEIVER (lambarka lacagta lagu shubay) yahay lambar auto top-up ah,
-    // raadi auto_topup_packages oo qiimaha la mid yahay → dir lambarka SENDER (qofka lacagta soo diray).
-    // Hadii la waayo package qiimaha la mid ah → unmatched.
+    // ============ TIER 1: AUTO TOP-UP (lacag lagu shubay lambar auto top-up) ============
+    // SMS body-yada Hormuud "ka heshay" MA muujiyaan SIM-ka lacagta lagu helay.
+    // Sidaa darteed waxaynu raadinaynaa LABA xaalad:
+    //   (a) receiver_sim haddii Android app-ku diray oo uu yahay auto top-up.
+    //   (b) Sender ku jira offline_registrations oo receiver_phone-keedu yahay auto top-up
+    //       → lacagta waxay gashay account-ka auto top-up, dir SENDER xirmo.
     const normalizedReceiver = receiver_sim ? normalizeSomaliPhone(receiver_sim) : '';
     const receiverVariants = normalizedReceiver ? senderVariants(normalizedReceiver) : [];
 
+    // Helid lambarada auto top-up ee firfircoon (qiyaastii yar — caching aan u baahnayn)
+    const { data: allTopupNumbers } = await supabase
+      .from('auto_topup_numbers')
+      .select('id, phone_number, is_active')
+      .eq('is_active', true);
+
+    const normalizedTopupSet = new Map<string, any>();
+    for (const t of (allTopupNumbers || [])) {
+      normalizedTopupSet.set(normalizeSomaliPhone(t.phone_number), t);
+    }
+
+    // (a) receiver_sim direct match
     let topupNumber: any = null;
-    if (receiverVariants.length > 0) {
-      const { data: topupByReceiver } = await supabase
-        .from('auto_topup_numbers')
-        .select('id, phone_number, is_active')
-        .in('phone_number', receiverVariants)
-        .eq('is_active', true)
-        .limit(1);
-      topupNumber = topupByReceiver?.[0] || null;
+    if (normalizedReceiver && normalizedTopupSet.has(normalizedReceiver)) {
+      topupNumber = normalizedTopupSet.get(normalizedReceiver);
+      console.log('🔄 TIER 1a: receiver_sim is auto top-up:', topupNumber.phone_number);
+    }
+
+    // (b) sender's offline registration receiver_phone == auto top-up
+    if (!topupNumber) {
+      const { data: regsForSender } = await supabase
+        .from('offline_registrations')
+        .select('id, sender_phone, receiver_phone, is_active')
+        .in('sender_phone', variants)
+        .eq('is_active', true);
+      for (const r of (regsForSender || [])) {
+        const recNorm = normalizeSomaliPhone(r.receiver_phone || '');
+        if (recNorm && normalizedTopupSet.has(recNorm)) {
+          topupNumber = normalizedTopupSet.get(recNorm);
+          console.log('🔄 TIER 1b: sender offline reg → receiver is auto top-up:', topupNumber.phone_number);
+          break;
+        }
+      }
     }
 
     if (topupNumber) {
-      console.log('🔄 TIER 1: Auto top-up RECEIVER:', topupNumber.phone_number, '→ delivering to SENDER:', normalizedSender);
       const { data: pkgs } = await supabase
         .from('auto_topup_packages')
         .select('*')
