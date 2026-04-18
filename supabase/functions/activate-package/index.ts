@@ -179,7 +179,7 @@ serve(async (req) => {
 
       // 4. Build final USSD code - format amount correctly
       // Integers: 4 -> "4", 20 -> "20"
-      // Decimals < $1 (cents only): merge digits. 0.10 -> "010", 0.09 -> "009"
+      // Sub-dollar (cents only): send cents WITHOUT leading 0. 0.10 -> "10", 0.01 -> "1", 0.25 -> "25"
       // Decimals >= $1: use * separator. 4.25 -> "4*25", 1.50 -> "1*50"
       const formatAmountForUssd = (amount: number) => {
         const numericAmount = Number(amount);
@@ -188,9 +188,9 @@ serve(async (req) => {
           return String(Math.round(numericAmount));
         }
         const parts = numericAmount.toFixed(2).split('.');
-        // Sub-dollar amounts (0.xx): merge with leading zero -> "0xx"
+        // Sub-dollar amounts (0.xx): send cents only, strip leading zero -> "10", "1", "25"
         if (parts[0] === '0') {
-          return `${parts[0]}${parts[1]}`;
+          return String(parseInt(parts[1], 10));
         }
         // Dollar+ amounts: use * separator -> "X*YY"
         return `${parts[0]}*${parts[1]}`;
