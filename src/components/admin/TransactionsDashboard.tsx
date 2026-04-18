@@ -221,31 +221,31 @@ export function TransactionsDashboard() {
           <CardContent className="p-2">
             <p className="text-[8px] text-blue-100 font-medium">Transactions</p>
             <p className="text-sm font-bold">{sToday}</p>
-            <p className="text-[7px] text-blue-200 mt-0.5">Cost: ${Number(sCostToday).toFixed(2)}</p>
+            <p className="text-[7px] text-blue-200 mt-0.5">Cost: ${sCostToday.toFixed(2)}</p>
           </CardContent>
         </Card>
 
         <Card className="bg-purple-600 text-white border-0 shadow-md">
           <CardContent className="p-2">
             <p className="text-[8px] text-purple-100 font-medium">Sales</p>
-            <p className="text-sm font-bold">${Number(sSalesToday).toFixed(2)}</p>
-            <p className="text-[7px] text-purple-200 mt-0.5">Cost: ${Number(sCostToday).toFixed(2)}</p>
+            <p className="text-sm font-bold">${sSalesToday.toFixed(2)}</p>
+            <p className="text-[7px] text-purple-200 mt-0.5">Cost: ${sCostToday.toFixed(2)}</p>
           </CardContent>
         </Card>
 
         <Card className="bg-gray-600 text-white border-0 shadow-md">
           <CardContent className="p-2">
             <p className="text-[8px] text-gray-300 font-medium">Monthly</p>
-            <p className="text-sm font-bold">${Number(sSalesMonth).toFixed(2)}</p>
-            <p className="text-[7px] text-gray-400 mt-0.5">Cost: ${Number(statsData?.cost_this_month ?? 0).toFixed(2)}</p>
+            <p className="text-sm font-bold">${sSalesMonth.toFixed(2)}</p>
+            <p className="text-[7px] text-gray-400 mt-0.5">Cost: ${sCostMonth.toFixed(2)}</p>
           </CardContent>
         </Card>
 
         <Card className="bg-emerald-500 text-white border-0 shadow-md">
           <CardContent className="p-2">
             <p className="text-[8px] text-emerald-100 font-medium">Profit</p>
-            <p className="text-sm font-bold">${Number(sProfit).toFixed(2)}</p>
-            <p className="text-[7px] text-emerald-200 mt-0.5">Cost: ${Number(sTotalCost).toFixed(2)}</p>
+            <p className="text-sm font-bold">${sProfit.toFixed(2)}</p>
+            <p className="text-[7px] text-emerald-200 mt-0.5">Cost: ${sTotalCost.toFixed(2)}</p>
           </CardContent>
         </Card>
       </div>
@@ -351,7 +351,7 @@ export function TransactionsDashboard() {
                     <span className="text-xs text-gray-400">{formatPhone(t.receiver_phone || '')} · {formatTime(t.created_at)}</span>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className="font-semibold text-sm text-gray-700 dark:text-gray-200">${Number(t.selling_price).toFixed(2)}</span>
+                    <span className="font-semibold text-sm text-gray-700 dark:text-gray-200">${(Number(t.selling_price) || 0).toFixed(2)}</span>
                     <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${getStatusColor(displayStatus)}`}>
                       {displayStatus}
                     </span>
@@ -381,7 +381,7 @@ export function TransactionsDashboard() {
                         <DollarSign className="w-3.5 h-3.5 text-green-500" />
                         <div>
                           <div className="text-[10px] text-gray-400">Cost</div>
-                          <div className="font-medium text-gray-700 dark:text-gray-200">${Number(t.cost_price || 0).toFixed(2)}</div>
+                          <div className="font-medium text-gray-700 dark:text-gray-200">${(Number(t.cost_price) || 0).toFixed(2)}</div>
                         </div>
                       </div>
                       <div className="flex items-center gap-1.5">
@@ -448,9 +448,9 @@ export function TransactionsDashboard() {
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 p-3">
           <div className="flex flex-wrap justify-between gap-2 text-xs">
             <span>Total: <strong>{totalCount}</strong></span>
-            <span>Sales: <strong className="text-blue-600">${Number(totalSales).toFixed(2)}</strong></span>
-            <span>Cost: <strong className="text-red-600">${Number(statsData?.totalCost ?? 0).toFixed(2)}</strong></span>
-            <span>Profit: <strong className="text-green-600">${Number(totalProfit).toFixed(2)}</strong></span>
+            <span>Sales: <strong className="text-blue-600">${(Number(totalSales) || 0).toFixed(2)}</strong></span>
+            <span>Cost: <strong className="text-red-600">${sTotalCost.toFixed(2)}</strong></span>
+            <span>Profit: <strong className="text-green-600">${(Number(totalProfit) || 0).toFixed(2)}</strong></span>
           </div>
 
           {totalPages > 1 && (

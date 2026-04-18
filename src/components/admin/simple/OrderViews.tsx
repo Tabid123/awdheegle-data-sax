@@ -35,7 +35,7 @@ const OrderAccordionItem = ({ item, idx, expandedId, setExpandedId, isSo, action
           </div>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
-          <span className="font-bold text-sm">${Number(item.selling_price).toFixed(2)}</span>
+          <span className="font-bold text-sm">${(Number(item.selling_price ?? item.amount) || 0).toFixed(2)}</span>
           <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${statusColor}`}>{item.delivery_status || item.status}</span>
           {item.payment_source && <span className={`text-[8px] px-1 py-0.5 rounded font-bold ${
             item.payment_source === 'ussd_online' ? 'bg-blue-100 text-blue-700' :
@@ -62,8 +62,8 @@ const OrderAccordionItem = ({ item, idx, expandedId, setExpandedId, isSo, action
             { icon: Phone, label: isSo ? 'Qaataha' : 'Receiver', value: `+252${formatPhone(item.receiver_phone)}`, color: 'text-green-500' },
             { icon: User, label: isSo ? 'Macmiilka' : 'Customer', value: `+252${formatPhone(item.customer_phone)}`, color: 'text-purple-500' },
             ...(item.sender_phone ? [{ icon: Phone, label: isSo ? 'Diraha' : 'Sender', value: `+252${formatPhone(item.sender_phone)}`, color: 'text-orange-500' }] : []),
-            { icon: DollarSign, label: isSo ? 'Iibka' : 'Price', value: `$${Number(item.selling_price).toFixed(2)}`, color: 'text-emerald-500' },
-            { icon: DollarSign, label: isSo ? 'Kharash' : 'Cost', value: `$${Number(item.cost_price || 0).toFixed(2)}`, color: 'text-red-500' },
+            { icon: DollarSign, label: isSo ? 'Iibka' : 'Price', value: `$${(Number(item.selling_price ?? item.amount) || 0).toFixed(2)}`, color: 'text-emerald-500' },
+            { icon: DollarSign, label: isSo ? 'Kharash' : 'Cost', value: `$${(Number(item.cost_price) || 0).toFixed(2)}`, color: 'text-red-500' },
             { icon: Calendar, label: isSo ? 'Taariikhda' : 'Date', value: `${formatDate(item.created_at)} ${formatTime(item.created_at)}`, color: 'text-teal-500' },
             ...(item.delivered_at ? [{ icon: CheckCircle, label: isSo ? 'La gaarsiiyay' : 'Delivered', value: `${formatDate(item.delivered_at)} ${formatTime(item.delivered_at)}`, color: 'text-green-600' }] : []),
             ...(item.payment_source ? [{ icon: CreditCard, label: isSo ? 'Nooca' : 'Type', value: 
