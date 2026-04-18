@@ -883,21 +883,17 @@ serve(async (req) => {
       const { data: autoOrder, error: autoOrderErr } = await supabase
         .from("orders")
         .insert({
-          customer_phone: normalizedSender,
           sender_phone: normalizedSender,
           receiver_phone: normalizedSender,
           provider_id: detectedProvider.id,
           package_id: packageId,
-          package_name: packageName,
-          data_amount: dataAmount,
-          selling_price: amount,
-          cost_price: costPrice,
+          amount,
           payment_provider_id: paymentProv?.id,
-          payment_number: autoTopupRecord.phone_number,
-          payment_source: "auto_topup",
-          tx_id: effectiveTxId || null,
-          status: "completed",
+          payment_reference: effectiveTxId || null,
+          payment_status: "matched",
+          status: "pending",
           delivery_status: "queued",
+          is_offline: true,
         })
         .select()
         .single();
