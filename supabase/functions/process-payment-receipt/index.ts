@@ -44,18 +44,17 @@ function renderUssd(template: string, vars: Record<string, string | number | nul
   return out;
 }
 
-// Resolve USSD template + sim_password for a package, falling back to
-// delivery_instructions (package-level → category-level → provider-level).
+// Resolve USSD template + sim_password.
+// PRIORITY: delivery_instructions (System Codes) FIRST — package → category → provider,
+// then fall back to data_packages_config.ussd_code/ussd_template as a last resort.
 async function resolveUssdTemplate(
   supabase: any,
   pkg: { id?: string; provider_id?: string; category_id?: string | null; ussd_code?: string | null; ussd_template?: string | null },
 ): Promise<{ template: string; sim_password: string }> {
-  let template = pkg.ussd_code || pkg.ussd_template || '';
+  let template = '';
   let sim_password = '';
 
-  if (template) return { template, sim_password };
-
-  // Try delivery_instructions: package → category → provider
+  // 1) Always check delivery_instructions FIRST (these are the admin-managed System Codes)
   const { data: rows } = await supabase
     .from('delivery_instructions')
     .select('ussd_template, code_template, sim_password, package_id, category_id, provider_id')
@@ -75,6 +74,10 @@ async function resolveUssdTemplate(
     template = pick.ussd_template || pick.code_template || '';
     sim_password = pick.sim_password || '';
   }
+
+  // 2) Fallback to package-level template only if System Codes had nothing
+  if (!template) template = pkg.ussd_code || pkg.ussd_template || '';
+
   return { template, sim_password };
 }
 
