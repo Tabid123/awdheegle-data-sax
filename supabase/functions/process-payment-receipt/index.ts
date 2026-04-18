@@ -23,7 +23,22 @@ function normalizeSomaliPhone(phone: string): string {
 
 function renderUssd(template: string, vars: Record<string, string | number | null | undefined>): string {
   let out = String(template || '');
-  for (const [k, v] of Object.entries(vars)) {
+  // Add common aliases so templates can use {phone}, {number}, {msisdn}, {pin}, {password}
+  const enriched: Record<string, string | number | null | undefined> = { ...vars };
+  const recv = vars.receiver_phone;
+  if (recv != null) {
+    if (enriched.phone == null) enriched.phone = recv;
+    if (enriched.number == null) enriched.number = recv;
+    if (enriched.msisdn == null) enriched.msisdn = recv;
+    if (enriched.receiver == null) enriched.receiver = recv;
+  }
+  const pwd = vars.sim_password ?? vars.pin;
+  if (pwd != null) {
+    if (enriched.password == null) enriched.password = pwd;
+    if (enriched.pin == null) enriched.pin = pwd;
+  }
+  if (vars.amount != null && enriched.cost == null) enriched.cost = vars.amount;
+  for (const [k, v] of Object.entries(enriched)) {
     out = out.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v ?? ''));
   }
   return out;
