@@ -112,22 +112,33 @@ Deno.serve(async (req) => {
       return null;
     };
 
-    // FALLBACK: extract receiver SIM (the number that *received* the money) from
-    // the SMS body when the device didn't pass receiver_sim.
-    // Looks for any 9-12 digit Somali number; we then normalise & pick one that
-    // is NOT the sender. The first such number in the body is the receiver SIM.
+    // FALLBACK: when device didn't pass receiver_sim, look it up from android_devices
+    // using the SMS provider tag ([-JEEB-]=Somnet → SIM that has somnet provider, etc.).
     if (!normalizedReceiver) {
-      const candidates = Array.from(
-        (sms_body || '').matchAll(/(?:252)?0?(6\d{8})/g)
-      ).map((m) => normalizeSomaliPhone(m[1]));
-      const recv = candidates.find((c) => c && c !== normalizedSender);
-      if (recv) {
-        normalizedReceiver = recv;
-        console.log('🔍 Extracted receiver from SMS body:', recv);
+      const recvProvider = detectReceiverProviderFromSms(sms_body);
+      if (recvProvider) {
+        const { data: devs } = await supabase
+          .from('android_devices')
+          .select('sim_number, sim1_provider, sim2_number, sim2_provider')
+          .eq('is_active', true);
+        for (const d of (devs || [])) {
+          if ((d.sim1_provider || '').toLowerCase() === recvProvider && d.sim_number) {
+            normalizedReceiver = normalizeSomaliPhone(d.sim_number);
+            break;
+          }
+          if ((d.sim2_provider || '').toLowerCase() === recvProvider && d.sim2_number) {
+            normalizedReceiver = normalizeSomaliPhone(d.sim2_number);
+            break;
+          }
+        }
+        if (normalizedReceiver) {
+          console.log('🔍 Resolved receiver SIM from android_devices:', normalizedReceiver, '(', recvProvider, ')');
+        }
       }
     }
 
     console.log('📱 SMS:', { sender: normalizedSender, receiver: normalizedReceiver, amount, tx_id });
+
 
 
     // Log raw SMS
