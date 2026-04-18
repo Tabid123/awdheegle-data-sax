@@ -99,130 +99,68 @@ Deno.serve(async (req) => {
       if (receipt?.id) await supabase.from('payment_receipts').update({ status: 'matched', matched: true, order_id: orderId }).eq('id', receipt.id);
     };
 
-    // ============ TIER 1: AUTO TOP-UP (lacag lagu shubay lambar auto top-up) ============
-    // SMS body-yada Hormuud "ka heshay" MA muujiyaan SIM-ka lacagta lagu helay.
-    // Sidaa darteed waxaynu raadinaynaa LABA xaalad:
-    //   (a) receiver_sim haddii Android app-ku diray oo uu yahay auto top-up.
-    //   (b) Sender ku jira offline_registrations oo receiver_phone-keedu yahay auto top-up
-    //       → lacagta waxay gashay account-ka auto top-up, dir SENDER xirmo.
-    const normalizedReceiver = receiver_sim ? normalizeSomaliPhone(receiver_sim) : '';
-    const receiverVariants = normalizedReceiver ? senderVariants(normalizedReceiver) : [];
+    // ============ TIER 1: AUTO TOP-UP (FUDUD) ============
+    // Logic: Haddii amount-ku waafaqsan yahay xirmo auto top-up firfircoon,
+    // dir dalabka SENDER-ka. Iska illoow receiver_sim, device_id, offline reg.
+    const { data: matchingPkgs } = await supabase
+      .from('auto_topup_packages')
+      .select('*, auto_topup_numbers!inner(id, phone_number, is_active)')
+      .eq('is_active', true)
+      .eq('selling_price', amount)
+      .eq('auto_topup_numbers.is_active', true);
 
-    // Helid lambarada auto top-up ee firfircoon (qiyaastii yar — caching aan u baahnayn)
-    const { data: allTopupNumbers } = await supabase
-      .from('auto_topup_numbers')
-      .select('id, phone_number, is_active')
-      .eq('is_active', true);
+    const pkg = matchingPkgs?.[0];
+    if (pkg) {
+      console.log('🔄 AUTO TOP-UP MATCH: amount $' + amount + ' → ' + pkg.package_name);
 
-    const normalizedTopupSet = new Map<string, any>();
-    for (const t of (allTopupNumbers || [])) {
-      normalizedTopupSet.set(normalizeSomaliPhone(t.phone_number), t);
-    }
-
-    // (a) receiver_sim direct match
-    let topupNumber: any = null;
-    if (normalizedReceiver && normalizedTopupSet.has(normalizedReceiver)) {
-      topupNumber = normalizedTopupSet.get(normalizedReceiver);
-      console.log('🔄 TIER 1a: receiver_sim is auto top-up:', topupNumber.phone_number);
-    }
-
-    // (b) sender's offline registration receiver_phone == auto top-up
-    if (!topupNumber) {
-      const { data: regsForSender } = await supabase
-        .from('offline_registrations')
-        .select('id, sender_phone, receiver_phone, is_active')
-        .in('sender_phone', variants)
-        .eq('is_active', true);
-      for (const r of (regsForSender || [])) {
-        const recNorm = normalizeSomaliPhone(r.receiver_phone || '');
-        if (recNorm && normalizedTopupSet.has(recNorm)) {
-          topupNumber = normalizedTopupSet.get(recNorm);
-          console.log('🔄 TIER 1b: sender offline reg → receiver is auto top-up:', topupNumber.phone_number);
-          break;
-        }
+      // Hel provider_id ku salaysan magaca provider-ka
+      let providerId: string | null = null;
+      if (pkg.provider_name) {
+        const { data: prov } = await supabase
+          .from('providers_config')
+          .select('id')
+          .ilike('provider_name', pkg.provider_name)
+          .maybeSingle();
+        providerId = prov?.id || null;
       }
-    }
 
-    // (c) device_id provided → check if any SIM on that device matches an auto top-up number
-    //     (Hormuud SMS doesn't reveal the receiving SIM, but the device that received the SMS
-    //      must own the auto top-up SIM — so we can match by device ownership.)
-    if (!topupNumber && device_id) {
-      const { data: deviceSims } = await supabase
-        .from('sims')
-        .select('phone_number')
-        .eq('device_id', device_id);
-      for (const s of (deviceSims || [])) {
-        const simNorm = normalizeSomaliPhone(s.phone_number || '');
-        if (simNorm && normalizedTopupSet.has(simNorm)) {
-          topupNumber = normalizedTopupSet.get(simNorm);
-          console.log('🔄 TIER 1c: device SIM is auto top-up:', topupNumber.phone_number);
-          break;
-        }
-      }
-    }
-
-    if (topupNumber) {
-      const { data: pkgs } = await supabase
-        .from('auto_topup_packages')
-        .select('*')
-        .eq('topup_number_id', topupNumber.id)
-        .eq('is_active', true)
-        .eq('selling_price', amount);
-
-      const pkg = pkgs?.[0];
-      if (pkg) {
-        // Hel provider_id ku salaysan magaca provider-ka package-ka auto top-up
-        let providerId: string | null = null;
-        if (pkg.provider_name) {
-          const { data: prov } = await supabase
-            .from('providers_config')
-            .select('id')
-            .ilike('provider_name', pkg.provider_name)
-            .maybeSingle();
-          providerId = prov?.id || null;
-        }
-
-        const { data: order, error: orderError } = await supabase
-          .from('orders').insert({
-            sender_phone: normalizedSender,
-            receiver_phone: normalizedSender,
-            amount,
-            status: 'pending',
-            payment_status: 'matched',
-            payment_reference: tx_id || null,
-            is_offline: false,
-            provider_id: providerId,
-            delivery_notes: `Auto top-up: ${pkg.package_name}`,
-          }).select().single();
-        if (orderError) throw orderError;
-        await markMatched(order.id);
-
-        // Beddel placeholders-ka USSD template-ka qiimooyinka dhabta ah
-        const rawTemplate: string = pkg.ussd_code || '';
-        const costStr = String(pkg.cost_price ?? amount);
-        const renderedUssd = rawTemplate
-          .replace(/\{receiver_phone\}/g, normalizedSender)
-          .replace(/\{cost_price\}/g, costStr)
-          .replace(/\{amount\}/g, String(amount))
-          .replace(/\{sim_password\}/g, pkg.sim_password || '')
-          .replace(/\{pin\}/g, pkg.sim_password || '');
-
-        await supabase.from('delivery_queue').insert({
-          order_id: order.id,
-          ussd_command: renderedUssd || null,
-          ussd_code: renderedUssd || null,
-          provider_name: (pkg.provider_name || '').toLowerCase() || null,
+      const { data: order, error: orderError } = await supabase
+        .from('orders').insert({
+          sender_phone: normalizedSender,
           receiver_phone: normalizedSender,
-          package_code: pkg.package_name,
-          pin_code: pkg.sim_password || null,
+          amount,
           status: 'pending',
-        });
+          payment_status: 'matched',
+          payment_reference: tx_id || null,
+          is_offline: false,
+          provider_id: providerId,
+          delivery_notes: `Auto top-up: ${pkg.package_name}`,
+        }).select().single();
+      if (orderError) throw orderError;
+      await markMatched(order.id);
 
-        return new Response(JSON.stringify({ success: true, matched: true, tier: 'auto_topup', order_id: order.id }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
-      }
-      await markUnmatched(`Auto top-up: no package matches $${amount}`);
-      return new Response(JSON.stringify({ success: true, matched: false, tier: 'auto_topup_no_package' }),
+      // Beddel placeholders-ka USSD template
+      const rawTemplate: string = pkg.ussd_code || '';
+      const costStr = String(pkg.cost_price ?? amount);
+      const renderedUssd = rawTemplate
+        .replace(/\{receiver_phone\}/g, normalizedSender)
+        .replace(/\{cost_price\}/g, costStr)
+        .replace(/\{amount\}/g, String(amount))
+        .replace(/\{sim_password\}/g, pkg.sim_password || '')
+        .replace(/\{pin\}/g, pkg.sim_password || '');
+
+      await supabase.from('delivery_queue').insert({
+        order_id: order.id,
+        ussd_command: renderedUssd || null,
+        ussd_code: renderedUssd || null,
+        provider_name: (pkg.provider_name || '').toLowerCase() || null,
+        receiver_phone: normalizedSender,
+        package_code: pkg.package_name,
+        pin_code: pkg.sim_password || null,
+        status: 'pending',
+      });
+
+      return new Response(JSON.stringify({ success: true, matched: true, tier: 'auto_topup', order_id: order.id }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
     }
 
