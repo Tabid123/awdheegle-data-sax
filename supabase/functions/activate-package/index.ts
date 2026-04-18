@@ -636,10 +636,12 @@ serve(async (req) => {
         const orderUpdate: any = {};
         
         if (finalDeliveryStatus === 'completed') {
+          orderUpdate.status = 'completed';
           orderUpdate.delivery_status = 'delivered';
           orderUpdate.delivered_at = new Date().toISOString();
           orderUpdate.delivery_notes = providerResponse || 'Package activated successfully';
         } else if (finalDeliveryStatus === 'failed') {
+          orderUpdate.status = 'failed';
           orderUpdate.delivery_status = 'failed';
           const isSomtelMaxRetries = text.includes('horey') && text.includes('furtay') && currentAttempts >= 10;
           orderUpdate.delivery_notes = isSomtelMaxRetries 
