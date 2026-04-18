@@ -112,7 +112,23 @@ Deno.serve(async (req) => {
       return null;
     };
 
+    // FALLBACK: extract receiver SIM (the number that *received* the money) from
+    // the SMS body when the device didn't pass receiver_sim.
+    // Looks for any 9-12 digit Somali number; we then normalise & pick one that
+    // is NOT the sender. The first such number in the body is the receiver SIM.
+    if (!normalizedReceiver) {
+      const candidates = Array.from(
+        (sms_body || '').matchAll(/(?:252)?0?(6\d{8})/g)
+      ).map((m) => normalizeSomaliPhone(m[1]));
+      const recv = candidates.find((c) => c && c !== normalizedSender);
+      if (recv) {
+        normalizedReceiver = recv;
+        console.log('🔍 Extracted receiver from SMS body:', recv);
+      }
+    }
+
     console.log('📱 SMS:', { sender: normalizedSender, receiver: normalizedReceiver, amount, tx_id });
+
 
     // Log raw SMS
     const { data: smsLog } = await supabase
