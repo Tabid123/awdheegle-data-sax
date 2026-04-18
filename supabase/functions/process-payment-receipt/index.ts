@@ -1108,6 +1108,7 @@ serve(async (req) => {
               package_code: targetUssdCode,
               status: totalDelayMs === 0 ? "pending" : "scheduled",
               scheduled_at: new Date(Date.now() + totalDelayMs).toISOString(),
+              sim_slot: (await resolveSimSlotForProvider(supabase, providerSlug))?.sim_slot ?? null,
             });
           }
         }
@@ -1167,6 +1168,7 @@ serve(async (req) => {
           );
         }
         if (finalUssd) {
+          const autoSlotInfo = await resolveSimSlotForProvider(supabase, providerSlug);
           const queued = await queueDirectDeliveryIfMissing(supabase, {
             order_id: autoOrder.id,
             provider_name: providerSlug,
@@ -1174,8 +1176,9 @@ serve(async (req) => {
             receiver_phone: normalizedSender,
             package_code: ussdCode,
             status: "pending",
+            sim_slot: autoSlotInfo?.sim_slot ?? null,
           });
-          if (queued) console.log("📬 Auto top-up delivery queued (direct)");
+          if (queued) console.log(`📬 Auto top-up delivery queued (direct, sim_slot=${autoSlotInfo?.sim_slot ?? "any"})`);
         } else {
           await supabase
             .from("orders")
@@ -1400,6 +1403,7 @@ serve(async (req) => {
               packageData.ussd_code || "",
             );
             try {
+              const onlineSlotInfo = await resolveSimSlotForProvider(supabase, providerSlug);
               const queued = await queueDirectDeliveryIfMissing(supabase, {
                 order_id: newOrder.id,
                 provider_name: providerSlug,
@@ -1407,8 +1411,9 @@ serve(async (req) => {
                 receiver_phone: pendingOnline.receiver_phone,
                 package_code: packageData.ussd_code,
                 status: "pending",
+                sim_slot: onlineSlotInfo?.sim_slot ?? null,
               });
-              if (queued) console.log("📬 Online payment queued for delivery");
+              if (queued) console.log(`📬 Online payment queued for delivery (sim_slot=${onlineSlotInfo?.sim_slot ?? "any"})`);
             } catch (queueError) {
               console.error("❌ Queue error:", queueError);
             }
@@ -1577,6 +1582,7 @@ serve(async (req) => {
               instruction.sim_password || "5516",
               orderPackage.ussd_code || "",
             );
+            const orderSlotInfo = await resolveSimSlotForProvider(supabase, providerSlug);
             await queueDirectDeliveryIfMissing(supabase, {
               order_id: pendingOrder.id,
               provider_name: providerSlug,
@@ -1584,6 +1590,7 @@ serve(async (req) => {
               receiver_phone: pendingOrder.receiver_phone,
               package_code: orderPackage.ussd_code,
               status: "pending",
+              sim_slot: orderSlotInfo?.sim_slot ?? null,
             });
           }
         } else {
@@ -1831,6 +1838,7 @@ serve(async (req) => {
         selectedPackage.ussd_code || "",
       );
       try {
+        const offlineSlotInfo = await resolveSimSlotForProvider(supabase, providerSlug);
         await queueDirectDeliveryIfMissing(supabase, {
           order_id: order.id,
           provider_name: providerSlug,
@@ -1838,7 +1846,9 @@ serve(async (req) => {
           receiver_phone: registration.receiver_phone,
           package_code: selectedPackage.ussd_code,
           status: "pending",
+          sim_slot: offlineSlotInfo?.sim_slot ?? null,
         });
+        console.log(`📬 Offline reg queued (sim_slot=${offlineSlotInfo?.sim_slot ?? "any"})`);
       } catch (queueError) {
         console.error("❌ Queue error:", queueError);
         throw queueError;
