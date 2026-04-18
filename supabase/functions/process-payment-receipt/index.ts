@@ -311,8 +311,23 @@ async function queueDeliveryWithBundling(
 
   console.log(`📦 Bundling rules found: ${rules.length} rules for package ${sourcePackageId}`);
 
-  // Resolve which SIM slot owns this provider so the right SIM dials USSD
+  // Resolve which SIM slot owns this provider so the right SIM dials USSD.
+  // STRICT: if no matching SIM exists, refuse to queue — wrong SIM = "Unrecognized mobile number".
   const slotInfo = await resolveSimSlotForProvider(supabase, providerSlug);
+  if (!slotInfo) {
+    console.error(
+      `❌ queueDeliveryWithBundling: no SIM slot for provider "${providerSlug}". Refusing to queue (would dial from wrong carrier).`,
+    );
+    await supabase
+      .from("orders")
+      .update({
+        delivery_status: "failed",
+        delivery_notes: `No ${providerSlug.toUpperCase()} SIM available on any active device.`,
+      })
+      .eq("id", orderId);
+    return [];
+  }
+  console.log(`✅ Bundling via device ${slotInfo.android_device_id} sim_slot=${slotInfo.sim_slot} (${providerSlug})`);
 
   const queueItems: any[] = [];
 
@@ -353,7 +368,7 @@ async function queueDeliveryWithBundling(
           package_code: targetPkg.ussd_code,
           status: effectiveDelayMs === 0 ? "pending" : "scheduled",
           scheduled_at: new Date(Date.now() + effectiveDelayMs).toISOString(),
-          sim_slot: slotInfo?.sim_slot ?? null,
+          sim_slot: slotInfo.sim_slot,
         });
       }
     }
@@ -362,7 +377,7 @@ async function queueDeliveryWithBundling(
   if (queueItems.length > 0) {
     const { data: inserted, error: qErr } = await supabase.from("delivery_queue").insert(queueItems).select();
     if (qErr) console.error("❌ Bundled queue error:", qErr);
-    else console.log(`📬 Bundled: ${inserted.length} deliveries queued (sim_slot=${slotInfo?.sim_slot ?? "any"})`);
+    else console.log(`📬 Bundled: ${inserted.length} deliveries queued (provider=${providerSlug}, sim_slot=${slotInfo.sim_slot})`);
     return inserted;
   }
   return null;
