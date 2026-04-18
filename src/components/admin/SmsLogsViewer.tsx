@@ -470,7 +470,8 @@ const SmsLogsViewer = () => {
                 </div>
               </CardContent>
             </Card>
-          ))}
+          );
+          })}
         </div>
       )}
     </div>
