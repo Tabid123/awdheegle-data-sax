@@ -173,6 +173,57 @@ export type Database = {
         }
         Relationships: []
       }
+      auto_topup_delivery_rules: {
+        Row: {
+          created_at: string
+          delay_minutes: number
+          delivery_count: number
+          execution_order: number
+          id: string
+          is_active: boolean
+          notes: string | null
+          source_package_id: string
+          target_package_id: string
+        }
+        Insert: {
+          created_at?: string
+          delay_minutes?: number
+          delivery_count?: number
+          execution_order?: number
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          source_package_id: string
+          target_package_id: string
+        }
+        Update: {
+          created_at?: string
+          delay_minutes?: number
+          delivery_count?: number
+          execution_order?: number
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          source_package_id?: string
+          target_package_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auto_topup_delivery_rules_source_package_id_fkey"
+            columns: ["source_package_id"]
+            isOneToOne: false
+            referencedRelation: "auto_topup_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auto_topup_delivery_rules_target_package_id_fkey"
+            columns: ["target_package_id"]
+            isOneToOne: false
+            referencedRelation: "auto_topup_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       auto_topup_numbers: {
         Row: {
           created_at: string
