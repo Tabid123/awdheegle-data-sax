@@ -142,6 +142,45 @@ Deno.serve(async (req) => {
       }
     }
 
+    // (c) FALLBACK: receiver_sim malahan, offline reg malahan.
+    // Raadi DHAMMAAN auto top-up packages selling_price=amount.
+    // Sender prefix → provider match si loo doorto package saxda ah.
+    if (!topupNumber && (allTopupNumbers || []).length > 0) {
+      const topupNumberIds = (allTopupNumbers || []).map((t: any) => t.id);
+      const { data: candidatePkgs } = await supabase
+        .from('auto_topup_packages')
+        .select('*')
+        .in('topup_number_id', topupNumberIds)
+        .eq('is_active', true)
+        .eq('selling_price', amount);
+
+      if (candidatePkgs && candidatePkgs.length > 0) {
+        const { data: providersList } = await supabase
+          .from('providers_config')
+          .select('provider_name, phone_prefixes')
+          .eq('is_active', true);
+        const senderPrefix2 = normalizedSender.substring(0, 2);
+        let senderProvider: string | null = null;
+        for (const p of (providersList || [])) {
+          const prefixes: string[] = (p.phone_prefixes || []).map((x: string) => String(x));
+          if (prefixes.includes(senderPrefix2)) {
+            senderProvider = (p.provider_name || '').toLowerCase();
+            break;
+          }
+        }
+        console.log('🎯 TIER 1c fallback. Prefix:', senderPrefix2, '→ provider:', senderProvider, '| candidates:', candidatePkgs.length);
+
+        let chosen: any = null;
+        if (senderProvider) {
+          chosen = candidatePkgs.find((p: any) => (p.provider_name || '').toLowerCase() === senderProvider);
+        }
+        if (!chosen) chosen = candidatePkgs[0];
+
+        topupNumber = (allTopupNumbers || []).find((t: any) => t.id === chosen.topup_number_id);
+        console.log('🔄 TIER 1c: fallback matched →', topupNumber?.phone_number, '| package:', chosen.package_name, '(', chosen.provider_name, ')');
+      }
+    }
+
     if (topupNumber) {
       const { data: pkgs } = await supabase
         .from('auto_topup_packages')
