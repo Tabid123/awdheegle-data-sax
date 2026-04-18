@@ -29,6 +29,40 @@ function renderUssd(template: string, vars: Record<string, string | number | nul
   return out;
 }
 
+// Resolve USSD template + sim_password for a package, falling back to
+// delivery_instructions (package-level → category-level → provider-level).
+async function resolveUssdTemplate(
+  supabase: any,
+  pkg: { id?: string; provider_id?: string; category_id?: string | null; ussd_code?: string | null; ussd_template?: string | null },
+): Promise<{ template: string; sim_password: string }> {
+  let template = pkg.ussd_code || pkg.ussd_template || '';
+  let sim_password = '';
+
+  if (template) return { template, sim_password };
+
+  // Try delivery_instructions: package → category → provider
+  const { data: rows } = await supabase
+    .from('delivery_instructions')
+    .select('ussd_template, code_template, sim_password, package_id, category_id, provider_id')
+    .or([
+      pkg.id ? `package_id.eq.${pkg.id}` : null,
+      pkg.category_id ? `category_id.eq.${pkg.category_id}` : null,
+      pkg.provider_id ? `provider_id.eq.${pkg.provider_id}` : null,
+    ].filter(Boolean).join(','));
+
+  const list = rows || [];
+  const pick =
+    list.find((r: any) => pkg.id && r.package_id === pkg.id) ||
+    list.find((r: any) => pkg.category_id && r.category_id === pkg.category_id) ||
+    list.find((r: any) => pkg.provider_id && r.provider_id === pkg.provider_id);
+
+  if (pick) {
+    template = pick.ussd_template || pick.code_template || '';
+    sim_password = pick.sim_password || '';
+  }
+  return { template, sim_password };
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
