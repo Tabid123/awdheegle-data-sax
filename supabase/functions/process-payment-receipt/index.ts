@@ -205,12 +205,15 @@ Deno.serve(async (req) => {
 
     let topupNumber: any = null;
 
-    // PRIORITY 1: Auto Top-up — only if receiver_sim is known AND matches.
-    // No fallback. If receiver_sim is missing, we move to Priority 2/3.
-    if (normalizedReceiver) {
+    // PRIORITY 1: Auto Top-up — receiver waa in uu si rasmi ah u match noqdo auto_topup_numbers.
+    // Waxaan isticmaalnaa normalizedReceiver (Android) AMA autoTopupReceiverHint (SMS tag fallback).
+    // Si kastaba ha noqotee, mar dambe haddii Auto Top-up package aan la helin, online/offline flow
+    // ayaa la tijaabin doonaa (sababtoo ah autoTopupReceiverHint waxaa laga yaabaa inuu khalad yahay).
+    const autoTopupCandidate = normalizedReceiver || autoTopupReceiverHint;
+    if (autoTopupCandidate) {
       topupNumber = (allTopupNumbers || []).find((t: any) => {
         const n = normalizeSomaliPhone(t.phone_number);
-        return n === normalizedReceiver;
+        return n === autoTopupCandidate;
       }) || null;
       if (topupNumber) {
         console.log('✅ P1 Auto Top-up matched → topup', topupNumber.phone_number);
