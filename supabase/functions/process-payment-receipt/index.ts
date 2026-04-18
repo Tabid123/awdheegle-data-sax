@@ -234,9 +234,12 @@ Deno.serve(async (req) => {
 
     // ============================================================
     // FLOW A: AUTO TOP-UP (receiver is in auto_topup_numbers)
+    // Haddii Auto Top-up package la waayo OO receiver-ku ka yimid SMS hint (ma rasmi ahayn),
+    // waxaan u gudbeynaa Regular flow (pending online / offline reg) si aan u tijaabino.
     // ============================================================
+    const receiverIsOfficial = !!normalizedReceiver; // Android-ku rasmi ah ayuu soo diray
     if (topupNumber) {
-      console.log('🔁 AUTO TOP-UP FLOW | receiver:', normalizedReceiver, '| topup_id:', topupNumber.id);
+      console.log('🔁 AUTO TOP-UP FLOW | receiver:', autoTopupCandidate, '| topup_id:', topupNumber.id, '| official:', receiverIsOfficial);
 
       const { data: candidatePkgs } = await supabase
         .from('auto_topup_packages')
@@ -245,59 +248,61 @@ Deno.serve(async (req) => {
         .eq('is_active', true)
         .eq('selling_price', amount);
 
-      if (!candidatePkgs || candidatePkgs.length === 0) {
-        await markUnmatched(`Auto top-up: no package matches $${amount} on ${normalizedReceiver}`);
-        return ok({ success: true, matched: false, flow: 'auto_topup', reason: 'no_package_for_amount' });
-      }
+      const pkg = (candidatePkgs && candidatePkgs.length > 0 && senderProviderName)
+        ? candidatePkgs.find((p: any) => (p.provider_name || '').toLowerCase() === senderProviderName)
+        : null;
 
-      if (!senderProviderName) {
-        await markUnmatched(`Auto top-up: unknown sender prefix ${senderPrefix2}`);
-        return ok({ success: true, matched: false, flow: 'auto_topup', reason: 'unknown_prefix' });
-      }
+      if (pkg) {
+        console.log('✅ Auto top-up package:', pkg.package_name, '(', pkg.provider_name, ')');
 
-      const pkg = candidatePkgs.find((p: any) => (p.provider_name || '').toLowerCase() === senderProviderName);
-      if (!pkg) {
-        await markUnmatched(`Auto top-up: no ${senderProviderName} package for $${amount}`);
-        return ok({ success: true, matched: false, flow: 'auto_topup', reason: 'no_provider_package' });
-      }
+        const { data: order, error: orderError } = await supabase
+          .from('orders').insert({
+            sender_phone: normalizedSender,
+            receiver_phone: normalizedSender,
+            amount,
+            status: 'pending',
+            payment_status: 'matched',
+            payment_reference: tx_id || null,
+            is_offline: false,
+            provider_id: senderProviderId,
+            delivery_notes: `Auto top-up: ${pkg.package_name}`,
+          }).select().single();
+        if (orderError) throw orderError;
+        await markMatched(order.id);
 
-      console.log('✅ Auto top-up package:', pkg.package_name, '(', pkg.provider_name, ')');
-
-      const { data: order, error: orderError } = await supabase
-        .from('orders').insert({
-          sender_phone: normalizedSender,
-          receiver_phone: normalizedSender, // auto top-up = self
+        const renderedUssd = renderUssd(pkg.ussd_code || '', {
+          receiver_phone: normalizedSender,
+          cost_price: pkg.cost_price ?? amount,
           amount,
+          sim_password: pkg.sim_password || '',
+          pin: pkg.sim_password || '',
+        });
+
+        await supabase.from('delivery_queue').insert({
+          order_id: order.id,
+          ussd_command: renderedUssd || null,
+          ussd_code: renderedUssd || null,
+          provider_name: (pkg.provider_name || '').toLowerCase() || null,
+          receiver_phone: normalizedSender,
+          package_code: pkg.package_name,
+          pin_code: pkg.sim_password || null,
           status: 'pending',
-          payment_status: 'matched',
-          payment_reference: tx_id || null,
-          is_offline: false,
-          provider_id: senderProviderId,
-          delivery_notes: `Auto top-up: ${pkg.package_name}`,
-        }).select().single();
-      if (orderError) throw orderError;
-      await markMatched(order.id);
+        });
 
-      const renderedUssd = renderUssd(pkg.ussd_code || '', {
-        receiver_phone: normalizedSender,
-        cost_price: pkg.cost_price ?? amount,
-        amount,
-        sim_password: pkg.sim_password || '',
-        pin: pkg.sim_password || '',
-      });
+        return ok({ success: true, matched: true, flow: 'auto_topup', order_id: order.id, package: pkg.package_name });
+      }
 
-      await supabase.from('delivery_queue').insert({
-        order_id: order.id,
-        ussd_command: renderedUssd || null,
-        ussd_code: renderedUssd || null,
-        provider_name: (pkg.provider_name || '').toLowerCase() || null,
-        receiver_phone: normalizedSender,
-        package_code: pkg.package_name,
-        pin_code: pkg.sim_password || null,
-        status: 'pending',
-      });
-
-      return ok({ success: true, matched: true, flow: 'auto_topup', order_id: order.id, package: pkg.package_name });
+      // Auto top-up package lama helin
+      if (receiverIsOfficial) {
+        const reason = !candidatePkgs || candidatePkgs.length === 0
+          ? `Auto top-up: no package matches $${amount} on ${autoTopupCandidate}`
+          : !senderProviderName
+            ? `Auto top-up: unknown sender prefix ${senderPrefix2}`
+            : `Auto top-up: no ${senderProviderName} package for $${amount}`;
+        await markUnmatched(reason);
+        return ok({ success: true, matched: false, flow: 'auto_topup', reason: 'no_match' });
+      }
+      console.log('⤵️ Auto top-up package lama helin via SMS hint, tijaabi regular flow (pending online / offline reg)...');
     }
 
     // ============================================================
