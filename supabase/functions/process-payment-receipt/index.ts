@@ -215,7 +215,7 @@ Deno.serve(async (req) => {
     if (reg) {
       console.log('✅ TIER 3: Offline registration matched:', reg.id);
 
-      // First, try to find an EXISTING pending order for this sender that has a package_id
+      // 3A: try existing pending order with package_id
       const { data: existingPending } = await supabase
         .from('orders')
         .select('*')
@@ -229,14 +229,10 @@ Deno.serve(async (req) => {
       if (pendingOrder) {
         console.log('🔗 Linking offline payment to existing pending order:', pendingOrder.id);
         await supabase.from('orders')
-          .update({
-            payment_status: 'matched',
-            payment_reference: tx_id || null,
-          })
+          .update({ payment_status: 'matched', payment_reference: tx_id || null })
           .eq('id', pendingOrder.id);
         await markMatched(pendingOrder.id);
 
-        // Trigger delivery
         const { data: provider } = await supabase
           .from('providers_config').select('provider_name').eq('id', pendingOrder.provider_id).maybeSingle();
         await callActivatePackage(supabaseUrl, serviceKey, pendingOrder.id, provider?.provider_name || '', pendingOrder.receiver_phone);
@@ -245,7 +241,50 @@ Deno.serve(async (req) => {
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
       }
 
-      // No existing pending order — create awaiting-admin order (offline registration has no package_id mapping)
+      // 3B: AUTO-MATCH by amount within registered provider's packages
+      // (e.g. registration for Somnet, $0.50 received → find Somnet package selling at $0.50)
+      let matchedPkg: any = null;
+      if (reg.provider_id) {
+        const { data: pkgs } = await supabase
+          .from('data_packages_config')
+          .select('id, package_name, data_amount, selling_price, price, ussd_code, ussd_template, provider_id')
+          .eq('provider_id', reg.provider_id)
+          .eq('is_active', true);
+        matchedPkg = (pkgs || []).find((p: any) =>
+          Number(p.selling_price ?? p.price) === Number(amount)
+        );
+      }
+
+      if (matchedPkg) {
+        console.log('✅ TIER 3B: Auto-matched offline payment to package:', matchedPkg.package_name);
+        const receiverPhone = reg.receiver_phone || reg.sender_phone;
+        const { data: order, error: orderError } = await supabase
+          .from('orders')
+          .insert({
+            sender_phone: reg.sender_phone,
+            receiver_phone: receiverPhone,
+            amount,
+            provider_id: reg.provider_id,
+            package_id: matchedPkg.id,
+            status: 'pending',
+            payment_status: 'matched',
+            payment_reference: tx_id || null,
+            is_offline: true,
+            delivery_notes: `Offline match: ${matchedPkg.package_name}`,
+          }).select().single();
+
+        if (orderError) throw orderError;
+        await markMatched(order.id);
+
+        const { data: provider } = await supabase
+          .from('providers_config').select('provider_name').eq('id', reg.provider_id).maybeSingle();
+        await callActivatePackage(supabaseUrl, serviceKey, order.id, provider?.provider_name || '', receiverPhone);
+
+        return new Response(JSON.stringify({ success: true, matched: true, tier: 'offline_auto_package', order_id: order.id, package_id: matchedPkg.id }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
+      }
+
+      // 3C: No package match → awaiting-admin
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
@@ -257,7 +296,7 @@ Deno.serve(async (req) => {
           payment_status: 'matched',
           payment_reference: tx_id || null,
           is_offline: true,
-          delivery_notes: 'Awaiting admin assignment — offline registration without active order',
+          delivery_notes: `Awaiting admin — no package matches $${amount} for this provider`,
         }).select().single();
 
       if (orderError) throw orderError;

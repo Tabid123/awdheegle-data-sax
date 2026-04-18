@@ -100,11 +100,25 @@ export const DailyOrdersCustomView = ({ isSo }: { isSo: boolean }) => {
     setLoading(true);
     try {
       const date = new Date(selectedDate);
-      const { data, error } = await supabase.from('orders').select('*')
+      const { data, error } = await supabase.from('orders').select(`
+        *,
+        package:data_packages_config(id, package_name, data_amount, selling_price, cost_price, price),
+        provider:providers_config(id, display_name, provider_name)
+      `)
         .gte('created_at', startOfDay(date).toISOString()).lte('created_at', endOfDay(date).toISOString())
         .order('created_at', { ascending: false });
       if (error) throw error;
-      setOrders(data || []);
+      const enriched = (data || []).map((o: any) => ({
+        ...o,
+        package_name: o.package?.package_name || o.delivery_notes?.replace(/^(Auto top-up|Offline match): /, '') || '—',
+        data_amount: o.package?.data_amount || '—',
+        selling_price: o.package?.selling_price ?? o.package?.price ?? o.amount,
+        cost_price: o.package?.cost_price ?? 0,
+        customer_phone: o.sender_phone,
+        provider_name: o.provider?.display_name || o.provider?.provider_name,
+        payment_source: o.is_offline ? 'sms_offline' : (o.is_manual ? 'manual' : (o.delivery_notes?.startsWith('Auto top-up') ? 'auto_topup' : 'ussd_online')),
+      }));
+      setOrders(enriched);
     } catch { toast.error('Failed to load orders'); }
     finally { setLoading(false); }
   }, [selectedDate]);
@@ -171,7 +185,11 @@ export const OrdersListView = ({ isSo, type }: { isSo: boolean; type: string }) 
   const loadOrders = useCallback(async () => {
     setLoading(true);
     const today = new Date(); today.setHours(0, 0, 0, 0);
-    let query = supabase.from('orders').select('*').order('created_at', { ascending: false }).limit(200);
+    let query = supabase.from('orders').select(`
+      *,
+      package:data_packages_config(id, package_name, data_amount, selling_price, cost_price, price),
+      provider:providers_config(id, display_name, provider_name)
+    `).order('created_at', { ascending: false }).limit(200);
     switch (type) {
       case 'sales': query = query.gte('created_at', today.toISOString()).in('status', ['paid', 'completed']); break;
       case 'failed': query = query.eq('delivery_status', 'failed'); break;
@@ -179,7 +197,17 @@ export const OrdersListView = ({ isSo, type }: { isSo: boolean; type: string }) 
       case 'delivered': query = query.eq('delivery_status', 'delivered'); break;
     }
     const { data } = await query;
-    setOrders(data || []);
+    const enriched = (data || []).map((o: any) => ({
+      ...o,
+      package_name: o.package?.package_name || o.delivery_notes?.replace(/^(Auto top-up|Offline match): /, '') || '—',
+      data_amount: o.package?.data_amount || '—',
+      selling_price: o.package?.selling_price ?? o.package?.price ?? o.amount,
+      cost_price: o.package?.cost_price ?? 0,
+      customer_phone: o.sender_phone,
+      provider_name: o.provider?.display_name || o.provider?.provider_name,
+      payment_source: o.is_offline ? 'sms_offline' : (o.is_manual ? 'manual' : (o.delivery_notes?.startsWith('Auto top-up') ? 'auto_topup' : 'ussd_online')),
+    }));
+    setOrders(enriched);
     setLoading(false);
   }, [type]);
 
