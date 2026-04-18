@@ -74,6 +74,29 @@ export const generateInvoiceImage = async (order: InvoiceData): Promise<Blob> =>
   // Transaction ID
   ctx.font = '18px Arial';
   ctx.fillText(`ID: ${order.transactionId}`, 40, 110);
+
+  // Order Type Badge (top-right area, below logo)
+  const sourceLabel =
+    order.payment_source === 'ussd_online' ? 'ONLINE' :
+    order.payment_source === 'sms_offline' ? 'OFFLINE' :
+    order.payment_source === 'auto_topup' ? 'AUTO TOP-UP' :
+    order.payment_source === 'manual' ? 'MANUAL' :
+    'ONLINE';
+  const sourceBg =
+    order.payment_source === 'sms_offline' ? '#f97316' :
+    order.payment_source === 'auto_topup' ? '#06b6d4' :
+    order.payment_source === 'manual' ? '#a855f7' :
+    '#10b981';
+  ctx.font = 'bold 16px Arial';
+  const labelW = ctx.measureText(sourceLabel).width + 28;
+  const badgeY = 130;
+  const badgeX2 = 760 - labelW;
+  ctx.fillStyle = sourceBg;
+  ctx.fillRect(badgeX2, badgeY, labelW, 32);
+  ctx.fillStyle = '#ffffff';
+  ctx.textAlign = 'center';
+  ctx.fillText(sourceLabel, badgeX2 + labelW / 2, badgeY + 22);
+  ctx.textAlign = 'left';
   
   // Provider Section with Logo
   ctx.fillStyle = '#eff6ff';
