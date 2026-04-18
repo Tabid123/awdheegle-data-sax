@@ -215,40 +215,6 @@ Deno.serve(async (req) => {
     if (reg) {
       console.log('✅ TIER 3: Offline registration matched:', reg.id, 'provider:', reg.provider_id, 'receiver:', reg.receiver_phone);
 
-      // 3A: try existing pending order — MUST match the CURRENT registration
-      // (same provider AND same receiver) to avoid linking to old/stale orders
-      // from a previous registration with different provider/receiver.
-      const { data: existingPending } = await supabase
-        .from('orders')
-        .select('*')
-        .in('sender_phone', variants)
-        .eq('status', 'pending')
-        .eq('payment_status', 'pending')
-        .not('package_id', 'is', null)
-        .eq('amount', amount)
-        .order('created_at', { ascending: false })
-        .limit(5);
-
-      const pendingOrder = (existingPending || []).find((o: any) =>
-        (!reg.provider_id || o.provider_id === reg.provider_id) &&
-        (!reg.receiver_phone || o.receiver_phone === reg.receiver_phone)
-      );
-
-      if (pendingOrder) {
-        console.log('🔗 Linking offline payment to existing pending order:', pendingOrder.id);
-        await supabase.from('orders')
-          .update({ payment_status: 'matched', payment_reference: tx_id || null })
-          .eq('id', pendingOrder.id);
-        await markMatched(pendingOrder.id);
-
-        const { data: provider } = await supabase
-          .from('providers_config').select('provider_name').eq('id', pendingOrder.provider_id).maybeSingle();
-        await callActivatePackage(supabaseUrl, serviceKey, pendingOrder.id, provider?.provider_name || '', pendingOrder.receiver_phone);
-
-        return new Response(JSON.stringify({ success: true, matched: true, tier: 'offline_linked_existing', order_id: pendingOrder.id }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
-      }
-
       // 3B: AUTO-MATCH by amount within registered provider's packages
       // (e.g. registration for Somnet, $0.50 received → find Somnet package selling at $0.50)
       let matchedPkg: any = null;
