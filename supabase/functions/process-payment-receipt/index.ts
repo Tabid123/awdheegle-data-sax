@@ -143,6 +143,46 @@ Deno.serve(async (req) => {
       }
     }
 
+    // 3) LAST-RESORT FALLBACK: receiver missing AND no brand tag.
+    //    If ANY active auto_topup_package matches this exact amount, treat
+    //    as Auto Top-up. If multiple topup numbers exist, pick the one whose
+    //    package matches the SENDER's provider (so Hormuud sender → Hormuud pkg).
+    if (!topupNumber && !normalizedReceiver && (allTopupNumbers || []).length > 0) {
+      // Resolve sender provider quickly (re-used below too)
+      const senderPrefix2Pre = normalizedSender.substring(0, 2);
+      let senderProvName: string | null = null;
+      for (const p of (providersList || [])) {
+        const prefixes: string[] = (p.phone_prefixes || []).map((x: string) => String(x));
+        if (prefixes.includes(senderPrefix2Pre)) {
+          senderProvName = (p.provider_name || '').toLowerCase();
+          break;
+        }
+      }
+
+      const { data: amtPkgs } = await supabase
+        .from('auto_topup_packages')
+        .select('id, topup_number_id, provider_name, selling_price, is_active')
+        .eq('is_active', true)
+        .eq('selling_price', amount);
+
+      if (amtPkgs && amtPkgs.length > 0) {
+        // Prefer a package matching sender's provider
+        let chosenPkg: any = null;
+        if (senderProvName) {
+          chosenPkg = amtPkgs.find((p: any) => (p.provider_name || '').toLowerCase() === senderProvName) || null;
+        }
+        if (!chosenPkg && amtPkgs.length === 1) chosenPkg = amtPkgs[0];
+
+        if (chosenPkg) {
+          topupNumber = (allTopupNumbers || []).find((t: any) => t.id === chosenPkg.topup_number_id) || null;
+          if (topupNumber) {
+            normalizedReceiver = normalizeSomaliPhone(topupNumber.phone_number);
+            console.log(`🔎 Last-resort fallback: amount $${amount} matches auto_topup pkg → receiver ${normalizedReceiver}`);
+          }
+        }
+      }
+    }
+
 
     const senderPrefix2 = normalizedSender.substring(0, 2);
     let senderProviderName: string | null = null;
