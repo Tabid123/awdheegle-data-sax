@@ -340,7 +340,7 @@ const SmsLogsViewer = () => {
       ) : !selectedSenderCode ? (
         <div className="space-y-2">
           {sortedCodes2.map(code => {
-            const provider = getProviderFromSender(code);
+            const provider = getProviderFromSender(code, senderGroups2[code][0]?.sms_body);
             const count = senderGroups2[code].length;
             const lastLog = senderGroups2[code][0];
             const totalAmount = senderGroups2[code].reduce((sum, l) => sum + (l.amount || 0), 0);
