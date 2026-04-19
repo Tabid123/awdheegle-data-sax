@@ -136,7 +136,7 @@ const AdminLogin = () => {
           <div className="w-24 h-24 mx-auto flex items-center justify-center">
             <img
               src={najaxLogo}
-              alt="Awdheegle Data Services"
+              alt="Awdhegle Data"
               className="w-full h-full object-contain"
             />
           </div>
@@ -145,7 +145,7 @@ const AdminLogin = () => {
             <CardTitle className="text-2xl">Admin Sign In</CardTitle>
           </div>
           <CardDescription className="text-center">
-            Awdheegle Data Services — Admin Dashboard
+            Awdhegle Data — Admin Dashboard
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

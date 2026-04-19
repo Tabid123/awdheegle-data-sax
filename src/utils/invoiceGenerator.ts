@@ -54,7 +54,7 @@ export const generateInvoiceImage = async (order: InvoiceData): Promise<Blob> =>
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, 800, 150);
   
-  // Load and draw Awdheegle Data logo (right side of header)
+  // Load and draw Awdhegle Data logo (right side of header)
   try {
     const najaxLogoModule = await import('@/assets/najax-logo.jpeg');
     const najaxLogo = await loadLocalImage(najaxLogoModule.default);
@@ -217,7 +217,7 @@ export const generateInvoiceImage = async (order: InvoiceData): Promise<Blob> =>
   ctx.fillText('Mahadsanid-Soo dhawow', 400, yPos);
   ctx.font = 'bold 20px Arial';
   ctx.fillStyle = '#3b82f6';
-  ctx.fillText('Awdheegle Data - Waqti kasta, Meel kasta', 400, yPos + 35);
+  ctx.fillText('Awdhegle Data - Waqti kasta, Meel kasta', 400, yPos + 35);
   
   // Convert to blob
   return new Promise((resolve, reject) => {

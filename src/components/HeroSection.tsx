@@ -13,7 +13,7 @@ const HeroSection = () => {
       >
         <img
           src={brandLogo}
-          alt="Awdheegle Data Services"
+          alt="Awdhegle Data"
           className="w-full h-full object-contain"
         />
       </div>

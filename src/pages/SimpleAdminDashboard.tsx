@@ -676,7 +676,7 @@ const SimpleAdminDashboard = () => {
                   : (isSo ? '🔕 Ogeysiisyadu way damanyihiin' : '🔕 Notifications OFF')
                 }
               </button>
-              <div className="text-center text-xs text-gray-400 mt-2">Awdheegle Data Admin v1.0</div>
+              <div className="text-center text-xs text-gray-400 mt-2">Awdhegle Data Admin v1.0</div>
             </div>
           </main>
         </div>

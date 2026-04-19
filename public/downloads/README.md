@@ -89,4 +89,4 @@ Repository → Actions → Latest workflow run
 ---
 
 **Last Updated**: Auto-updated by GitHub Actions
-**Maintainer**: Awdheegle Data Development Team
+**Maintainer**: Awdhegle Data Development Team

@@ -51,12 +51,12 @@ const PrivacyPolicy = () => {
               <Shield className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <h2 className="font-semibold text-foreground">Awdheegle Data</h2>
+              <h2 className="font-semibold text-foreground">Awdhegle Data</h2>
               <p className="text-sm text-muted-foreground">Your data is secure</p>
             </div>
           </div>
           <p className="text-muted-foreground leading-relaxed">
-            Awdheegle Data is committed to protecting your privacy and personal data. 
+            Awdhegle Data is committed to protecting your privacy and personal data. 
             This policy explains how we collect, use, and protect your data 
             when you use our app.
           </p>
