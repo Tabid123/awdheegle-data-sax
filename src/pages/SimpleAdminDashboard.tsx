@@ -381,7 +381,7 @@ const SimpleAdminDashboard = () => {
             <div className="flex items-center justify-center py-3 px-4">
               <div className="flex items-center gap-2">
                 <img src={najaxLogo} alt="Logo" className="w-8 h-8 rounded-lg" />
-                <h1 className="text-xl font-bold">Awdheegle <span className="font-light">Data</span></h1>
+                <h1 className="text-xl font-bold">Awdhegle <span className="font-light">Data</span></h1>
                 {/* LIVE indicator */}
                 <span className="flex items-center gap-1 bg-green-500/20 border border-green-400/40 px-2 py-0.5 rounded-full ml-1">
                   <span className="relative flex h-2 w-2">
