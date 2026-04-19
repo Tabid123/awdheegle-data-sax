@@ -200,7 +200,7 @@ const ProviderSelection = () => {
       <div 
         className="fixed top-0 left-0 right-0 z-50"
         style={{
-          background: 'linear-gradient(135deg, #1236C0 0%, #0A1F70 100%)',
+          background: 'linear-gradient(135deg, #1370F0 0%, #1370F0 100%)',
           paddingTop: 'var(--effective-safe-area-top, 0px)',
           boxSizing: 'border-box' as const
         }}
@@ -297,7 +297,7 @@ const ProviderSelection = () => {
                   ? 'animate-bounce ring-2 ring-accent shadow-lg' 
                   : ''
               }`}
-              style={{ background: 'linear-gradient(145deg, #1236C0, #0A1F70)' }}
+              style={{ background: 'linear-gradient(145deg, #1370F0, #1370F0)' }}
             >
               <div className="w-12 h-12 bg-[#FFFFFF]/20 rounded-full flex items-center justify-center">
                 <WifiOff className="w-6 h-6 text-[#FFFFFF]" />
@@ -319,14 +319,14 @@ const ProviderSelection = () => {
         className={`fixed bottom-24 right-4 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-all duration-300 ${
           showContactSheet ? 'bg-destructive' : ''
         }`}
-        style={!showContactSheet ? { background: 'linear-gradient(135deg, #1236C0, #0A1F70)' } : {}}
+        style={!showContactSheet ? { background: 'linear-gradient(135deg, #1370F0, #1370F0)' } : {}}
       >
         {showContactSheet ? (
           <X className="w-7 h-7 text-white" />
         ) : (
           <>
             <Headphones className="w-6 h-6 text-[#FFFFFF]" />
-            <span className="absolute -top-1 -right-1 bg-[#FFFFFF] text-[#1236C0] text-[10px] font-extrabold rounded-full w-5 h-5 flex items-center justify-center">
+            <span className="absolute -top-1 -right-1 bg-[#FFFFFF] text-[#1370F0] text-[10px] font-extrabold rounded-full w-5 h-5 flex items-center justify-center">
               24
             </span>
           </>
@@ -340,7 +340,7 @@ const ProviderSelection = () => {
             href="tel:+252615555495"
             onClick={() => setShowContactSheet(false)}
             className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
-            style={{ background: 'linear-gradient(135deg, #1236C0, #0A1F70)' }}
+            style={{ background: 'linear-gradient(135deg, #1370F0, #1370F0)' }}
           >
             <Phone className="w-7 h-7 text-[#FFFFFF]" />
           </a>
