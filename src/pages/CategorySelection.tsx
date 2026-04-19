@@ -275,7 +275,7 @@ const CategorySelection = () => {
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
               <ArrowLeft className="w-6 h-6 cursor-pointer hover:opacity-80 transition-opacity text-[#FFFFFF]" onClick={() => navigate('/providers')} aria-label="Go back" />
-              <h1 className="text-lg font-bold text-[#FFFFFF]">Awdheegle Data - {providerName}</h1>
+              <h1 className="text-lg font-bold text-[#FFFFFF]">Awdhegle Data - {providerName}</h1>
             </div>
             <div className="flex items-center gap-2">
               <div className="flex gap-3 ml-2">

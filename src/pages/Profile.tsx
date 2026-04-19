@@ -58,8 +58,8 @@ const Profile = () => {
 
   const handleShare = async () => {
     const shareData = {
-      title: 'Awdheegle Data',
-      text: 'Soo degso Awdheegle Data App - Internet bundles iibso si fudud!',
+      title: 'Awdhegle Data',
+      text: 'Soo degso Awdhegle Data App - Internet bundles iibso si fudud!',
       url: 'https://awdheegledata.com'
     };
     try {
@@ -85,7 +85,7 @@ const Profile = () => {
     },
     {
       icon: Star,
-      title: 'Qiimey Awdheegle Data App',
+      title: 'Qiimey Awdhegle Data App',
       action: () => window.open('https://play.google.com/store/apps/details?id=app.lovable.5178b6a28d534275a37667022407be64', '_blank')
     },
     {

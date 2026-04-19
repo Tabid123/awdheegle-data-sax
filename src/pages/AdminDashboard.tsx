@@ -565,7 +565,7 @@ const AdminDashboard = () => {
   const [newProvider, setNewProvider] = useState({
     provider_name: '',
     provider_logo: '',
-    promotional_text: 'Awdheegle Data ka iibso Internet adigoona qof wicin, waqti kasta, xitaa offline!',
+    promotional_text: 'Awdhegle Data ka iibso Internet adigoona qof wicin, waqti kasta, xitaa offline!',
     display_order: 0,
   });
 
@@ -1344,7 +1344,7 @@ const AdminDashboard = () => {
         title: language === 'so' ? 'Guul' : 'Success',
         description: language === 'so' ? 'Shirkadda waa la daray' : 'Provider added successfully',
       });
-      setNewProvider({ provider_name: '', provider_logo: '', promotional_text: 'Awdheegle Data ka iibso Internet adigoona qof wicin, waqti kasta, xitaa offline!', display_order: 0 });
+      setNewProvider({ provider_name: '', provider_logo: '', promotional_text: 'Awdhegle Data ka iibso Internet adigoona qof wicin, waqti kasta, xitaa offline!', display_order: 0 });
       setProviderLogoFile(null);
       setProviderLogoPreview('');
       if (insertedData) {
@@ -4567,7 +4567,7 @@ const AdminDashboard = () => {
                     <Input
                       value={newProvider.promotional_text}
                       onChange={(e) => setNewProvider({ ...newProvider, promotional_text: e.target.value })}
-                      placeholder="Awdheegle Data ka iibso Internet..."
+                      placeholder="Awdhegle Data ka iibso Internet..."
                     />
                   </div>
                   <div>
@@ -6164,7 +6164,7 @@ const AdminDashboard = () => {
                   <Input
                     value={editingProvider.promotional_text || ''}
                     onChange={(e) => setEditingProvider({ ...editingProvider, promotional_text: e.target.value })}
-                    placeholder="Awdheegle Data ka iibso Internet..."
+                    placeholder="Awdhegle Data ka iibso Internet..."
                   />
                 </div>
                 <div>

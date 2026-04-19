@@ -36,7 +36,7 @@ export async function exportTransactionsPDF(
   
   // Header
   doc.setFontSize(18);
-  doc.text('Awdheegle Data - Transactions Report', 14, 20);
+  doc.text('Awdhegle Data - Transactions Report', 14, 20);
   doc.setFontSize(10);
   doc.text(`Period: ${summary.period} | Generated: ${format(new Date(), 'MMM dd, yyyy HH:mm')}`, 14, 28);
 
@@ -76,7 +76,7 @@ export async function exportTransactionsExcel(
 
   // Summary sheet
   const summaryData = [
-    ['Awdheegle Data - Transactions Report'],
+    ['Awdhegle Data - Transactions Report'],
     [`Period: ${summary.period}`],
     [`Generated: ${format(new Date(), 'MMM dd, yyyy HH:mm')}`],
     [],

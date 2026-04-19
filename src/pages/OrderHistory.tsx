@@ -67,7 +67,7 @@ const OrderHistory = () => {
         const orderChunks = await Promise.all(
           phonesToSearch.map(async (phone) => {
             const { data, error } = await (supabase as any).rpc('get_customer_order_history', {
-              customer_phone_number: phone
+              _phone: phone
             });
 
             if (error) throw error;
