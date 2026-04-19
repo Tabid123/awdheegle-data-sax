@@ -241,17 +241,15 @@ const SmsLogsViewer = () => {
     return log.sms_type;
   };
 
-  const allowedLogs = logs.filter(l => isAllowedSender(l.sms_sender));
-
   const searchFilteredLogs = searchQuery
-    ? allowedLogs.filter(l => {
+    ? logs.filter(l => {
         const q = searchQuery.toLowerCase();
         return (l.counterpart_phone?.toLowerCase().includes(q)) ||
                (l.sms_body?.toLowerCase().includes(q)) ||
                (l.tx_id?.toLowerCase().includes(q)) ||
                (l.sms_sender?.toLowerCase().includes(q));
       })
-    : allowedLogs;
+    : logs;
 
   const senderGroups2 = searchFilteredLogs.reduce<Record<string, SmsLog[]>>((acc, log) => {
     const sender = log.sms_sender || 'Unknown';
