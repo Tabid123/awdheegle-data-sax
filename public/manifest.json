@@ -1,11 +1,11 @@
 {
-  "name": "Awdheegle Data - Iibso Internet Offline",
-  "short_name": "Awdheegle Data",
-  "description": "Awdheegle Data ka iibso Internet adigoona qof wicin, waqti kasta, xitaa offline!",
+  "name": "Awdhegle Transfer - Iibso Internet Offline",
+  "short_name": "Awdhegle Transfer",
+  "description": "Awdhegle Transfer ka iibso Internet adigoona qof wicin, waqti kasta, xitaa offline!",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#1370F0",
+  "background_color": "#1236C0",
+  "theme_color": "#1236C0",
   "orientation": "portrait",
   "scope": "/",
   "icons": [

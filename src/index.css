@@ -26,8 +26,8 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 220 45% 12%;
 
-    /* Brand vivid blue from logo */
-    --primary: 214 95% 52%;
+    /* Brand vivid blue from logo - #1236C0 */
+    --primary: 225 82% 41%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 210 25% 95%;
@@ -60,14 +60,14 @@ All colors MUST be HSL.
 
     --border: 215 20% 90%;
     --input: 215 20% 90%;
-    --ring: 214 95% 52%;
+    --ring: 225 82% 41%;
 
-    /* Custom design tokens - Awdheegle blue */
-    --gradient-primary: linear-gradient(135deg, hsl(220, 70%, 18%), hsl(214, 95%, 52%));
-    --gradient-button: linear-gradient(135deg, hsl(214, 95%, 52%), hsl(214, 90%, 60%));
+    /* Custom design tokens - Awdhegle Transfer #1236C0 */
+    --gradient-primary: linear-gradient(135deg, hsl(225, 82%, 25%), hsl(225, 82%, 41%));
+    --gradient-button: linear-gradient(135deg, hsl(225, 82%, 41%), hsl(225, 82%, 55%));
     --gradient-subtle: linear-gradient(180deg, hsl(210, 20%, 98%), hsl(0, 0%, 100%));
-    --shadow-elegant: 0 10px 30px -10px hsl(214 95% 52% / 0.3);
-    --shadow-glow: 0 0 40px hsl(214 95% 52% / 0.25);
+    --shadow-elegant: 0 10px 30px -10px hsl(225 82% 41% / 0.3);
+    --shadow-glow: 0 0 40px hsl(225 82% 41% / 0.25);
     --shadow-card: 0 4px 15px -2px hsl(220 45% 12% / 0.08);
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
@@ -75,12 +75,12 @@ All colors MUST be HSL.
 
     --sidebar-background: 210 20% 98%;
     --sidebar-foreground: 220 45% 20%;
-    --sidebar-primary: 214 95% 52%;
+    --sidebar-primary: 225 82% 41%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 210 20% 95%;
     --sidebar-accent-foreground: 220 45% 15%;
     --sidebar-border: 215 20% 90%;
-    --sidebar-ring: 214 95% 52%;
+    --sidebar-ring: 225 82% 41%;
   }
 
   .dark {
@@ -94,8 +94,8 @@ All colors MUST be HSL.
     --popover: 220 45% 12%;
     --popover-foreground: 210 20% 96%;
 
-    /* Vivid brand blue */
-    --primary: 214 95% 58%;
+    /* Vivid brand blue - #1236C0 lifted for dark */
+    --primary: 225 82% 55%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 220 35% 18%;
