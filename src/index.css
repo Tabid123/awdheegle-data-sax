@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,147 +6,154 @@
 
 /* Capacitor Android safe area handling */
 :root {
-  /* Default 0px - JS will set env() for iOS/Web only */
   --effective-safe-area-top: 0px;
 }
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* ============================================
+   AWDHEGLE DATA — 2026 Brand Identity
+   Royal Blue #1E40FF + Vibrant Green #22C55E
+   Bold Utility · Cash App vibe · Dark-first
+   Typography: Geist
+   ============================================ */
 
 @layer base {
   :root {
-    /* AWDHEEGLE DATA SERVICES - Light, minimalist, telecom-grade */
-    --background: 210 20% 98%;
-    --foreground: 220 45% 12%;
+    /* Light mode (still supported) */
+    --background: 220 30% 98%;
+    --foreground: 224 71% 8%;
 
     --card: 0 0% 100%;
-    --card-foreground: 220 45% 12%;
+    --card-foreground: 224 71% 8%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 45% 12%;
+    --popover-foreground: 224 71% 8%;
 
-    /* Brand vivid blue from logo */
-    --primary: 214 95% 52%;
+    /* Royal Blue brand */
+    --primary: 230 100% 56%;
     --primary-foreground: 0 0% 100%;
+    --primary-glow: 230 100% 65%;
 
-    --secondary: 210 25% 95%;
-    --secondary-foreground: 220 45% 15%;
+    /* Vibrant Green secondary */
+    --secondary: 142 71% 45%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 210 20% 95%;
-    --muted-foreground: 220 15% 45%;
+    --muted: 220 20% 94%;
+    --muted-foreground: 220 12% 42%;
 
-    /* Deep navy from logo as accent */
-    --accent: 220 70% 18%;
+    --accent: 142 71% 45%;
     --accent-foreground: 0 0% 100%;
 
     --orange: 25 95% 53%;
-    --orange-foreground: 210 40% 98%;
+    --orange-foreground: 0 0% 100%;
 
-    /* Brand colors for providers */
-    --hormuud: 140 100% 39%;
-    --hormuud-foreground: 0 0% 98%;
-    --somtel: 45 100% 60%;
+    /* Provider brand colors */
+    --hormuud: 142 71% 45%;
+    --hormuud-foreground: 0 0% 100%;
+    --somtel: 45 100% 55%;
     --somtel-foreground: 0 0% 0%;
-    --somlink: 291 64% 42%;
-    --somlink-foreground: 0 0% 98%;
+    --somlink: 291 64% 50%;
+    --somlink-foreground: 0 0% 100%;
     --somnet: 207 90% 54%;
-    --somnet-foreground: 0 0% 98%;
+    --somnet-foreground: 0 0% 100%;
     --amtel: 0 84% 60%;
-    --amtel-foreground: 0 0% 98%;
+    --amtel-foreground: 0 0% 100%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 84% 58%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 215 20% 90%;
-    --input: 215 20% 90%;
-    --ring: 214 95% 52%;
+    --border: 220 15% 88%;
+    --input: 220 15% 92%;
+    --ring: 230 100% 56%;
 
-    /* Custom design tokens - Awdheegle blue */
-    --gradient-primary: linear-gradient(135deg, hsl(220, 70%, 18%), hsl(214, 95%, 52%));
-    --gradient-button: linear-gradient(135deg, hsl(214, 95%, 52%), hsl(214, 90%, 60%));
-    --gradient-subtle: linear-gradient(180deg, hsl(210, 20%, 98%), hsl(0, 0%, 100%));
-    --shadow-elegant: 0 10px 30px -10px hsl(214 95% 52% / 0.3);
-    --shadow-glow: 0 0 40px hsl(214 95% 52% / 0.25);
-    --shadow-card: 0 4px 15px -2px hsl(220 45% 12% / 0.08);
+    --gradient-primary: linear-gradient(135deg, hsl(230 100% 56%), hsl(230 100% 65%));
+    --gradient-button: linear-gradient(135deg, hsl(230 100% 56%), hsl(230 100% 65%));
+    --gradient-success: linear-gradient(135deg, hsl(142 71% 45%), hsl(142 76% 55%));
+    --gradient-subtle: linear-gradient(180deg, hsl(220 30% 98%), hsl(0 0% 100%));
+    --gradient-hero: linear-gradient(135deg, hsl(230 100% 56%) 0%, hsl(220 100% 45%) 50%, hsl(142 71% 45%) 100%);
+
+    --shadow-elegant: 0 10px 30px -10px hsl(230 100% 56% / 0.3);
+    --shadow-glow: 0 0 40px hsl(230 100% 56% / 0.25);
+    --shadow-card: 0 4px 15px -2px hsl(224 71% 8% / 0.08);
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
-    --radius: 0.75rem;
+    --radius: 1rem;
 
-    --sidebar-background: 210 20% 98%;
-    --sidebar-foreground: 220 45% 20%;
-    --sidebar-primary: 214 95% 52%;
+    --sidebar-background: 220 30% 98%;
+    --sidebar-foreground: 224 71% 12%;
+    --sidebar-primary: 230 100% 56%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 20% 95%;
-    --sidebar-accent-foreground: 220 45% 15%;
-    --sidebar-border: 215 20% 90%;
-    --sidebar-ring: 214 95% 52%;
+    --sidebar-accent: 220 20% 94%;
+    --sidebar-accent-foreground: 224 71% 12%;
+    --sidebar-border: 220 15% 88%;
+    --sidebar-ring: 230 100% 56%;
   }
 
   .dark {
-    /* Deep navy background */
-    --background: 220 50% 6%;
-    --foreground: 210 20% 96%;
+    /* Premium dark — deep midnight blue */
+    --background: 224 71% 4%;
+    --foreground: 210 20% 98%;
 
-    --card: 220 45% 10%;
-    --card-foreground: 210 20% 96%;
+    --card: 224 60% 7%;
+    --card-foreground: 210 20% 98%;
 
-    --popover: 220 45% 12%;
-    --popover-foreground: 210 20% 96%;
+    --popover: 224 65% 6%;
+    --popover-foreground: 210 20% 98%;
 
-    /* Vivid brand blue */
-    --primary: 214 95% 58%;
+    /* Royal Blue glow */
+    --primary: 230 100% 62%;
     --primary-foreground: 0 0% 100%;
+    --primary-glow: 230 100% 72%;
 
-    --secondary: 220 35% 18%;
-    --secondary-foreground: 210 20% 96%;
+    /* Vibrant Green */
+    --secondary: 142 76% 50%;
+    --secondary-foreground: 224 71% 4%;
 
-    --muted: 220 30% 15%;
-    --muted-foreground: 215 15% 65%;
+    --muted: 224 40% 12%;
+    --muted-foreground: 215 20% 65%;
 
-    /* Lighter navy accent */
-    --accent: 214 90% 65%;
-    --accent-foreground: 220 50% 6%;
+    --accent: 142 76% 50%;
+    --accent-foreground: 224 71% 4%;
 
-    --orange: 25 95% 55%;
-    --orange-foreground: 210 40% 98%;
+    --orange: 25 95% 60%;
+    --orange-foreground: 224 71% 4%;
 
-    --hormuud: 140 80% 45%;
-    --hormuud-foreground: 0 0% 98%;
-    --somtel: 45 100% 55%;
+    --hormuud: 142 76% 50%;
+    --hormuud-foreground: 224 71% 4%;
+    --somtel: 45 100% 60%;
     --somtel-foreground: 0 0% 0%;
-    --somlink: 291 70% 55%;
-    --somlink-foreground: 0 0% 98%;
+    --somlink: 291 75% 60%;
+    --somlink-foreground: 0 0% 100%;
     --somnet: 207 90% 60%;
-    --somnet-foreground: 0 0% 98%;
-    --amtel: 0 75% 55%;
-    --amtel-foreground: 0 0% 98%;
+    --somnet-foreground: 0 0% 100%;
+    --amtel: 0 75% 60%;
+    --amtel-foreground: 0 0% 100%;
 
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 220 30% 18%;
-    --input: 220 30% 15%;
-    --ring: 214 95% 58%;
+    --border: 224 40% 14%;
+    --input: 224 40% 12%;
+    --ring: 230 100% 62%;
 
-    --gradient-primary: linear-gradient(135deg, hsl(220, 70%, 25%), hsl(214, 95%, 58%));
-    --gradient-button: linear-gradient(135deg, hsl(214, 95%, 55%), hsl(214, 90%, 65%));
-    --gradient-subtle: linear-gradient(180deg, hsl(220, 50%, 6%), hsl(220, 45%, 12%));
-    --gradient-glow: radial-gradient(ellipse at center, hsl(214 95% 58% / 0.18), transparent 70%);
+    --gradient-primary: linear-gradient(135deg, hsl(230 100% 56%), hsl(230 100% 70%));
+    --gradient-button: linear-gradient(135deg, hsl(230 100% 58%), hsl(230 100% 68%));
+    --gradient-success: linear-gradient(135deg, hsl(142 76% 45%), hsl(142 80% 55%));
+    --gradient-subtle: linear-gradient(180deg, hsl(224 71% 4%), hsl(224 60% 7%));
+    --gradient-hero: linear-gradient(135deg, hsl(230 100% 56%) 0%, hsl(224 71% 15%) 50%, hsl(142 76% 40%) 100%);
+    --gradient-glow: radial-gradient(ellipse at center, hsl(230 100% 62% / 0.25), transparent 70%);
 
-    --shadow-elegant: 0 10px 40px -10px hsl(214 95% 58% / 0.35);
-    --shadow-glow: 0 0 60px hsl(214 95% 58% / 0.25);
-    --shadow-card: 0 4px 20px -2px hsl(0 0% 0% / 0.4), 0 0 0 1px hsl(220 30% 18% / 0.5);
-    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --shadow-elegant: 0 10px 40px -10px hsl(230 100% 62% / 0.45);
+    --shadow-glow: 0 0 60px hsl(230 100% 62% / 0.35);
+    --shadow-card: 0 4px 20px -2px hsl(0 0% 0% / 0.5), 0 0 0 1px hsl(224 40% 14% / 0.6);
 
-    --sidebar-background: 220 50% 8%;
-    --sidebar-foreground: 210 20% 96%;
-    --sidebar-primary: 214 95% 58%;
+    --sidebar-background: 224 71% 5%;
+    --sidebar-foreground: 210 20% 98%;
+    --sidebar-primary: 230 100% 62%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 35% 18%;
-    --sidebar-accent-foreground: 210 20% 96%;
-    --sidebar-border: 220 30% 15%;
-    --sidebar-ring: 214 95% 58%;
+    --sidebar-accent: 224 40% 12%;
+    --sidebar-accent-foreground: 210 20% 98%;
+    --sidebar-border: 224 40% 14%;
+    --sidebar-ring: 230 100% 62%;
   }
 }
 
@@ -157,8 +164,14 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    font-feature-settings: 'cv11', 'ss01';
+    font-family: 'Geist', system-ui, -apple-system, sans-serif;
+    font-feature-settings: 'cv11', 'ss01', 'ss03';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  code, pre, .font-mono {
+    font-family: 'Geist Mono', ui-monospace, monospace;
   }
 }
 
@@ -166,32 +179,39 @@ All colors MUST be HSL.
   .gradient-button {
     background: var(--gradient-button);
   }
-  
+  .gradient-hero {
+    background: var(--gradient-hero);
+  }
+  .gradient-success {
+    background: var(--gradient-success);
+  }
   .shadow-card {
     box-shadow: var(--shadow-card);
   }
-  
+  .shadow-elegant {
+    box-shadow: var(--shadow-elegant);
+  }
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+  .text-gradient {
+    background: var(--gradient-hero);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
   .animate-success {
     animation: success-bounce 0.6s ease-out;
   }
 }
 
 @keyframes success-bounce {
-  0% {
-    transform: scale(0.8) translateY(20px);
-    opacity: 0;
-  }
-  50% {
-    transform: scale(1.05) translateY(-5px);
-    opacity: 0.8;
-  }
-  100% {
-    transform: scale(1) translateY(0);
-    opacity: 1;
-  }
+  0% { transform: scale(0.8) translateY(20px); opacity: 0; }
+  50% { transform: scale(1.05) translateY(-5px); opacity: 0.8; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
 }
 
-/* Safe area for mobile apps (iOS/Android Capacitor) */
+/* Safe area for mobile apps */
 :root {
   --safe-area-inset-top: env(safe-area-inset-top, 0px);
   --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
@@ -204,8 +224,6 @@ html, body {
   margin: 0;
   min-height: 100vh;
   min-height: 100dvh;
-  --visual-viewport-height: 100vh;
-  --visual-viewport-height: 100dvh;
 }
 
 #root {
@@ -213,30 +231,25 @@ html, body {
   min-height: 100dvh;
 }
 
-/* Ensure inputs scroll into view properly when keyboard shows */
 input, textarea, [contenteditable] {
   scroll-margin-bottom: 100px;
 }
 
-/* Bottom navigation safe area padding */
 .bottom-navigation {
   padding-bottom: var(--safe-area-inset-bottom);
 }
 
-/* Prevent tap highlight that causes visual shifts */
 * {
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
 }
 
-/* Mobile admin table scroll */
 @media (max-width: 767px) {
   .overflow-x-auto table {
     min-width: 600px;
   }
 }
 
-/* Fixed elements should not animate on viewport changes */
 .fixed {
   will-change: transform;
   transform: translateZ(0);
