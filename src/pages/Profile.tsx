@@ -99,7 +99,7 @@ const Profile = () => {
     <div className="min-h-screen bg-background">
       <div 
         style={{ 
-          backgroundColor: '#1E40FF',
+          backgroundColor: '#1370F0',
           paddingTop: 'calc(1rem + var(--effective-safe-area-top, 0px))',
           boxSizing: 'border-box' as const
         }} 

@@ -7,7 +7,7 @@
         // Anti-flash style - Awdheegle Data purple
         var s=document.createElement('style');
         s.id='anti-flash';
-        s.textContent='html,body,#root{background:#0A0F2C!important;min-height:100vh!important}';
+        s.textContent='html,body,#root{background:#FFFFFF!important;min-height:100vh!important}';
         document.head.appendChild(s);
         
         // Detect Android WebView using User-Agent (works with Capacitor remote URL)
@@ -33,7 +33,7 @@
   <link rel="apple-touch-icon" sizes="180x180" href="/icon-192.png">
   <link rel="manifest" href="/manifest.json">
   
-    <meta name="theme-color" content="#1E40FF">
+    <meta name="theme-color" content="#1370F0">
     
     <!-- Web Splash Screen Styles -->
     <style>
@@ -42,7 +42,7 @@
       #initial-splash {
         position: fixed;
         inset: 0;
-        background: radial-gradient(ellipse at center, #1E40FF 0%, #0A0F2C 100%);
+        background: #1370F0;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -50,18 +50,17 @@
         z-index: 9999;
       }
       .splash-logo {
-        width: 180px;
-        height: 180px;
-        border-radius: 32px;
+        width: 150px;
+        height: 150px;
+        border-radius: 24px;
         animation: pulse 2s ease-in-out infinite;
-        box-shadow: 0 20px 60px rgba(34, 197, 94, 0.35), 0 0 80px rgba(30, 64, 255, 0.4);
       }
       .loading-spinner {
         width: 40px;
         height: 40px;
-        margin-top: 48px;
-        border: 3px solid rgba(34, 197, 94, 0.25);
-        border-top: 3px solid #22C55E;
+        margin-top: 40px;
+        border: 4px solid rgba(197,248,42,0.3);
+        border-top: 4px solid #FFFFFF;
         border-radius: 50%;
         animation: spin 1s linear infinite;
       }
@@ -92,10 +91,10 @@
   <meta name="twitter:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/487b709f-9e5c-4b9a-98c6-0b7a1c221cd0">
 </head>
 
-  <body style="background:#0A0F2C;margin:0;padding:0;min-height:100vh;">
-    <div id="root" style="background:#0A0F2C;min-height:100vh;">
+  <body style="background:#FFFFFF;margin:0;padding:0;min-height:100vh;">
+    <div id="root" style="background:#FFFFFF;min-height:100vh;">
       <div id="initial-splash">
-        <img src="/awdhegle-logo.jpeg" alt="Awdhegle Data" class="splash-logo" onerror="this.style.display='none'">
+        <img src="/images/najax-splash-logo.png" alt="Awdheegle Data Services" class="splash-logo" onerror="this.style.display='none'">
         <div class="loading-spinner"></div>
       </div>
     </div>

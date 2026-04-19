@@ -3,26 +3,22 @@ import { useLocation } from 'react-router-dom';
 import { useTheme } from '@/contexts/ThemeContext';
 
 const providerColors: Record<string, { light: string; dark: string }> = {
-  hormuud: { light: '#22C55E', dark: '#22C55E' },
+  hormuud: { light: '#00c853', dark: '#00c853' },
   somtel: { light: '#ffd600', dark: '#ffd600' },
   somlink: { light: '#9c27b0', dark: '#9c27b0' },
   somnet: { light: '#42a5f5', dark: '#42a5f5' },
   amtel: { light: '#ef5350', dark: '#ef5350' },
 };
 
-// Awdhegle Data — premium dark default
-const BRAND_BLUE = '#1E40FF';
-const BRAND_DARK = '#0A0F2C';
-
 const pageColors: Record<string, { light: string; dark: string }> = {
-  '/': { light: BRAND_BLUE, dark: BRAND_DARK },
-  '/providers': { light: BRAND_BLUE, dark: BRAND_DARK },
-  '/payment-success': { light: '#22C55E', dark: '#22C55E' },
-  '/admin/login': { light: BRAND_BLUE, dark: BRAND_DARK },
-  '/admin': { light: BRAND_BLUE, dark: BRAND_DARK },
-  '/history': { light: BRAND_BLUE, dark: BRAND_DARK },
-  '/profile': { light: BRAND_BLUE, dark: BRAND_DARK },
-  '/notifications': { light: BRAND_BLUE, dark: BRAND_DARK },
+  '/': { light: '#1370F0', dark: '#1370F0' },
+  '/providers': { light: '#1370F0', dark: '#1370F0' },
+  '/payment-success': { light: '#00c853', dark: '#00c853' },
+  '/admin/login': { light: '#1370F0', dark: '#1370F0' },
+  '/admin': { light: '#1370F0', dark: '#1370F0' },
+  '/history': { light: '#1370F0', dark: '#1370F0' },
+  '/profile': { light: '#1370F0', dark: '#1370F0' },
+  '/notifications': { light: '#1370F0', dark: '#1370F0' },
 };
 
 export const StatusBarColor = () => {
@@ -32,11 +28,13 @@ export const StatusBarColor = () => {
   useEffect(() => {
     let color = pageColors[location.pathname]?.[theme] || pageColors['/'][theme];
 
+    // Check if we have provider name in location state
     const providerName = (location.state as { providerName?: string })?.providerName?.toLowerCase().trim();
     if (providerName && providerColors[providerName]) {
       color = providerColors[providerName][theme];
     }
 
+    // Update meta tag
     let metaTag = document.querySelector('meta[name="theme-color"]');
     if (!metaTag) {
       metaTag = document.createElement('meta');

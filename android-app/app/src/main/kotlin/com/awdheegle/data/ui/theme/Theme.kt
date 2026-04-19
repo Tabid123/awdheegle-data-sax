@@ -7,29 +7,23 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-// Awdhegle Data — 2026 Brand: Royal Blue + Vibrant Green
 private val DarkColorScheme = darkColorScheme(
-    primary = Color(0xFF1E40FF),
-    onPrimary = Color.White,
-    secondary = Color(0xFF22C55E),
-    onSecondary = Color(0xFF0A0F2C),
-    tertiary = Color(0xFF4F6FFF),
-    background = Color(0xFF0A0F2C),
-    surface = Color(0xFF0F1640),
-    onBackground = Color(0xFFF8FAFF),
-    onSurface = Color(0xFFF8FAFF),
+    primary = Color(0xFF1370F0),
+    secondary = Color(0xFF0B2447),
+    tertiary = Color(0xFF4A95F5)
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Color(0xFF1E40FF),
-    onPrimary = Color.White,
-    secondary = Color(0xFF22C55E),
-    onSecondary = Color.White,
-    tertiary = Color(0xFF4F6FFF),
-    background = Color(0xFFFAFBFF),
+    primary = Color(0xFF1370F0),
+    secondary = Color(0xFF0B2447),
+    tertiary = Color(0xFF4A95F5),
+    background = Color(0xFFFFFFFF),
     surface = Color(0xFFFFFFFF),
-    onBackground = Color(0xFF0A0F2C),
-    onSurface = Color(0xFF0A0F2C),
+    onPrimary = Color.White,
+    onSecondary = Color.White,
+    onTertiary = Color.White,
+    onBackground = Color(0xFF1C1B1F),
+    onSurface = Color(0xFF1C1B1F),
 )
 
 @Composable
@@ -37,7 +31,10 @@ fun AwdheegleDataTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+    val colorScheme = when {
+        darkTheme -> DarkColorScheme
+        else -> LightColorScheme
+    }
 
     MaterialTheme(
         colorScheme = colorScheme,

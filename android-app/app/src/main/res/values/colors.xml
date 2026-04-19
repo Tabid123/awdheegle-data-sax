@@ -1,14 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Awdhegle Data — 2026 Brand -->
-    <color name="awdheegle_blue">#1E40FF</color>
-    <color name="awdheegle_blue_dark">#0A0F2C</color>
-    <color name="awdheegle_blue_light">#4F6FFF</color>
-    <color name="awdheegle_green">#22C55E</color>
-    <color name="awdheegle_green_light">#4ADE80</color>
-    <color name="awdheegle_navy">#0A0F2C</color>
-    <color name="splash_background">#0A0F2C</color>
-    <color name="splash_brand">#1E40FF</color>
+    <!-- Awdheegle Data Brand Colors -->
+    <color name="awdheegle_blue">#1370F0</color>
+    <color name="awdheegle_blue_dark">#0B2447</color>
+    <color name="awdheegle_blue_light">#4A95F5</color>
+    <color name="awdheegle_navy">#0B2447</color>
+    <color name="splash_background">#1370F0</color>
     <color name="white">#FFFFFF</color>
     <color name="black">#000000</color>
 </resources>

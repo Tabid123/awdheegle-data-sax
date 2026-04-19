@@ -29,7 +29,7 @@ const Notifications = () => {
       {/* Header with safe-area padding for Android 12+ */}
       <div 
         style={{ 
-          backgroundColor: '#1E40FF',
+          backgroundColor: '#1370F0',
           paddingTop: 'calc(1rem + var(--effective-safe-area-top, 0px))',
           boxSizing: 'border-box' as const
         }} 

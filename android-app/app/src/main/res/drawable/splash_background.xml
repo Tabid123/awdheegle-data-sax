@@ -1,24 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Awdhegle Data brand: deep midnight base with royal blue glow -->
-    <item android:drawable="@color/awdheegle_blue_dark" />
-
-    <!-- Royal blue radial glow behind logo -->
-    <item>
-        <shape android:shape="oval">
-            <gradient
-                android:type="radial"
-                android:gradientRadius="500"
-                android:centerColor="#331E40FF"
-                android:endColor="#000A0F2C" />
-        </shape>
-    </item>
-
-    <!-- Centered brand logo -->
+    <!-- Background color - Awdheegle Data brand blue -->
+    <item android:drawable="@color/splash_background" />
+    
+    <!-- Centered logo - fitted -->
     <item
         android:gravity="center"
-        android:width="200dp"
-        android:height="200dp">
+        android:width="180dp"
+        android:height="180dp">
         <bitmap
             android:gravity="center"
             android:src="@drawable/splash_logo" />
