@@ -34,12 +34,19 @@ const ALLOWED_CODES = new Set([
   '913',                           // Amtel
 ]);
 
-const getProviderFromSender = (sender: string): string | null => {
+const getProviderFromSender = (sender: string, body?: string): string | null => {
   const s = sender?.toLowerCase()?.trim() || '';
   if (['801', '898'].includes(s)) return 'Somnet';
   if (['192', '740'].includes(s)) return 'Hormuud';
   if (['reseller', '252888', 'edahab'].includes(s)) return 'Somtel';
   if (s === '913') return 'Amtel';
+
+  // Fallback: detect from SMS body content
+  const b = (body || '').toLowerCase();
+  if (b.includes('evcplus') || b.includes('evc plus') || b.includes('evc-plus')) return 'Hormuud';
+  if (b.includes('jeeb') || b.includes('somnet')) return 'Somnet';
+  if (b.includes('edahab') || b.includes('somtel')) return 'Somtel';
+  if (b.includes('amtel')) return 'Amtel';
   return null;
 };
 
