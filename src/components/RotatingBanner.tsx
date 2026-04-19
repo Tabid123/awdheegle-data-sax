@@ -145,11 +145,6 @@ const RotatingBanner = () => {
           fetchPriority="high"
           decoding="async"
         />
-        <div className="absolute inset-0 pointer-events-none flex items-end justify-start p-3 bg-gradient-to-t from-black/55 via-black/10 to-transparent">
-          <span className="px-2.5 py-1 rounded-md bg-primary text-primary-foreground text-[11px] font-extrabold tracking-wider shadow-md">
-            AWDHEEGLE DATA
-          </span>
-        </div>
       </button>
 
       <div className="flex justify-center space-x-1.5">
