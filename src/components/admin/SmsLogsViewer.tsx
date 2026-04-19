@@ -248,7 +248,9 @@ const SmsLogsViewer = () => {
     return log.sms_type;
   };
 
-  const allowedLogs = logs.filter(l => isAllowedSender(l.sms_sender));
+  const allowedLogs = logs.filter(l =>
+    isAllowedSender(l.sms_sender) || getProviderFromSender(l.sms_sender || '', l.sms_body) !== null
+  );
 
   const searchFilteredLogs = searchQuery
     ? allowedLogs.filter(l => {
