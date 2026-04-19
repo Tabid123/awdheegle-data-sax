@@ -106,7 +106,7 @@ const AdminLogin = () => {
         description: 'Waad soo gashay',
       });
 
-      navigate('/admin');
+      navigate('/simple-admin');
 
     } catch (error: any) {
       // Haddii connection-ka oo dhan fashilmo (network error)
