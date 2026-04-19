@@ -189,7 +189,7 @@ const OrderHistory = () => {
   return <div className="min-h-screen bg-background pb-24">
       {/* Header with safe-area padding for Android 12+ */}
       <div style={{
-        backgroundColor: '#1370F0',
+        backgroundColor: '#1E40FF',
         paddingTop: 'calc(1rem + var(--effective-safe-area-top, 0px))',
         boxSizing: 'border-box' as const
       }} className="text-white py-4 px-4">

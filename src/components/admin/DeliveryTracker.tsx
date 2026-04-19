@@ -321,7 +321,7 @@ export function DeliveryTracker() {
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
-              <div className="bg-[#1370F0] rounded-t-xl px-4 py-3 flex items-center justify-between">
+              <div className="bg-[#1E40FF] rounded-t-xl px-4 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Truck className="w-3.5 h-3.5 text-white/70" />
                   <h3 className="font-bold text-[13px] text-white">{isSo ? 'Delivery Invoice' : 'Delivery Invoice'}</h3>
@@ -372,7 +372,7 @@ export function DeliveryTracker() {
 
                 {/* Timeline */}
                 <div>
-                  <span className="text-[9px] uppercase tracking-wider text-[#1370F0] dark:text-purple-400 font-bold">TIMELINE</span>
+                  <span className="text-[9px] uppercase tracking-wider text-[#1E40FF] dark:text-purple-400 font-bold">TIMELINE</span>
                   <div className="flex items-center justify-between mt-1.5 px-1">
                     {timeline.map((step, i) => (
                       <React.Fragment key={step.label}>
@@ -395,7 +395,7 @@ export function DeliveryTracker() {
 
                 {/* Details grid */}
                 <div>
-                  <span className="text-[9px] uppercase tracking-wider text-[#1370F0] dark:text-purple-400 font-bold">{isSo ? 'FAAHFAAHIN' : 'DETAILS'}</span>
+                  <span className="text-[9px] uppercase tracking-wider text-[#1E40FF] dark:text-purple-400 font-bold">{isSo ? 'FAAHFAAHIN' : 'DETAILS'}</span>
                   <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 mt-1">
                     <div>
                       <span className="text-[9px] text-gray-400">USSD</span>
