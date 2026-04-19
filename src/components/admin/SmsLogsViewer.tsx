@@ -266,8 +266,8 @@ const SmsLogsViewer = () => {
   }, {});
 
   const sortedCodes2 = Object.keys(senderGroups2).sort((a, b) => {
-    const provA = getProviderFromSender(a);
-    const provB = getProviderFromSender(b);
+    const provA = getProviderFromSender(a, senderGroups2[a][0]?.sms_body);
+    const provB = getProviderFromSender(b, senderGroups2[b][0]?.sms_body);
     if (provA && !provB) return -1;
     if (!provA && provB) return 1;
     return senderGroups2[b].length - senderGroups2[a].length;
