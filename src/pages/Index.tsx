@@ -167,28 +167,51 @@ const Index = () => {
   // Show splash screen
   if (isChecking) {
     return (
-      <div className="fixed inset-0 bg-background flex flex-col items-center justify-center z-50">
+      <div className="fixed inset-0 flex flex-col items-center justify-center z-50 overflow-hidden" style={{ background: '#1370F0' }}>
+        {/* Ambient radial glow behind logo */}
         <div
-          className="w-44 h-44 flex items-center justify-center rounded-3xl bg-card p-4 ring-1 ring-primary/20 animate-pulse"
+          className="absolute pointer-events-none"
+          style={{
+            width: '520px',
+            height: '520px',
+            background:
+              'radial-gradient(circle, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.08) 35%, rgba(255,255,255,0) 70%)',
+            filter: 'blur(20px)',
+          }}
+        />
+
+        {/* Logo card with rich layered shadow */}
+        <div
+          className="relative w-44 h-44 flex items-center justify-center rounded-[2rem] bg-white p-5 animate-pulse"
           style={{
             boxShadow:
-              '0 30px 60px -15px hsl(var(--primary) / 0.55), 0 18px 36px -12px hsl(var(--primary) / 0.35), 0 8px 18px -6px hsl(0 0% 0% / 0.25), 0 0 0 1px hsl(var(--primary) / 0.1)',
+              '0 40px 80px -20px rgba(0,0,0,0.55), 0 25px 50px -12px rgba(11,36,71,0.6), 0 12px 24px -8px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.9), 0 0 0 1px rgba(255,255,255,0.15)',
           }}
         >
+          {/* Inner glow ring */}
+          <div
+            className="absolute inset-0 rounded-[2rem] pointer-events-none"
+            style={{
+              background:
+                'linear-gradient(135deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0) 50%, rgba(0,0,0,0.05) 100%)',
+            }}
+          />
           <img
             src={najaxLogoSplash}
             alt="Awdhegle Data"
-            className="w-full h-full object-contain drop-shadow-[0_8px_16px_rgba(18,54,192,0.45)]"
+            className="relative w-full h-full object-contain"
+            style={{ filter: 'drop-shadow(0 6px 12px rgba(19,112,240,0.35))' }}
           />
         </div>
-        <div className="w-10 h-10 mt-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+
+        <div className="w-10 h-10 mt-10 border-4 border-white/30 border-t-white rounded-full animate-spin" />
 
         {extendedSplashReached && connectivityChecking && !forceExit && (
           <div className="flex flex-col items-center mt-6">
-            <div className="w-48 h-2 bg-primary/15 rounded-full overflow-hidden">
-              <div className="h-full bg-primary/70 rounded-full animate-pulse" style={{width: '70%'}} />
+            <div className="w-48 h-2 bg-white/20 rounded-full overflow-hidden">
+              <div className="h-full bg-white rounded-full animate-pulse" style={{ width: '70%' }} />
             </div>
-            <p className="text-muted-foreground text-xs mt-2">Xiriirka la hubinayo...</p>
+            <p className="text-white/80 text-xs mt-2">Xiriirka la hubinayo...</p>
           </div>
         )}
       </div>

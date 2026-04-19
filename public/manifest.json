@@ -4,8 +4,8 @@
   "description": "Awdhegle Transfer ka iibso Internet adigoona qof wicin, waqti kasta, xitaa offline!",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#1236C0",
-  "theme_color": "#1236C0",
+  "background_color": "#1370F0",
+  "theme_color": "#1370F0",
   "orientation": "portrait",
   "scope": "/",
   "icons": [
