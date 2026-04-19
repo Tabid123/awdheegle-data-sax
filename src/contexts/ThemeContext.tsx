@@ -15,12 +15,15 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     // eslint-disable-next-line no-console
     console.debug('[ThemeProvider] React.version =', (React as any)?.version);
   } catch {}
-  const [theme, setTheme] = useState<Theme>('light');
+  const [theme, setTheme] = useState<Theme>('dark');
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme') as Theme;
     if (savedTheme && ['light', 'dark'].includes(savedTheme)) {
       setTheme(savedTheme);
+    } else {
+      // Default to dark for new users (premium night feel)
+      setTheme('dark');
     }
   }, []);
 
