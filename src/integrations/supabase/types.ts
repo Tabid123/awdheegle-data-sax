@@ -558,6 +558,7 @@ export type Database = {
           is_featured: boolean
           package_name: string
           price: number
+          profit_margin: number
           provider_id: string
           purchase_count: number
           selling_price: number | null
@@ -581,6 +582,7 @@ export type Database = {
           is_featured?: boolean
           package_name: string
           price: number
+          profit_margin?: number
           provider_id: string
           purchase_count?: number
           selling_price?: number | null
@@ -604,6 +606,7 @@ export type Database = {
           is_featured?: boolean
           package_name?: string
           price?: number
+          profit_margin?: number
           provider_id?: string
           purchase_count?: number
           selling_price?: number | null
