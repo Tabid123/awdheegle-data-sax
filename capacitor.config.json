@@ -1,6 +1,6 @@
 {
   "appId": "com.najax.data",
-  "appName": "Awdheegle Data",
+  "appName": "Awdhegle Transfer",
   "webDir": "dist",
   "server": {
     "url": "https://ec842384-421c-4454-a974-f6d2d422a005.lovableproject.com?forceHideBadge=true",
@@ -18,7 +18,7 @@
     "SplashScreen": {
       "launchShowDuration": 2000,
       "launchAutoHide": true,
-      "backgroundColor": "#3D0066",
+      "backgroundColor": "#1236C0",
       "showSpinner": false,
       "androidScaleType": "CENTER_CROP",
       "splashFullScreen": true,
@@ -26,10 +26,10 @@
     },
     "StatusBar": {
       "style": "LIGHT",
-      "backgroundColor": "#3D0066"
+      "backgroundColor": "#1236C0"
     },
     "NavigationBar": {
-      "backgroundColor": "#3D0066",
+      "backgroundColor": "#1236C0",
       "style": "LIGHT"
     },
     "PushNotifications": {
