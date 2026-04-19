@@ -27,13 +27,25 @@ interface SmsLog {
   source: 'sms_logs' | 'payment_sms_log';
 }
 
+const ALLOWED_CODES = new Set([
+  '801', '898',                    // Somnet
+  '192', '740',                    // Hormuud
+  'reseller', '252888', 'edahab',  // Somtel
+  '913',                           // Amtel
+]);
+
 const getProviderFromSender = (sender: string): string | null => {
   const s = sender?.toLowerCase()?.trim() || '';
-  if (['801', '898', 'somnet'].includes(s)) return 'Somnet';
+  if (['801', '898'].includes(s)) return 'Somnet';
   if (['192', '740'].includes(s)) return 'Hormuud';
   if (['reseller', '252888', 'edahab'].includes(s)) return 'Somtel';
   if (s === '913') return 'Amtel';
   return null;
+};
+
+const isAllowedSender = (sender: string | null): boolean => {
+  const s = sender?.toLowerCase()?.trim() || '';
+  return ALLOWED_CODES.has(s);
 };
 
 const getProviderColor = (provider: string | null): string => {
