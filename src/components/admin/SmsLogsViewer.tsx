@@ -34,12 +34,19 @@ const ALLOWED_CODES = new Set([
   '913',                           // Amtel
 ]);
 
-const getProviderFromSender = (sender: string): string | null => {
+const getProviderFromSender = (sender: string, body?: string): string | null => {
   const s = sender?.toLowerCase()?.trim() || '';
   if (['801', '898'].includes(s)) return 'Somnet';
   if (['192', '740'].includes(s)) return 'Hormuud';
   if (['reseller', '252888', 'edahab'].includes(s)) return 'Somtel';
   if (s === '913') return 'Amtel';
+
+  // Fallback: detect from SMS body content
+  const b = (body || '').toLowerCase();
+  if (b.includes('evcplus') || b.includes('evc plus') || b.includes('evc-plus')) return 'Hormuud';
+  if (b.includes('jeeb') || b.includes('somnet')) return 'Somnet';
+  if (b.includes('edahab') || b.includes('somtel')) return 'Somtel';
+  if (b.includes('amtel')) return 'Amtel';
   return null;
 };
 
@@ -259,8 +266,8 @@ const SmsLogsViewer = () => {
   }, {});
 
   const sortedCodes2 = Object.keys(senderGroups2).sort((a, b) => {
-    const provA = getProviderFromSender(a);
-    const provB = getProviderFromSender(b);
+    const provA = getProviderFromSender(a, senderGroups2[a][0]?.sms_body);
+    const provB = getProviderFromSender(b, senderGroups2[b][0]?.sms_body);
     if (provA && !provB) return -1;
     if (!provA && provB) return 1;
     return senderGroups2[b].length - senderGroups2[a].length;
@@ -333,7 +340,7 @@ const SmsLogsViewer = () => {
       ) : !selectedSenderCode ? (
         <div className="space-y-2">
           {sortedCodes2.map(code => {
-            const provider = getProviderFromSender(code);
+            const provider = getProviderFromSender(code, senderGroups2[code][0]?.sms_body);
             const count = senderGroups2[code].length;
             const lastLog = senderGroups2[code][0];
             const totalAmount = senderGroups2[code].reduce((sum, l) => sum + (l.amount || 0), 0);
