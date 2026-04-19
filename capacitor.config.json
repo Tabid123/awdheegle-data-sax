@@ -18,7 +18,7 @@
     "SplashScreen": {
       "launchShowDuration": 2000,
       "launchAutoHide": true,
-      "backgroundColor": "#1236C0",
+      "backgroundColor": "#1370F0",
       "showSpinner": false,
       "androidScaleType": "CENTER_CROP",
       "splashFullScreen": true,
@@ -26,10 +26,10 @@
     },
     "StatusBar": {
       "style": "LIGHT",
-      "backgroundColor": "#1236C0"
+      "backgroundColor": "#1370F0"
     },
     "NavigationBar": {
-      "backgroundColor": "#1236C0",
+      "backgroundColor": "#1370F0",
       "style": "LIGHT"
     },
     "PushNotifications": {
