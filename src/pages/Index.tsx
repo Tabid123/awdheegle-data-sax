@@ -169,16 +169,16 @@ const Index = () => {
     return (
       <div className="fixed inset-0 bg-background flex flex-col items-center justify-center z-50">
         <div
-          className="w-44 h-44 flex items-center justify-center rounded-3xl bg-card p-4 ring-1 ring-primary/10 animate-pulse"
+          className="w-44 h-44 flex items-center justify-center rounded-3xl bg-card p-4 ring-1 ring-primary/20 animate-pulse"
           style={{
             boxShadow:
-              '0 16px 40px -12px hsl(var(--primary) / 0.4), 0 6px 16px -6px hsl(var(--primary) / 0.2), 0 0 0 1px hsl(var(--primary) / 0.06)',
+              '0 30px 60px -15px hsl(var(--primary) / 0.55), 0 18px 36px -12px hsl(var(--primary) / 0.35), 0 8px 18px -6px hsl(0 0% 0% / 0.25), 0 0 0 1px hsl(var(--primary) / 0.1)',
           }}
         >
           <img
             src={najaxLogoSplash}
-            alt="Awdheegle Data Services"
-            className="w-full h-full object-contain"
+            alt="Awdhegle Data"
+            className="w-full h-full object-contain drop-shadow-[0_8px_16px_rgba(18,54,192,0.45)]"
           />
         </div>
         <div className="w-10 h-10 mt-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
