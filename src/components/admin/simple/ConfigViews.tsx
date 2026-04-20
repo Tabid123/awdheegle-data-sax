@@ -152,7 +152,7 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
   const [providerFilter, setProviderFilter] = useState<string>('all');
   const [showAdd, setShowAdd] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [newPkg, setNewPkg] = useState({ package_name: '', data_amount: '', selling_price: '', cost_price: '', validity_days: '30', provider_id: '', category_id: '', ussd_code: '', connection_type_label: 'Data' });
+  const [newPkg, setNewPkg] = useState({ package_name: '', data_amount: '', selling_price: '', cost_price: '', secret_price: '', validity_days: '30', provider_id: '', category_id: '', ussd_code: '', connection_type_label: 'Data' });
 
   const loadPackages = useCallback(async () => {
     const [pkgRes, provRes, catRes] = await Promise.all([
@@ -185,12 +185,16 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
   const savePackage = async () => {
     if (!newPkg.package_name || !newPkg.selling_price || !newPkg.provider_id) { toast.error(isSo ? 'Buuxi meelaha lagama maarmaanka ah' : 'Fill required fields'); return; }
     const sellingPriceNum = Number(newPkg.selling_price);
+    const secretArr = String(newPkg.secret_price || '')
+      .split(/[,\s]+/).map(s => s.trim()).filter(Boolean)
+      .map(Number).filter(n => !isNaN(n) && n > 0);
     const payload: any = {
       package_name: newPkg.package_name,
       data_amount: newPkg.data_amount,
       price: sellingPriceNum,
       selling_price: sellingPriceNum,
       cost_price: Number(newPkg.cost_price || 0),
+      secret_price: secretArr.length > 0 ? secretArr : null,
       validity_days: newPkg.validity_days ? parseInt(String(newPkg.validity_days), 10) : null,
       provider_id: newPkg.provider_id,
       category_id: newPkg.category_id || null,
@@ -209,7 +213,7 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
       setPackages(prev => [data, ...prev]);
       toast.success(isSo ? 'Waa lagu daray' : 'Added');
     }
-    setNewPkg({ package_name: '', data_amount: '', selling_price: '', cost_price: '', validity_days: '30', provider_id: '', category_id: '', ussd_code: '', connection_type_label: 'Data' });
+    setNewPkg({ package_name: '', data_amount: '', selling_price: '', cost_price: '', secret_price: '', validity_days: '30', provider_id: '', category_id: '', ussd_code: '', connection_type_label: 'Data' });
     setShowAdd(false); setEditingId(null);
   };
 
@@ -217,7 +221,9 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
     setEditingId(item.id);
     setNewPkg({
       package_name: item.package_name || '', data_amount: item.data_amount || '', selling_price: String(item.selling_price || ''),
-      cost_price: String(item.cost_price || ''), validity_days: item.validity_days || '30', provider_id: item.provider_id || '',
+      cost_price: String(item.cost_price || ''),
+      secret_price: Array.isArray(item.secret_price) ? item.secret_price.join(', ') : (item.secret_price ?? ''),
+      validity_days: item.validity_days || '30', provider_id: item.provider_id || '',
       category_id: item.category_id || '', ussd_code: item.ussd_code || '', connection_type_label: item.connection_type_label || 'Data',
     });
     setShowAdd(true); setExpandedId(null);
@@ -325,7 +331,7 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
       <ProviderFilterRow providers={providers} activeId={providerFilter} onSelect={setProviderFilter}
         activeColor="bg-cyan-600" totalCount={packages.length} allLabel={isSo ? 'Dhammaan' : 'All'}
         countFn={id => packages.filter(p => p.provider_id === id).length} />
-      <button onClick={() => { setShowAdd(!showAdd); setEditingId(null); setNewPkg({ package_name: '', data_amount: '', selling_price: '', cost_price: '', validity_days: '30', provider_id: '', category_id: '', ussd_code: '', connection_type_label: 'Data' }); }}
+      <button onClick={() => { setShowAdd(!showAdd); setEditingId(null); setNewPkg({ package_name: '', data_amount: '', selling_price: '', cost_price: '', secret_price: '', validity_days: '30', provider_id: '', category_id: '', ussd_code: '', connection_type_label: 'Data' }); }}
         className="w-full py-2.5 bg-gradient-to-r from-cyan-500 to-cyan-600 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-1.5 active:scale-[0.98]">
         <Plus className="w-4 h-4" /> {isSo ? 'Package Cusub Ku Dar' : 'Add New Package'}
       </button>
