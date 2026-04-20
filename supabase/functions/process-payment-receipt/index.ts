@@ -1495,8 +1495,137 @@ serve(async (req) => {
           { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
         );
       } else {
-        // AMOUNT MISMATCH
+        // AMOUNT MISMATCH — before failing, try SECRET PRICE match for the intended package
         console.log("🚫 AMOUNT MISMATCH:", { expectedAmount, smsAmount });
+
+        let secretMatched = false;
+        if (pendingOnline.package_id) {
+          const { data: secretPkg } = await supabase
+            .from("data_packages_config")
+            .select("id, secret_price, package_name, data_amount, ussd_code, cost_price, category_id")
+            .eq("id", pendingOnline.package_id)
+            .maybeSingle();
+
+          if (secretPkg && secretPkg.secret_price != null && Math.abs(Number(secretPkg.secret_price) - smsAmount) < 0.01) {
+            console.log(`🔒 SECRET PRICE MATCH for pending order — package ${secretPkg.package_name} secret_price=$${secretPkg.secret_price} == SMS $${smsAmount}`);
+
+            if (await pendingAlreadyMatched(supabase, pendingOnline.id)) {
+              await supabase
+                .from("payment_receipts")
+                .update({ status: "duplicate", admin_notes: `Route: ${route} | Concurrent secret-price match` })
+                .eq("id", receipt.id);
+              return new Response(
+                JSON.stringify({ success: true, message: "Already matched (concurrent)", duplicate: true }),
+                { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
+              );
+            }
+
+            const { data: lockResult } = await supabase
+              .from("pending_online_payments")
+              .update({ status: "matched" })
+              .eq("id", pendingOnline.id)
+              .eq("status", "pending")
+              .select("id");
+
+            if (lockResult && lockResult.length > 0) {
+              const { data: providerData } = await supabase
+                .from("providers_config")
+                .select("provider_name")
+                .eq("id", pendingOnline.provider_id)
+                .single();
+              const { data: paymentProvider } = await supabase
+                .from("payment_providers_config")
+                .select("id, payment_number")
+                .eq("is_active", true)
+                .order("created_at", { ascending: true })
+                .limit(1)
+                .single();
+
+              const { data: newOrder, error: orderError } = await supabase
+                .from("orders")
+                .insert({
+                  customer_phone: normalizeSomaliPhone(pendingOnline.verified_phone || pendingOnline.sender_phone),
+                  sender_phone: normalizeSomaliPhone(pendingOnline.sender_phone || pendingOnline.verified_phone),
+                  receiver_phone: pendingOnline.receiver_phone,
+                  provider_id: pendingOnline.provider_id,
+                  package_id: pendingOnline.package_id,
+                  package_name: secretPkg.package_name,
+                  data_amount: secretPkg.data_amount || "",
+                  selling_price: smsAmount,
+                  payment_provider_id: paymentProvider?.id,
+                  payment_number: paymentProvider?.payment_number || "",
+                  payment_source: "ussd_online",
+                  tx_id: effectiveTxId || null,
+                  status: "completed",
+                  delivery_status: "queued",
+                  paid_via_secret_price: true,
+                })
+                .select()
+                .single();
+
+              if (!orderError && newOrder) {
+                await supabase
+                  .from("payment_receipts")
+                  .update({
+                    status: "matched",
+                    matched_order_id: newOrder.id,
+                    matching_strategy: "secret_price_online",
+                    processed_at: new Date().toISOString(),
+                    admin_notes: `Route: ${route} | 🔒 SECRET PRICE | ${secretPkg.package_name} for ${pendingOnline.receiver_phone} | SIM: ${resolvedSimNumber}`,
+                  })
+                  .eq("id", receipt.id);
+
+                const instruction = await getDeliveryInstruction(
+                  supabase,
+                  pendingOnline.provider_id,
+                  pendingOnline.package_id,
+                  secretPkg.category_id,
+                );
+                if (instruction) {
+                  const providerSlug = await resolveProviderSlug(supabase, pendingOnline.provider_id, providerData?.provider_name);
+                  const slotInfo = providerSlug ? await resolveSimSlotForProvider(supabase, providerSlug) : null;
+                  if (providerSlug && slotInfo) {
+                    const bundled = await queueDeliveryWithBundling(
+                      supabase, newOrder.id, pendingOnline.package_id, pendingOnline.provider_id,
+                      pendingOnline.receiver_phone, providerSlug,
+                    );
+                    if (!bundled) {
+                      const ussdCode = buildUssdCode(
+                        instruction.code_template,
+                        normalizePhoneForProvider(pendingOnline.receiver_phone),
+                        Number(secretPkg.cost_price),
+                        instruction.sim_password || "5516",
+                        secretPkg.ussd_code || "",
+                      );
+                      await queueDirectDeliveryIfMissing(supabase, {
+                        order_id: newOrder.id,
+                        provider_name: providerSlug,
+                        ussd_code: ussdCode,
+                        receiver_phone: pendingOnline.receiver_phone,
+                        package_code: secretPkg.ussd_code,
+                        status: "pending",
+                        sim_slot: slotInfo.sim_slot,
+                      });
+                    }
+                  }
+                }
+                secretMatched = true;
+                return new Response(
+                  JSON.stringify({
+                    success: true,
+                    message: "Secret price matched (online)",
+                    order_id: newOrder.id,
+                    matching_strategy: "secret_price_online",
+                    route,
+                  }),
+                  { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
+                );
+              }
+            }
+          }
+        }
+
+        if (secretMatched) return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
 
         let intendedPackageName = "Unknown";
         let intendedProviderName = "Unknown";
