@@ -27,6 +27,7 @@ interface Transaction {
   sender_phone?: string;
   receiver_phone?: string;
   provider_name: string;
+  paid_via_secret_price?: boolean;
 }
 
 const PAGE_SIZE = 50;
@@ -347,7 +348,14 @@ export function TransactionsDashboard() {
                   className="w-full p-3 flex items-center justify-between text-left active:bg-gray-50 dark:active:bg-gray-750 transition-colors"
                 >
                   <div className="flex flex-col min-w-0 flex-1">
-                    <span className="font-bold text-gray-800 dark:text-gray-100 text-sm truncate">{t.package_name}</span>
+                    <span className="font-bold text-gray-800 dark:text-gray-100 text-sm truncate">
+                      {t.package_name}
+                      {t.paid_via_secret_price && (
+                        <span className="ml-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                          🔒 SECRET
+                        </span>
+                      )}
+                    </span>
                     <span className="text-xs text-gray-400">{formatPhone(t.receiver_phone || '')} · {formatTime(t.created_at)}</span>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
