@@ -2131,9 +2131,9 @@ serve(async (req) => {
       .update({
         status: "matched",
         matched_order_id: order.id,
-        matching_strategy: "offline_auto",
+        matching_strategy: matchedViaSecretPrice ? "secret_price_offline" : "offline_auto",
         processed_at: new Date().toISOString(),
-        admin_notes: `Route: ${route} | ${selectedPackage.package_name} for ${registration.receiver_phone} | SIM: ${resolvedSimNumber}`,
+        admin_notes: `Route: ${route} | ${matchedViaSecretPrice ? '🔒 SECRET PRICE | ' : ''}${selectedPackage.package_name} for ${registration.receiver_phone} | SIM: ${resolvedSimNumber}`,
       })
       .eq("id", receipt.id);
 
