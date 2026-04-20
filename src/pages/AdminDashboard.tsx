@@ -228,6 +228,27 @@ interface OfflineRegistration {
   updated_at: string;
 }
 
+// Helpers for multi-value secret_price (numeric[])
+const parseSecretPrices = (input: any): number[] | null => {
+  if (input == null || input === '') return null;
+  if (Array.isArray(input)) {
+    const arr = input.map((x) => Number(x)).filter((n) => !isNaN(n) && n > 0);
+    return arr.length > 0 ? arr : null;
+  }
+  const arr = String(input)
+    .split(/[,\s]+/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((s) => Number(s))
+    .filter((n) => !isNaN(n) && n > 0);
+  return arr.length > 0 ? arr : null;
+};
+const formatSecretPrices = (input: any): string => {
+  if (input == null) return '';
+  if (Array.isArray(input)) return input.join(', ');
+  return String(input);
+};
+
 // Error Message Card Component
 const ErrorMessageCard = ({ 
   msg, 
