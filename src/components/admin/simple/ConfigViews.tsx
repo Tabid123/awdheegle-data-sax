@@ -358,6 +358,10 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
             <input value={newPkg.cost_price} onChange={e => setNewPkg(p => ({...p, cost_price: e.target.value}))} placeholder="Cost Price" type="number" className="px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none" />
           </div>
           <input value={newPkg.ussd_code} onChange={e => setNewPkg(p => ({...p, ussd_code: e.target.value}))} placeholder="USSD Code (optional)" className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none font-mono" />
+          <div>
+            <input value={newPkg.secret_price} onChange={e => setNewPkg(p => ({...p, secret_price: e.target.value}))} placeholder="🔒 Secret Prices (e.g. 0.01, 0.03, 0.04)" className="w-full px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-sm outline-none" />
+            <p className="text-[10px] text-amber-700 dark:text-amber-400 mt-1">{isSo ? '🔒 Lama tusi doono macaamiisha. Kala saar comma (,).' : '🔒 Hidden from customers. Separate with commas (,).'}</p>
+          </div>
           <div className="flex gap-2">
             <button onClick={savePackage} className="flex-1 py-2 bg-green-500 text-white rounded-lg text-sm font-medium active:bg-green-600">
               {editingId ? '💾 Save' : '➕ Add'}
