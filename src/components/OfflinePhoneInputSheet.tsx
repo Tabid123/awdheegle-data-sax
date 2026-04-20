@@ -53,16 +53,16 @@ const OfflinePhoneInputSheet = ({ open, onOpenChange }: OfflinePhoneInputSheetPr
       return;
     }
 
-    // Detect if ADSL based on receiver phone number starting with 1
-    const isADSL = receiverPhone.startsWith('1');
+    // Detect if ADSL: 7-digit number (mobile is 9 digits)
+    const isADSL = receiverPhone.length === 7;
     
-    // ADSL validation: 7 digits starting with 1
+    // ADSL validation: 7 digits starting with 1-9
     if (isADSL) {
-      if (!/^1\d{6}$/.test(receiverPhone)) {
+      if (!/^[1-9]\d{6}$/.test(receiverPhone)) {
         toast({
           variant: "destructive",
           title: "Khalad",
-          description: "ADSL-ka wuxuu u baahan yahay 7 lambar bilaabanaya 1",
+          description: "ADSL-ka wuxuu u baahan yahay 7 lambar bilaabanaya 1-9",
           duration: 3000,
         });
         return;
@@ -173,12 +173,12 @@ const OfflinePhoneInputSheet = ({ open, onOpenChange }: OfflinePhoneInputSheetPr
             <Input
               id="receiver-phone"
               type="tel"
-              placeholder={savedReceiverPhone || "Mobile: 61xxxxxxx | ADSL: 1xxxxxx"}
+              placeholder={savedReceiverPhone || "Mobile: 61xxxxxxx | ADSL: 7 lambar"}
               value={receiverPhone}
               onChange={(e) => setReceiverPhone(e.target.value)}
             />
             <p className="text-xs text-muted-foreground">
-              Mobile: 9 lambar (61xxxxxxx) | ADSL: 7 lambar (1xxxxxx)
+              Mobile: 9 lambar (61xxxxxxx) | ADSL: 7 lambar bilaabanaya 1-9
             </p>
           </div>
 
