@@ -561,6 +561,7 @@ export type Database = {
           profit_margin: number
           provider_id: string
           purchase_count: number
+          secret_price: number | null
           selling_price: number | null
           sort_order: number
           updated_at: string
@@ -585,6 +586,7 @@ export type Database = {
           profit_margin?: number
           provider_id: string
           purchase_count?: number
+          secret_price?: number | null
           selling_price?: number | null
           sort_order?: number
           updated_at?: string
@@ -609,6 +611,7 @@ export type Database = {
           profit_margin?: number
           provider_id?: string
           purchase_count?: number
+          secret_price?: number | null
           selling_price?: number | null
           sort_order?: number
           updated_at?: string
@@ -1081,6 +1084,7 @@ export type Database = {
           order_number: string
           package_id: string | null
           package_name: string | null
+          paid_via_secret_price: boolean
           payment_number: string | null
           payment_provider_id: string | null
           payment_reference: string | null
@@ -1113,6 +1117,7 @@ export type Database = {
           order_number?: string
           package_id?: string | null
           package_name?: string | null
+          paid_via_secret_price?: boolean
           payment_number?: string | null
           payment_provider_id?: string | null
           payment_reference?: string | null
@@ -1145,6 +1150,7 @@ export type Database = {
           order_number?: string
           package_id?: string | null
           package_name?: string | null
+          paid_via_secret_price?: boolean
           payment_number?: string | null
           payment_provider_id?: string | null
           payment_reference?: string | null
