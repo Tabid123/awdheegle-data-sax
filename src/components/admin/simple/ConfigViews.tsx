@@ -152,7 +152,7 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
   const [providerFilter, setProviderFilter] = useState<string>('all');
   const [showAdd, setShowAdd] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [newPkg, setNewPkg] = useState({ package_name: '', data_amount: '', selling_price: '', cost_price: '', validity_days: '30', provider_id: '', category_id: '', ussd_code: '', connection_type_label: 'Data' });
+  const [newPkg, setNewPkg] = useState({ package_name: '', data_amount: '', selling_price: '', cost_price: '', secret_price: '', validity_days: '30', provider_id: '', category_id: '', ussd_code: '', connection_type_label: 'Data' });
 
   const loadPackages = useCallback(async () => {
     const [pkgRes, provRes, catRes] = await Promise.all([
@@ -185,12 +185,16 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
   const savePackage = async () => {
     if (!newPkg.package_name || !newPkg.selling_price || !newPkg.provider_id) { toast.error(isSo ? 'Buuxi meelaha lagama maarmaanka ah' : 'Fill required fields'); return; }
     const sellingPriceNum = Number(newPkg.selling_price);
+    const secretArr = String(newPkg.secret_price || '')
+      .split(/[,\s]+/).map(s => s.trim()).filter(Boolean)
+      .map(Number).filter(n => !isNaN(n) && n > 0);
     const payload: any = {
       package_name: newPkg.package_name,
       data_amount: newPkg.data_amount,
       price: sellingPriceNum,
       selling_price: sellingPriceNum,
       cost_price: Number(newPkg.cost_price || 0),
+      secret_price: secretArr.length > 0 ? secretArr : null,
       validity_days: newPkg.validity_days ? parseInt(String(newPkg.validity_days), 10) : null,
       provider_id: newPkg.provider_id,
       category_id: newPkg.category_id || null,
@@ -209,7 +213,7 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
       setPackages(prev => [data, ...prev]);
       toast.success(isSo ? 'Waa lagu daray' : 'Added');
     }
-    setNewPkg({ package_name: '', data_amount: '', selling_price: '', cost_price: '', validity_days: '30', provider_id: '', category_id: '', ussd_code: '', connection_type_label: 'Data' });
+    setNewPkg({ package_name: '', data_amount: '', selling_price: '', cost_price: '', secret_price: '', validity_days: '30', provider_id: '', category_id: '', ussd_code: '', connection_type_label: 'Data' });
     setShowAdd(false); setEditingId(null);
   };
 
@@ -217,7 +221,9 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
     setEditingId(item.id);
     setNewPkg({
       package_name: item.package_name || '', data_amount: item.data_amount || '', selling_price: String(item.selling_price || ''),
-      cost_price: String(item.cost_price || ''), validity_days: item.validity_days || '30', provider_id: item.provider_id || '',
+      cost_price: String(item.cost_price || ''),
+      secret_price: Array.isArray(item.secret_price) ? item.secret_price.join(', ') : (item.secret_price ?? ''),
+      validity_days: item.validity_days || '30', provider_id: item.provider_id || '',
       category_id: item.category_id || '', ussd_code: item.ussd_code || '', connection_type_label: item.connection_type_label || 'Data',
     });
     setShowAdd(true); setExpandedId(null);
@@ -260,6 +266,9 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
             { icon: DollarSign, label: isSo ? 'Iibka' : 'Sell Price', value: `$${Number(item.selling_price).toFixed(2)}`, color: 'text-emerald-500' },
             { icon: DollarSign, label: isSo ? 'Kharash' : 'Cost', value: `$${Number(item.cost_price || 0).toFixed(2)}`, color: 'text-red-500' },
             { icon: DollarSign, label: isSo ? "Faa'iido" : 'Profit', value: `$${profit.toFixed(2)}`, color: 'text-green-600' },
+            ...(Array.isArray(item.secret_price) && item.secret_price.length > 0
+              ? [{ icon: DollarSign, label: '🔒 Secret Prices', value: item.secret_price.map((p: number) => `$${Number(p).toFixed(2)}`).join(', '), color: 'text-amber-600' }]
+              : []),
             ...(evRate > 0 ? [{ icon: Hash, label: 'E-Voucher', value: `${(evRate * 100).toFixed(1)}%`, color: 'text-amber-500' }] : []),
             { icon: Settings, label: 'Connection', value: item.connection_type_label || '—', color: 'text-gray-500' },
             ...(item.ussd_code ? [{ icon: Code, label: 'USSD', value: item.ussd_code, color: 'text-indigo-500' }] : []),
@@ -325,7 +334,7 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
       <ProviderFilterRow providers={providers} activeId={providerFilter} onSelect={setProviderFilter}
         activeColor="bg-cyan-600" totalCount={packages.length} allLabel={isSo ? 'Dhammaan' : 'All'}
         countFn={id => packages.filter(p => p.provider_id === id).length} />
-      <button onClick={() => { setShowAdd(!showAdd); setEditingId(null); setNewPkg({ package_name: '', data_amount: '', selling_price: '', cost_price: '', validity_days: '30', provider_id: '', category_id: '', ussd_code: '', connection_type_label: 'Data' }); }}
+      <button onClick={() => { setShowAdd(!showAdd); setEditingId(null); setNewPkg({ package_name: '', data_amount: '', selling_price: '', cost_price: '', secret_price: '', validity_days: '30', provider_id: '', category_id: '', ussd_code: '', connection_type_label: 'Data' }); }}
         className="w-full py-2.5 bg-gradient-to-r from-cyan-500 to-cyan-600 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-1.5 active:scale-[0.98]">
         <Plus className="w-4 h-4" /> {isSo ? 'Package Cusub Ku Dar' : 'Add New Package'}
       </button>
@@ -352,6 +361,10 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
             <input value={newPkg.cost_price} onChange={e => setNewPkg(p => ({...p, cost_price: e.target.value}))} placeholder="Cost Price" type="number" className="px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none" />
           </div>
           <input value={newPkg.ussd_code} onChange={e => setNewPkg(p => ({...p, ussd_code: e.target.value}))} placeholder="USSD Code (optional)" className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none font-mono" />
+          <div>
+            <input value={newPkg.secret_price} onChange={e => setNewPkg(p => ({...p, secret_price: e.target.value}))} placeholder="🔒 Secret Prices (e.g. 0.01, 0.03, 0.04)" className="w-full px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-sm outline-none" />
+            <p className="text-[10px] text-amber-700 dark:text-amber-400 mt-1">{isSo ? '🔒 Lama tusi doono macaamiisha. Kala saar comma (,).' : '🔒 Hidden from customers. Separate with commas (,).'}</p>
+          </div>
           <div className="flex gap-2">
             <button onClick={savePackage} className="flex-1 py-2 bg-green-500 text-white rounded-lg text-sm font-medium active:bg-green-600">
               {editingId ? '💾 Save' : '➕ Add'}

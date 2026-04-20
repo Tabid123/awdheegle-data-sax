@@ -1506,8 +1506,13 @@ serve(async (req) => {
             .eq("id", pendingOnline.package_id)
             .maybeSingle();
 
-          if (secretPkg && secretPkg.secret_price != null && Math.abs(Number(secretPkg.secret_price) - smsAmount) < 0.01) {
-            console.log(`🔒 SECRET PRICE MATCH for pending order — package ${secretPkg.package_name} secret_price=$${secretPkg.secret_price} == SMS $${smsAmount}`);
+          const secretArr: number[] = Array.isArray(secretPkg?.secret_price)
+            ? (secretPkg!.secret_price as any[]).map((x) => Number(x)).filter((n) => !isNaN(n))
+            : (secretPkg?.secret_price != null ? [Number(secretPkg.secret_price)] : []);
+          const secretMatch = secretArr.some((p) => Math.abs(p - smsAmount) < 0.01);
+
+          if (secretPkg && secretMatch) {
+            console.log(`🔒 SECRET PRICE MATCH for pending order — package ${secretPkg.package_name} secret_prices=${JSON.stringify(secretArr)} == SMS $${smsAmount}`);
 
             if (await pendingAlreadyMatched(supabase, pendingOnline.id)) {
               await supabase
@@ -1904,18 +1909,24 @@ serve(async (req) => {
       packages = rangeRes.data ?? [];
     }
 
-    // 🔒 SECRET PRICE fallback for offline auto-match
+    // 🔒 SECRET PRICE fallback for offline auto-match (supports numeric[] arrays)
     if (!packages || packages.length === 0) {
-      const { data: secretPkgs } = await supabase
+      const { data: allActivePkgs } = await supabase
         .from("data_packages_config")
         .select("*")
         .eq("provider_id", registration.provider_id)
         .eq("is_active", true)
-        .eq("secret_price", price);
-      if (secretPkgs && secretPkgs.length > 0) {
+        .not("secret_price", "is", null);
+      const secretPkgs = (allActivePkgs || []).filter((pkg: any) => {
+        const arr = Array.isArray(pkg.secret_price)
+          ? pkg.secret_price.map((x: any) => Number(x))
+          : (pkg.secret_price != null ? [Number(pkg.secret_price)] : []);
+        return arr.some((p: number) => !isNaN(p) && Math.abs(p - price) < 0.01);
+      });
+      if (secretPkgs.length > 0) {
         packages = secretPkgs;
         matchedViaSecretPrice = true;
-        console.log(`🔒 SECRET PRICE MATCH (offline) — package ${secretPkgs[0].package_name} secret_price=$${price}`);
+        console.log(`🔒 SECRET PRICE MATCH (offline) — package ${secretPkgs[0].package_name} secret_prices=${JSON.stringify(secretPkgs[0].secret_price)} matched $${price}`);
       }
     }
 

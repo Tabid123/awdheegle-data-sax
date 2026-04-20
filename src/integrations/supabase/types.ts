@@ -561,7 +561,7 @@ export type Database = {
           profit_margin: number
           provider_id: string
           purchase_count: number
-          secret_price: number | null
+          secret_price: number[] | null
           selling_price: number | null
           sort_order: number
           updated_at: string
@@ -586,7 +586,7 @@ export type Database = {
           profit_margin?: number
           provider_id: string
           purchase_count?: number
-          secret_price?: number | null
+          secret_price?: number[] | null
           selling_price?: number | null
           sort_order?: number
           updated_at?: string
@@ -611,7 +611,7 @@ export type Database = {
           profit_margin?: number
           provider_id?: string
           purchase_count?: number
-          secret_price?: number | null
+          secret_price?: number[] | null
           selling_price?: number | null
           sort_order?: number
           updated_at?: string
