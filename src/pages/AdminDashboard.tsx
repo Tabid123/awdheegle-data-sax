@@ -579,7 +579,7 @@ const AdminDashboard = () => {
     validity_days: 30,
     cost_price: 0,
     selling_price: 0,
-    secret_price: '' as number | '',
+    secret_price: '' as string,
     category_id: '',
     connection_type_label: 'Mobile Internet',
     profit_margin: 15,
@@ -1485,7 +1485,7 @@ const AdminDashboard = () => {
       validity_days: parseInt(String(validityDaysInput).replace(/\D/g, ''), 10) || null,
       cost_price: packageData.cost_price,
       selling_price: packageData.selling_price,
-      secret_price: packageData.secret_price === '' || packageData.secret_price == null ? null : Number(packageData.secret_price),
+      secret_price: parseSecretPrices(packageData.secret_price as any),
       category_id: packageData.category_id || null,
       connection_type_label: packageData.connection_type_label || 'Mobile Internet',
     }]).select();
@@ -2392,9 +2392,7 @@ const AdminDashboard = () => {
         validity_days: parseInt(String(editValidityDaysInput).replace(/\D/g, ''), 10) || null,
         cost_price: editingPackage.cost_price,
         selling_price: editingPackage.selling_price,
-        secret_price: (editingPackage as any).secret_price === '' || (editingPackage as any).secret_price == null
-          ? null
-          : Number((editingPackage as any).secret_price),
+        secret_price: parseSecretPrices((editingPackage as any).secret_price),
         profit_margin: profitMargin,
         category_id: editingPackage.category_id,
         connection_type_label: editingPackage.connection_type_label,
@@ -4745,16 +4743,15 @@ const AdminDashboard = () => {
                     />
                   </div>
                   <div>
-                    <Label>🔒 {language === 'so' ? 'Qiimaha Sirta ah (Optional)' : 'Secret Price (Optional)'}</Label>
+                    <Label>🔒 {language === 'so' ? 'Qiimayaalka Sirta ah (Optional)' : 'Secret Prices (Optional)'}</Label>
                     <Input
-                      type="number"
-                      step="0.01"
-                      placeholder={language === 'so' ? 'Macmiisha qaar oo qiimo gaar ah' : 'Hidden price for select customers'}
+                      type="text"
+                      placeholder="0.01, 0.03, 0.04"
                       value={newPackage.secret_price as any}
-                      onChange={(e) => setNewPackage({ ...newPackage, secret_price: e.target.value === '' ? '' : parseFloat(e.target.value) })}
+                      onChange={(e) => setNewPackage({ ...newPackage, secret_price: e.target.value })}
                     />
                     <p className="text-[10px] text-muted-foreground mt-1">
-                      {language === 'so' ? 'Lama tusi doono macaamiisha. Hadii la bixiyo, xirmadu si toos ah ayey u dhacaysaa.' : 'Hidden from customers. If paid, package auto-delivers.'}
+                      {language === 'so' ? 'Kala saar comma (,). Tusaale: 0.01, 0.03, 0.04. Lama tusi doono macaamiisha.' : 'Separate with commas (,). Example: 0.01, 0.03, 0.04. Hidden from customers.'}
                     </p>
                   </div>
                   <div>
@@ -6085,16 +6082,15 @@ const AdminDashboard = () => {
                     />
                   </div>
                   <div className="col-span-2">
-                    <Label>🔒 {language === 'so' ? 'Qiimaha Sirta ah (Optional)' : 'Secret Price (Optional)'}</Label>
+                    <Label>🔒 {language === 'so' ? 'Qiimayaalka Sirta ah (Optional)' : 'Secret Prices (Optional)'}</Label>
                     <Input
-                      type="number"
-                      step="0.01"
-                      placeholder={language === 'so' ? 'Macmiisha qaar oo qiimo gaar ah' : 'Hidden price for select customers'}
-                      value={(editingPackage as any).secret_price ?? ''}
-                      onChange={(e) => setEditingPackage({ ...editingPackage, secret_price: e.target.value === '' ? null : parseFloat(e.target.value) } as any)}
+                      type="text"
+                      placeholder="0.01, 0.03, 0.04"
+                      value={formatSecretPrices((editingPackage as any).secret_price)}
+                      onChange={(e) => setEditingPackage({ ...editingPackage, secret_price: e.target.value } as any)}
                     />
                     <p className="text-[10px] text-muted-foreground mt-1">
-                      {language === 'so' ? 'Lama tusi doono macaamiisha. Hadii la bixiyo, xirmadu si toos ah ayey u dhacaysaa.' : 'Hidden from customers. If paid, package auto-delivers.'}
+                      {language === 'so' ? 'Kala saar comma (,). Tusaale: 0.01, 0.03, 0.04. Lama tusi doono macaamiisha.' : 'Separate with commas (,). Example: 0.01, 0.03, 0.04. Hidden from customers.'}
                     </p>
                   </div>
                 </div>
