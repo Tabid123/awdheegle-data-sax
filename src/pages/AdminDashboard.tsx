@@ -579,6 +579,7 @@ const AdminDashboard = () => {
     validity_days: 30,
     cost_price: 0,
     selling_price: 0,
+    secret_price: '' as number | '',
     category_id: '',
     connection_type_label: 'Mobile Internet',
     profit_margin: 15,
