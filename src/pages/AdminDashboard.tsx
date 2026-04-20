@@ -1481,7 +1481,7 @@ const AdminDashboard = () => {
       provider_id: packageData.provider_id,
       package_name: packageData.package_name,
       data_amount: packageData.data_amount,
-      validity_days: validityDaysInput,
+      validity_days: parseInt(String(validityDaysInput).replace(/\D/g, ''), 10) || null,
       cost_price: packageData.cost_price,
       selling_price: packageData.selling_price,
       category_id: packageData.category_id || null,
@@ -2386,7 +2386,7 @@ const AdminDashboard = () => {
       .update({
         package_name: editingPackage.package_name,
         data_amount: editingPackage.data_amount,
-        validity_days: editValidityDaysInput,
+        validity_days: parseInt(String(editValidityDaysInput).replace(/\D/g, ''), 10) || null,
         cost_price: editingPackage.cost_price,
         selling_price: editingPackage.selling_price,
         profit_margin: profitMargin,
@@ -2406,7 +2406,7 @@ const AdminDashboard = () => {
         title: language === 'so' ? 'Guul' : 'Success',
         description: language === 'so' ? 'Package waa la beddelay' : 'Package updated successfully',
       });
-      const updatedPkg = { ...editingPackage, validity_days: editValidityDaysInput, profit_margin: profitMargin };
+      const updatedPkg = { ...editingPackage, validity_days: parseInt(String(editValidityDaysInput).replace(/\D/g, ''), 10) || 0, profit_margin: profitMargin };
       setPackages(prev => prev.map(p => p.id === editingPackage.id ? updatedPkg : p));
       setEditingPackage(null);
       restoreScrollPosition();

@@ -314,14 +314,14 @@ const PaymentProviders = () => {
   const handleReceiverNumberChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value.replace(/\D/g, '');
     
-    // ADSL validation: 7 digits, starts with 1
+    // ADSL validation: 7 digits, starts with 1-9
     if (isADSL) {
       if (value.length <= 7) {
         setReceiverNumber(value);
         
-        // Validate ADSL number
-        if (value.length >= 1 && !value.startsWith('1')) {
-          setReceiverNumberError('ADSL-ka wuxuu u baahan yahay lambar bilaabanaya 1');
+        // Validate ADSL number (any digit 1-9 as first)
+        if (value.length >= 1 && !/^[1-9]/.test(value)) {
+          setReceiverNumberError('ADSL-ka wuxuu u baahan yahay lambar bilaabanaya 1-9');
         } else {
           setReceiverNumberError('');
         }
@@ -367,14 +367,14 @@ const PaymentProviders = () => {
       return;
     }
     
-    // ADSL receiver validation: 7 digits starting with 1
+    // ADSL receiver validation: 7 digits starting with 1-9
     if (isADSL) {
       if (receiverNumber.length !== 7) {
         setReceiverNumberError('ADSL-ka wuxuu u baahan yahay 7 lambar');
         return;
       }
-      if (!receiverNumber.startsWith('1')) {
-        setReceiverNumberError('ADSL-ka wuxuu u baahan yahay lambar bilaabanaya 1');
+      if (!/^[1-9]/.test(receiverNumber)) {
+        setReceiverNumberError('ADSL-ka wuxuu u baahan yahay lambar bilaabanaya 1-9');
         return;
       }
     } else {
@@ -722,7 +722,7 @@ return <div className="min-h-screen bg-[#efefef] pb-24">
             
             <div className="space-y-2">
               <Label htmlFor="receiver-number" className="text-sm font-medium text-foreground">
-                {isADSL ? 'Gali Lambarka ADSL-ka (7 lambar bilaabanaya 1)' : 'Gali Lambarka xirmada lagu shubaayo'}
+                {isADSL ? 'Gali Lambarka ADSL-ka (7 lambar bilaabanaya 1-9)' : 'Gali Lambarka xirmada lagu shubaayo'}
               </Label>
               <div className="flex items-center gap-2">
                 <div className="flex items-center gap-2 px-3 py-2 border rounded-md bg-muted">
@@ -743,7 +743,7 @@ return <div className="min-h-screen bg-[#efefef] pb-24">
                 <p className="text-sm text-red-500 font-medium">{receiverNumberError}</p>
               )}
               {isADSL && (
-                <p className="text-xs text-muted-foreground">ADSL: 7 lambar, tusaale: 1234567</p>
+                <p className="text-xs text-muted-foreground">ADSL: 7 lambar bilaabanaya 1-9, tusaale: 1234567 ama 9876543</p>
               )}
             </div>
             
