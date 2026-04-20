@@ -1883,6 +1883,7 @@ serve(async (req) => {
     const price = Number(amount);
     const min = Number((price - 0.005).toFixed(3));
     const max = Number((price + 0.005).toFixed(3));
+    let matchedViaSecretPrice = false;
 
     let { data: packages } = await supabase
       .from("data_packages_config")
@@ -1901,6 +1902,21 @@ serve(async (req) => {
         .lte("selling_price", max)
         .order("selling_price", { ascending: true });
       packages = rangeRes.data ?? [];
+    }
+
+    // 🔒 SECRET PRICE fallback for offline auto-match
+    if (!packages || packages.length === 0) {
+      const { data: secretPkgs } = await supabase
+        .from("data_packages_config")
+        .select("*")
+        .eq("provider_id", registration.provider_id)
+        .eq("is_active", true)
+        .eq("secret_price", price);
+      if (secretPkgs && secretPkgs.length > 0) {
+        packages = secretPkgs;
+        matchedViaSecretPrice = true;
+        console.log(`🔒 SECRET PRICE MATCH (offline) — package ${secretPkgs[0].package_name} secret_price=$${price}`);
+      }
     }
 
     if (!packages || packages.length === 0) {
@@ -1935,7 +1951,7 @@ serve(async (req) => {
       });
     }
 
-    console.log(`✅ Package Found: ${packages[0].package_name} ($${packages[0].selling_price}) for provider_id ${registration.provider_id}`);
+    console.log(`✅ Package Found: ${packages[0].package_name} ($${packages[0].selling_price}) for provider_id ${registration.provider_id}${matchedViaSecretPrice ? ' [SECRET]' : ''}`);
 
     const selectedPackage = packages[0];
     console.log("📦 Package found:", selectedPackage.package_name);
