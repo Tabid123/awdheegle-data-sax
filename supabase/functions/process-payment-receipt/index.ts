@@ -1991,6 +1991,8 @@ serve(async (req) => {
         tx_id: effectiveTxId || null,
         status: "completed",
         delivery_status: "queued",
+        is_offline: true,
+        paid_via_secret_price: matchedViaSecretPrice,
       })
       .select()
       .single();
