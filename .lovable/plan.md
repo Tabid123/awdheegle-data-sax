@@ -1,35 +1,49 @@
 
-User wants 3 fixes:
-1. Package "Maalmo" field rejects "24 days" — column is integer, frontend sends string. Need to parse integer from input.
-2. ADSL phone validation in PaymentProviders rejects digits 1-9 starting prefix; user wants ADSL to accept any 7-digit number starting with 1-9 (not strictly "1").
-3. Clear all current orders + SMS data, AND make dashboard reset daily at 12:00 AM Mogadishu time (EAT, UTC+3).
 
-Let me find relevant files.
+## Plan: Secret Price (Online + Offline)
 
-Need to check:
-- Admin package edit dialog for "Maalmo" field
-- PaymentProviders.tsx ADSL validation
-- SimpleAdminDashboard for "Maanta" date logic
-- Tables to truncate: orders, payment_receipts, sms_logs (need DB check)
+### 1. Database
+Add column to `data_packages_config`:
+- `secret_price numeric NULL`
 
-## Plan
+Add optional column to `orders` for admin visibility:
+- `paid_via_secret_price boolean NOT NULL DEFAULT false`
 
-### 1. Maalmo "24 days" fix
-In the admin package edit form (likely in `src/components/admin/simple/ConfigViews.tsx` or `OrderViews.tsx`), parse the validity_days input by extracting digits only before sending: `parseInt(value.replace(/\D/g,''), 10)`. Also change input `type="number"` or strip non-digits on change.
+### 2. Admin UI — Package config (`/simple-admin/packages`)
+In `src/pages/AdminDashboard.tsx` (package add/edit form):
+- Add input "🔒 Qiimaha Sirta ah (Secret Price) — Optional" below regular price.
+- Save `secret_price` to insert/update payload (parse as number or null if empty).
+- In package list row, if `secret_price` is set, show a small badge `🔒 $X`.
 
-### 2. ADSL prefix 1-9 fix
-In `src/pages/PaymentProviders.tsx` (and `OfflinePhoneInputSheet.tsx`), change ADSL regex from `/^1\d{6}$/` to `/^[1-9]\d{6}$/` and update placeholder/error text to say "7 lambar bilaabanaya 1-9".
+Customer-facing RPC `get_public_packages` already does NOT return `secret_price` — confirmed safe. No change there.
 
-### 3. Clear data + Daily reset at Mogadishu midnight
-- **Migration**: TRUNCATE `orders`, `payment_receipts`, `sms_logs`, `delivery_queue`, `unmatched_payments` (will request approval).
-- **Dashboard "Maanta" reset**: In `SimpleAdminDashboard.tsx` and `get_admin_analytics_summary`, today_start is computed via `date_trunc('day', now())` which uses server timezone (UTC). Change to Mogadishu time: `date_trunc('day', now() AT TIME ZONE 'Africa/Mogadishu') AT TIME ZONE 'Africa/Mogadishu'`. Update the RPC via migration. Also, on the client, ensure any "today" filter uses EAT.
+### 3. Edge function — `supabase/functions/process-payment-receipt/index.ts`
+New matching priority order when SMS amount = X arrives from sender phone P:
 
-### Files to edit
-- `src/components/admin/simple/ConfigViews.tsx` (or wherever package edit form lives) — fix validity_days parsing
-- `src/pages/PaymentProviders.tsx` — ADSL prefix 1-9
-- `src/components/OfflinePhoneInputSheet.tsx` — ADSL prefix 1-9
-- Migration: TRUNCATE old data + update `get_admin_analytics_summary` and `get_admin_transactions_summary` to use `Africa/Mogadishu` timezone for day/week/month/year boundaries.
+1. **Exact price match (existing logic)** — find pending order where `sender_phone = P` AND `amount = X`. If found → mark paid + queue delivery.
+2. **Secret price match for existing pending order** — find pending order where `sender_phone = P`, join `data_packages_config`, where `package.secret_price = X`. If found → mark paid, set `paid_via_secret_price = true`, queue delivery.
+3. **Offline auto-match via secret price** — if no pending order exists for sender:
+   - Look up any active package where `secret_price = X`.
+   - Check `offline_registrations` for an active row where `sender_phone = P`.
+   - If both found → create new order using registered receiver_phone + provider, set `is_offline = true`, `paid_via_secret_price = true`, queue delivery.
+4. Otherwise → park in `unmatched_payments` (existing behavior).
 
-### Confirmation needed
-Clearing all orders + SMS is destructive and irreversible. The migration tool will ask for approval before running.
+Wrap secret-price lookups in service-role client (it can read `secret_price` server-side).
+
+### 4. Admin order/transaction views — show secret-price badge
+In `src/components/admin/TransactionsDashboard.tsx` and `OrderViews.tsx` / `DailyOrdersManager.tsx`:
+- When `order.paid_via_secret_price === true`, render a small badge "🔒 Paid via Secret Price" next to amount.
+- Update `get_admin_transactions_paginated` RPC to return `paid_via_secret_price` in row payload.
+
+### 5. Files to edit
+1. **Migration**:
+   - `ALTER TABLE data_packages_config ADD COLUMN secret_price numeric NULL;`
+   - `ALTER TABLE orders ADD COLUMN paid_via_secret_price boolean NOT NULL DEFAULT false;`
+   - Update `get_admin_transactions_paginated` to include `o.paid_via_secret_price`.
+2. `src/pages/AdminDashboard.tsx` — Secret Price input + save + badge in list.
+3. `supabase/functions/process-payment-receipt/index.ts` — 3-tier matching.
+4. `src/components/admin/TransactionsDashboard.tsx` (+ relevant order views) — display "Paid via Secret Price" badge.
+
+### Security note
+- `secret_price` is never selected by `get_public_packages` and is never sent to anonymous clients in any RPC. Only admin UI (which already requires admin role) reads it via direct table query.
 
