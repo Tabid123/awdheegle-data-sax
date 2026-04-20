@@ -266,6 +266,9 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
             { icon: DollarSign, label: isSo ? 'Iibka' : 'Sell Price', value: `$${Number(item.selling_price).toFixed(2)}`, color: 'text-emerald-500' },
             { icon: DollarSign, label: isSo ? 'Kharash' : 'Cost', value: `$${Number(item.cost_price || 0).toFixed(2)}`, color: 'text-red-500' },
             { icon: DollarSign, label: isSo ? "Faa'iido" : 'Profit', value: `$${profit.toFixed(2)}`, color: 'text-green-600' },
+            ...(Array.isArray(item.secret_price) && item.secret_price.length > 0
+              ? [{ icon: DollarSign, label: '🔒 Secret Prices', value: item.secret_price.map((p: number) => `$${Number(p).toFixed(2)}`).join(', '), color: 'text-amber-600' }]
+              : []),
             ...(evRate > 0 ? [{ icon: Hash, label: 'E-Voucher', value: `${(evRate * 100).toFixed(1)}%`, color: 'text-amber-500' }] : []),
             { icon: Settings, label: 'Connection', value: item.connection_type_label || '—', color: 'text-gray-500' },
             ...(item.ussd_code ? [{ icon: Code, label: 'USSD', value: item.ussd_code, color: 'text-indigo-500' }] : []),
