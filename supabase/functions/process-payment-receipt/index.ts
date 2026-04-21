@@ -886,9 +886,9 @@ serve(async (req) => {
                 .split(",")
                 .map((a: string) => parseFloat(a.trim()))
                 .filter((a: number) => !isNaN(a));
-              return customAmounts.some((ca: number) => ca === Number(amount));
+              return customAmounts.some((ca: number) => Math.abs(ca - Number(amount)) < 0.01);
             }
-            return Number(pkg.selling_price) === Number(amount);
+            return Math.abs(Number(pkg.selling_price) - Number(amount)) < 0.01;
           });
           const matchedPkg = matchedMapping
             ? (mappedPkgs || []).find((p: any) => p.id === matchedMapping.package_id)
