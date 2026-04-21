@@ -927,25 +927,35 @@ serve(async (req) => {
         }
       } else {
         // No mapping → use existing price-matching logic
-        const { data: matchingCustomPkgs } = await supabase
+        // Fetch all packages on this topup_number_id+provider then match with floating-point tolerance
+        // (fixes $1.25/$1.30 packages where exact eq() fails due to numeric precision)
+        const { data: providerCustomPkgs } = await supabase
           .from("auto_topup_packages")
           .select("*")
           .eq("topup_number_id", autoTopupRecord.id)
-          .eq("selling_price", amount)
           .eq("is_active", true)
-          .ilike("provider_name", `%${providerSearch}%`)
-          .limit(1);
+          .ilike("provider_name", `%${providerSearch}%`);
 
-        customPkg = matchingCustomPkgs && matchingCustomPkgs.length > 0 ? matchingCustomPkgs[0] : null;
+        customPkg =
+          (providerCustomPkgs || []).find(
+            (p: any) => Math.abs(Number(p.selling_price) - Number(amount)) < 0.01,
+          ) || null;
+        console.log(
+          `🔎 Auto top-up provider lookup: amount=$${amount}, candidates=${(providerCustomPkgs || []).length}, matched=${customPkg?.package_name || "none"}`,
+        );
         if (!customPkg) {
-          const { data: fallbackPkgs } = await supabase
+          const { data: allFallbackPkgs } = await supabase
             .from("auto_topup_packages")
             .select("*")
             .eq("topup_number_id", autoTopupRecord.id)
-            .eq("selling_price", amount)
-            .eq("is_active", true)
-            .limit(1);
-          customPkg = fallbackPkgs && fallbackPkgs.length > 0 ? fallbackPkgs[0] : null;
+            .eq("is_active", true);
+          customPkg =
+            (allFallbackPkgs || []).find(
+              (p: any) => Math.abs(Number(p.selling_price) - Number(amount)) < 0.01,
+            ) || null;
+          console.log(
+            `🔎 Auto top-up fallback lookup (no provider filter): amount=$${amount}, candidates=${(allFallbackPkgs || []).length}, matched=${customPkg?.package_name || "none"}`,
+          );
         }
       }
 
