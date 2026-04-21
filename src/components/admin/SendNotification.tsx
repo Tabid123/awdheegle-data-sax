@@ -14,7 +14,7 @@ import { format } from "date-fns";
 interface Notification {
   id: string;
   title: string;
-  message: string;
+  body: string;
   is_active: boolean;
   created_at: string;
 }
@@ -41,7 +41,7 @@ export function SendNotification() {
     mutationFn: async () => {
       const { error } = await supabase
         .from("notifications")
-        .insert({ title, message });
+        .insert({ title, body: message });
       
       if (error) throw error;
     },
@@ -147,7 +147,7 @@ export function SendNotification() {
                 {notifications.map((notif) => (
                   <TableRow key={notif.id}>
                     <TableCell className="font-medium">{notif.title}</TableCell>
-                    <TableCell className="max-w-[300px] truncate">{notif.message}</TableCell>
+                    <TableCell className="max-w-[300px] truncate">{notif.body}</TableCell>
                     <TableCell>
                       {format(new Date(notif.created_at), "MMM dd, yyyy HH:mm")}
                     </TableCell>
