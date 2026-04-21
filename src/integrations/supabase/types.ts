@@ -2006,13 +2006,22 @@ export type Database = {
         Returns: {
           amount: number
           created_at: string
+          data_amount: string
+          delivered_at: string
+          delivery_status: string
           id: string
           order_number: string
           package_name: string
+          paid_via_secret_price: boolean
+          payment_source: string
+          payment_status: Database["public"]["Enums"]["payment_status"]
+          provider_logo: string
           provider_name: string
           receiver_phone: string
+          selling_price: number
           sender_phone: string
           status: Database["public"]["Enums"]["order_status"]
+          validity_days: number
         }[]
       }
       get_featured_packages: {
