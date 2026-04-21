@@ -1789,6 +1789,11 @@ class UssdDialerService : Service() {
                     .replace("{pkg}", pkgCode, true)
                     .replace("{data_amount}", pkgCode, true)
             }
+            // Substitute {sim_password} with default before stripping. Server is the
+            // source of truth, but if a template still contains the literal
+            // placeholder we must NOT dial it as text — replace with the standard
+            // Hormuud/Somtel SIM password "5516" instead.
+            ussd = ussd.replace("{sim_password}", "5516", true)
             // Remove unresolved placeholders
             ussd = ussd.replace("*{code}", "", true)
                 .replace("{code}", "", true)

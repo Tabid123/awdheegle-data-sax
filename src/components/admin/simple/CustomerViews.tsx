@@ -145,6 +145,8 @@ export const OfflineRegistrationsCustomView = ({ isSo }: { isSo: boolean }) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [newReg, setNewReg] = useState({ sender_phone: '', receiver_phone: '', provider_id: '' });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ sender_phone: '', receiver_phone: '', provider_id: '' });
 
   const loadRegs = useCallback(async () => {
     setLoading(true);
@@ -185,6 +187,36 @@ export const OfflineRegistrationsCustomView = ({ isSo }: { isSo: boolean }) => {
     await supabase.from('offline_registrations').delete().eq('id', id);
     setRegs(prev => prev.filter(r => r.id !== id));
     toast.success(isSo ? 'Waa la tirtiray' : 'Deleted');
+  };
+
+  const startEdit = (item: any) => {
+    setEditingId(item.id);
+    setEditForm({
+      sender_phone: item.sender_phone || '',
+      receiver_phone: item.receiver_phone || '',
+      provider_id: item.provider_id || '',
+    });
+  };
+
+  const saveEdit = async (id: string) => {
+    if (!editForm.sender_phone || !editForm.receiver_phone) {
+      toast.error(isSo ? 'Buuxi meelaha' : 'Fill required fields');
+      return;
+    }
+    const { data, error } = await supabase
+      .from('offline_registrations')
+      .update({
+        sender_phone: editForm.sender_phone,
+        receiver_phone: editForm.receiver_phone,
+        provider_id: editForm.provider_id || null,
+      })
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) { toast.error('Error: ' + error.message); return; }
+    setRegs(prev => prev.map(r => r.id === id ? data : r));
+    setEditingId(null);
+    toast.success(isSo ? 'Waa la cusboonaysiiyay' : 'Updated');
   };
 
   const addReg = async () => {
@@ -254,14 +286,50 @@ export const OfflineRegistrationsCustomView = ({ isSo }: { isSo: boolean }) => {
                   </div>
                 </button>
                 {isExpanded && (
-                  <InvoiceAccordionContent isSo={isSo} id={item.id} rows={[
-                    { icon: Phone, label: 'Sender', value: `+252${item.sender_phone}`, color: 'text-purple-500' },
-                    { icon: Phone, label: 'Receiver', value: `+252${item.receiver_phone}`, color: 'text-green-500' },
-                    { icon: Globe, label: 'Provider', value: getProviderName(item.provider_id), color: 'text-blue-500' },
-                    { icon: Calendar, label: isSo ? 'Taariikhda' : 'Date', value: `${formatDate(item.created_at)} ${formatTime(item.created_at)}`, color: 'text-teal-500' },
-                  ]} actions={
-                    <ActionBtn onClick={() => deleteReg(item.id)} icon={Trash2} label={isSo ? 'Tirtir' : 'Delete'} variant="danger" />
-                  } />
+                  editingId === item.id ? (
+                    <div className="px-3 py-2 space-y-2 bg-gray-50 dark:bg-gray-900/30 border-t border-purple-100 dark:border-purple-900/30">
+                      <input
+                        value={editForm.sender_phone}
+                        onChange={e => setEditForm(p => ({ ...p, sender_phone: e.target.value }))}
+                        placeholder={isSo ? 'Lambarka Diraha' : 'Sender Phone'}
+                        className="w-full px-3 py-2 rounded-lg bg-white dark:bg-gray-700 border text-sm outline-none"
+                      />
+                      <input
+                        value={editForm.receiver_phone}
+                        onChange={e => setEditForm(p => ({ ...p, receiver_phone: e.target.value }))}
+                        placeholder={isSo ? 'Lambarka Qaataha' : 'Receiver Phone'}
+                        className="w-full px-3 py-2 rounded-lg bg-white dark:bg-gray-700 border text-sm outline-none"
+                      />
+                      <select
+                        value={editForm.provider_id}
+                        onChange={e => setEditForm(p => ({ ...p, provider_id: e.target.value }))}
+                        className="w-full px-3 py-2 rounded-lg bg-white dark:bg-gray-700 border text-sm outline-none"
+                      >
+                        <option value="">{isSo ? 'Shirkadda (optional)' : 'Provider (optional)'}</option>
+                        {providers.map(p => <option key={p.id} value={p.id}>{p.display_name || p.provider_name}</option>)}
+                      </select>
+                      <div className="flex gap-2">
+                        <button onClick={() => saveEdit(item.id)} className="flex-1 py-2 bg-green-500 text-white rounded-lg text-sm font-medium active:bg-green-600">
+                          {isSo ? 'Kaydi' : 'Save'}
+                        </button>
+                        <button onClick={() => setEditingId(null)} className="flex-1 py-2 bg-gray-300 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg text-sm font-medium">
+                          {isSo ? 'Jooji' : 'Cancel'}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <InvoiceAccordionContent isSo={isSo} id={item.id} rows={[
+                      { icon: Phone, label: 'Sender', value: `+252${item.sender_phone}`, color: 'text-purple-500' },
+                      { icon: Phone, label: 'Receiver', value: `+252${item.receiver_phone}`, color: 'text-green-500' },
+                      { icon: Globe, label: 'Provider', value: getProviderName(item.provider_id), color: 'text-blue-500' },
+                      { icon: Calendar, label: isSo ? 'Taariikhda' : 'Date', value: `${formatDate(item.created_at)} ${formatTime(item.created_at)}`, color: 'text-teal-500' },
+                    ]} actions={
+                      <>
+                        <ActionBtn onClick={() => startEdit(item)} icon={Edit} label={isSo ? 'Wax ka beddel' : 'Edit'} variant="default" />
+                        <ActionBtn onClick={() => deleteReg(item.id)} icon={Trash2} label={isSo ? 'Tirtir' : 'Delete'} variant="danger" />
+                      </>
+                    } />
+                  )
                 )}
               </div>
             );

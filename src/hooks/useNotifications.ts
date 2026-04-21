@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 interface Notification {
   id: string;
   title: string;
-  message: string;
+  body: string;
   created_at: string;
 }
 
@@ -22,7 +22,6 @@ export function useNotifications() {
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
-        .eq('is_active', true)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
