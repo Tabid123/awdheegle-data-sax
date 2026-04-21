@@ -61,7 +61,7 @@ const Notifications = () => {
                 <Bell className="w-5 h-5 text-primary mt-1" />
                 <div className="flex-1">
                   <p className="font-medium">{notification.title}</p>
-                  <p className="text-sm text-muted-foreground mt-1">{notification.message}</p>
+                  <p className="text-sm text-muted-foreground mt-1">{notification.body}</p>
                   <p className="text-xs text-muted-foreground mt-2">
                     {format(new Date(notification.created_at), 'MMM dd, yyyy HH:mm')}
                   </p>
