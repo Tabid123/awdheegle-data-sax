@@ -1790,31 +1790,58 @@ export type Database = {
       }
       sms_logs: {
         Row: {
+          amount: number | null
+          counterpart_phone: string | null
           created_at: string
           device_id: string | null
           direction: string
           id: string
           message: string
           phone_number: string
+          sim_number: string | null
+          sim_slot: number | null
+          sms_body: string | null
+          sms_sender: string | null
+          sms_type: string | null
           status: string | null
+          tx_id: string | null
+          tx_type: string | null
         }
         Insert: {
+          amount?: number | null
+          counterpart_phone?: string | null
           created_at?: string
           device_id?: string | null
           direction: string
           id?: string
           message: string
           phone_number: string
+          sim_number?: string | null
+          sim_slot?: number | null
+          sms_body?: string | null
+          sms_sender?: string | null
+          sms_type?: string | null
           status?: string | null
+          tx_id?: string | null
+          tx_type?: string | null
         }
         Update: {
+          amount?: number | null
+          counterpart_phone?: string | null
           created_at?: string
           device_id?: string | null
           direction?: string
           id?: string
           message?: string
           phone_number?: string
+          sim_number?: string | null
+          sim_slot?: number | null
+          sms_body?: string | null
+          sms_sender?: string | null
+          sms_type?: string | null
           status?: string | null
+          tx_id?: string | null
+          tx_type?: string | null
         }
         Relationships: [
           {
