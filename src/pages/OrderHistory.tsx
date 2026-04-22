@@ -363,7 +363,7 @@ const OrderHistory = () => {
                   selectedOrder.delivery_status === 'pending' || selectedOrder.delivery_status === 'processing' ? 'bg-orange/15 text-orange' : 
                   'bg-destructive/15 text-destructive'
                 }`}>
-                  {selectedOrder.delivery_status === 'delivered' ? 'Delivered' : 
+                  {selectedOrder.delivery_status === 'delivered' ? 'Completed' : 
                    selectedOrder.delivery_status === 'pending' || selectedOrder.delivery_status === 'processing' ? 'Pending' : 'Failed'}
                 </span>
               </div>
