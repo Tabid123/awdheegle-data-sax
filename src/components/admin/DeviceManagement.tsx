@@ -447,6 +447,8 @@ export const DeviceManagement = ({ onDevicesChange }: DeviceManagementProps) => 
                       {(() => {
                         const provider = (device.sim2_provider || '').toLowerCase();
                         const isHormuud = provider.includes('hormuud');
+                        const isSomtel = provider.includes('somtel') || provider.includes('dahab');
+                        const isSomnet = provider.includes('somnet') || provider.includes('jeeb');
                         
                         if (isHormuud) {
                           const evcBalance = device.balances?.find(b => b.sim_slot === 2 && b.balance_type === 'evc_plus');
@@ -463,6 +465,21 @@ export const DeviceManagement = ({ onDevicesChange }: DeviceManagementProps) => 
                                   E-Voucher: <span className={evoucherBalance.balance > 0 ? 'text-blue-600 font-semibold' : 'text-muted-foreground'}>${evoucherBalance.balance.toFixed(2)}</span>
                                 </span>
                               )}
+                            </div>
+                          );
+                        } else if (isSomtel || isSomnet) {
+                          const sim2Balances = device.balances?.filter(b => b.sim_slot === 2) || [];
+                          const primaryBalance = sim2Balances.find(b => b.balance_type === 'evc_plus');
+                          const evoucherBalance = sim2Balances.find(b => b.balance_type === 'evoucher');
+                          const primaryLabel = isSomtel ? 'E-Dahab' : 'Jeeb';
+                          return (
+                            <div className="flex flex-col items-end gap-0.5">
+                              <span className="text-xs">
+                                {primaryLabel}: <span className={(primaryBalance?.balance ?? 0) > 0 ? 'text-green-600 font-semibold' : 'text-muted-foreground'}>${(primaryBalance?.balance ?? 0).toFixed(2)}</span>
+                              </span>
+                              <span className="text-xs">
+                                E-Voucher: <span className={(evoucherBalance?.balance ?? 0) > 0 ? 'text-blue-600 font-semibold' : 'text-muted-foreground'}>${(evoucherBalance?.balance ?? 0).toFixed(2)}</span>
+                              </span>
                             </div>
                           );
                         } else {
