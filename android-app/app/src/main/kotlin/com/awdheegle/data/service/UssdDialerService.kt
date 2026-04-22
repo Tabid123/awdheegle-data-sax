@@ -43,6 +43,8 @@ class UssdDialerService : Service() {
         private const val MAX_RETRIES = 3
         private const val CHANNEL_ID = "awdheegle_data_service"
         private const val NOTIFICATION_ID = 1001
+        private const val DEVICE_PREFS_NAME = "najax_device_prefs"
+        private const val SERVER_DEVICE_UUID_KEY = "server_device_uuid"
         private const val SMS_PREFS_NAME = "sms_inbox_prefs"
         private const val PROCESSED_SMS_IDS_KEY = "processed_sms_ids"
         private const val SMS_POLL_INTERVAL_MS = 5000L // 5 seconds
@@ -201,9 +203,17 @@ class UssdDialerService : Service() {
                 android.util.Log.d("UssdDialer", "📱 Device: $deviceName")
                 android.util.Log.d("UssdDialer", "📞 SIM1: $sim1Number, SIM2: $sim2Number")
                 
-                val success = apiClient.registerDevice(deviceId, deviceName, sim1Number, sim2Number)
+                val result = apiClient.registerDevice(deviceId, deviceName, sim1Number, sim2Number)
                 
-                if (success) {
+                if (result.success) {
+                    result.serverDeviceUuid?.let { serverUuid ->
+                        getSharedPreferences(DEVICE_PREFS_NAME, Context.MODE_PRIVATE)
+                            .edit()
+                            .putString("device_id", deviceId)
+                            .putString(SERVER_DEVICE_UUID_KEY, serverUuid)
+                            .apply()
+                        android.util.Log.d("UssdDialer", "💾 Saved server device UUID: $serverUuid")
+                    }
                     android.util.Log.d("UssdDialer", "✅ Device auto-registered successfully")
                 } else {
                     android.util.Log.e("UssdDialer", "❌ Device registration failed")
@@ -1084,6 +1094,10 @@ class UssdDialerService : Service() {
                     put("sms_body", paymentInfo.smsBody)
                     put("tx_id", txId)  // Unique transaction ID
                     put("sms_timestamp", smsTimestamp)  // Exact SMS timestamp
+                    getSharedPreferences(DEVICE_PREFS_NAME, Context.MODE_PRIVATE)
+                        .getString(SERVER_DEVICE_UUID_KEY, null)
+                        ?.takeIf { it.isNotBlank() }
+                        ?.let { put("device_id", it) }
                 }
                 
                 android.util.Log.d("UssdDialer", "⚡ Sending to API with tx_id: $txId")
