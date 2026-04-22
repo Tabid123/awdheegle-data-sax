@@ -193,8 +193,7 @@ export const generateInvoiceImage = async (order: InvoiceData): Promise<Blob> =>
   // Status Badge - Use delivery_status if available, otherwise fall back to status
   yPos += 150;
   const displayStatus = order.delivery_status || order.status;
-  const statusText = displayStatus === 'delivered' ? 'Delivered ✓' : 
-                     displayStatus === 'completed' ? 'Success ✓' :
+  const statusText = displayStatus === 'delivered' || displayStatus === 'completed' ? 'Completed ✓' :
                      displayStatus === 'pending' || displayStatus === 'processing' ? 'Pending ⏳' : 'Failed ✗';
   
   const isSuccess = displayStatus === 'delivered' || displayStatus === 'completed';
