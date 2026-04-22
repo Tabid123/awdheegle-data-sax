@@ -37,6 +37,11 @@ class DeliveryApiClient {
         val sim1Provider: String?,
         val sim2Provider: String?
     )
+
+    data class DeviceRegistrationResult(
+        val success: Boolean,
+        val serverDeviceUuid: String? = null
+    )
     
     data class PendingOrdersResponse(
         val orders: List<DeliveryOrder>
@@ -167,7 +172,7 @@ class DeliveryApiClient {
         deviceName: String,
         sim1Number: String?,
         sim2Number: String?
-    ): Boolean = withContext(Dispatchers.IO) {
+    ): DeviceRegistrationResult = withContext(Dispatchers.IO) {
         try {
             val json = JSONObject().apply {
                 put("deviceId", deviceId)
@@ -184,17 +189,23 @@ class DeliveryApiClient {
             sharedHttpClient.newCall(request).execute().use { response ->
                 if (response.isSuccessful) {
                     val body = response.body?.string()
+                    val serverDeviceUuid = try {
+                        if (body.isNullOrBlank()) null
+                        else JSONObject(body).optJSONObject("device")?.optString("id", null)
+                    } catch (_: Exception) {
+                        null
+                    }
                     println("✅ Device registration response: $body")
-                    return@withContext true
+                    return@withContext DeviceRegistrationResult(true, serverDeviceUuid)
                 } else {
                     val errorBody = response.body?.string()
                     println("❌ Device registration failed: ${response.code} - $errorBody")
-                    return@withContext false
+                    return@withContext DeviceRegistrationResult(false, null)
                 }
             }
         } catch (e: Exception) {
             println("❌ Device registration error: ${e.message}")
-            return@withContext false
+            return@withContext DeviceRegistrationResult(false, null)
         }
     }
     
