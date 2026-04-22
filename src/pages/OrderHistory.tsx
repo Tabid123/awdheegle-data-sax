@@ -264,7 +264,7 @@ const OrderHistory = () => {
                     item.delivery_status === 'pending' || item.delivery_status === 'processing' ? 'bg-yellow-100 text-yellow-700' : 
                     'bg-red-100 text-red-700'
                   }`}>
-                    {item.delivery_status === 'delivered' ? 'Delivered' : 
+                    {item.delivery_status === 'delivered' ? 'Completed' : 
                      item.delivery_status === 'pending' || item.delivery_status === 'processing' ? 'Pending' : 'Failed'}
                   </div>
                 </div>
