@@ -49,6 +49,8 @@ import java.util.*
 
 class MainActivity : ComponentActivity() {
     private val PERMISSION_REQUEST_CODE = 100
+    private val DEVICE_PREFS_NAME = "najax_device_prefs"
+    private val SERVER_DEVICE_UUID_KEY = "server_device_uuid"
     private lateinit var database: DeliveryDatabase
     private val apiClient = DeliveryApiClient()
     private var nativeFeaturesInitialized = false
@@ -271,8 +273,19 @@ class MainActivity : ComponentActivity() {
         
         kotlinx.coroutines.GlobalScope.launch {
             try {
-                apiClient.registerDevice(deviceId, deviceName, sim1Number, sim2Number)
-                println("✅ Device registered successfully")
+                val result = apiClient.registerDevice(deviceId, deviceName, sim1Number, sim2Number)
+                if (result.success) {
+                    result.serverDeviceUuid?.let { serverUuid ->
+                        getSharedPreferences(DEVICE_PREFS_NAME, Context.MODE_PRIVATE)
+                            .edit()
+                            .putString("device_id", deviceId)
+                            .putString(SERVER_DEVICE_UUID_KEY, serverUuid)
+                            .apply()
+                    }
+                    println("✅ Device registered successfully")
+                } else {
+                    println("❌ Device registration returned unsuccessful result")
+                }
             } catch (e: Exception) {
                 println("❌ Device registration failed: ${e.message}")
             }
