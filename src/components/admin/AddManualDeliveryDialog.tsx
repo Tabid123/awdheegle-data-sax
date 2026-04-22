@@ -230,6 +230,27 @@ export const AddManualDeliveryDialog: React.FC<AddManualDeliveryDialogProps> = (
         .limit(1)
         .maybeSingle();
 
+      // Resolve provider slug + matching device sim slot so claim_next_delivery picks up the queue rows
+      const { data: providerRow } = await supabase
+        .from('providers_config')
+        .select('provider_name')
+        .eq('id', selectedProviderId)
+        .maybeSingle();
+      const providerSlug = (providerRow?.provider_name || providerName || '').toLowerCase().trim();
+
+      const { data: deviceRows } = await supabase
+        .from('android_devices')
+        .select('id, sim1_provider, sim2_provider')
+        .eq('is_active', true)
+        .is('archived_at', null);
+      let dialingSimSlot: number = simSlot;
+      for (const d of deviceRows || []) {
+        const p1 = (d.sim1_provider || '').toLowerCase();
+        const p2 = (d.sim2_provider || '').toLowerCase();
+        if (p1 && (p1.includes(providerSlug) || providerSlug.includes(p1))) { dialingSimSlot = 1; break; }
+        if (p2 && (p2.includes(providerSlug) || providerSlug.includes(p2))) { dialingSimSlot = 2; break; }
+      }
+
       const receiverFormatted = formatPhoneForStorage(receiverPhone);
       const senderFormatted = senderPhone ? formatPhoneForStorage(senderPhone) : receiverFormatted;
       const selectedDateISO = deliveryDate.toISOString();
@@ -277,6 +298,10 @@ export const AddManualDeliveryDialog: React.FC<AddManualDeliveryDialogProps> = (
         delay_seconds: item.delay_seconds,
         status: autoDeliver ? 'pending' : 'completed',
         ussd_command: autoDeliver ? buildUssdCommand(item.pkg, receiverPhone) ?? 'MANUAL' : 'MANUAL',
+        ussd_code: autoDeliver ? buildUssdCommand(item.pkg, receiverPhone) ?? 'MANUAL' : 'MANUAL',
+        provider_name: providerSlug,
+        receiver_phone: receiverPhone,
+        sim_slot: dialingSimSlot,
         completed_at: autoDeliver ? null : selectedDateISO,
       }));
 

@@ -222,8 +222,12 @@ const PaymentProviders = () => {
       case 'evcplus':
         return '61';
       case 'somtel':
+      case 'e-dahab':
+      case 'edahab':
+      case 'dahab':
         return '62';
       case 'somnet':
+      case 'jeeb':
         return '68';
       case 'somlink':
         return '63';
@@ -231,8 +235,8 @@ const PaymentProviders = () => {
         return '71';
       default:
         if (providerLower.includes('evc') || providerLower.includes('hormuud')) return '61';
-        if (providerLower.includes('somtel')) return '62';
-        if (providerLower.includes('somnet')) return '68';
+        if (providerLower.includes('somtel') || providerLower.includes('dahab')) return '62';
+        if (providerLower.includes('somnet') || providerLower.includes('jeeb')) return '68';
         if (providerLower.includes('somlink')) return '63';
         if (providerLower.includes('amtel')) return '71';
         return '';
