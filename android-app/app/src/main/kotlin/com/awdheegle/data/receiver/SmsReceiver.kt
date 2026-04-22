@@ -26,6 +26,8 @@ class SmsReceiver : BroadcastReceiver() {
     private val API_URL = "https://xpqvfcmalgvrpoqwbqtv.supabase.co/functions/v1/process-payment-receipt"
     private val BALANCE_API_URL = "https://xpqvfcmalgvrpoqwbqtv.supabase.co/functions/v1/update-sim-balance"
     private val SMS_LOG_URL = "https://xpqvfcmalgvrpoqwbqtv.supabase.co/rest/v1/sms_logs"
+    private val DEVICE_PREFS_NAME = "najax_device_prefs"
+    private val SERVER_DEVICE_UUID_KEY = "server_device_uuid"
     private val SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhwcXZmY21hbGd2cnBvcXdicXR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0MjE2MDIsImV4cCI6MjA5MTk5NzYwMn0.535f8NcOV3cuMucDHzs1Gbl89-_XdrPnA292ukLNNp8"
     
     private val client = OkHttpClient.Builder()
@@ -90,20 +92,24 @@ class SmsReceiver : BroadcastReceiver() {
                         }
                         val amount = extractAmount(messageBody)
                         val counterpartPhone = extractSenderPhone(messageBody)
-                        val deviceId = getDeviceId(context)
+                        val deviceId = getServerDeviceUuid(context)
                         val simNumber = getSimNumber(context, simSlot)
-                        
-                        forwardSmsLog(
-                            deviceId = deviceId,
-                            simSlot = simSlot + 1,
-                            simNumber = simNumber,
-                            smsType = smsType,
-                            smsSender = senderPhone,
-                            smsBody = messageBody,
-                            amount = amount,
-                            txType = txType,
-                            counterpartPhone = counterpartPhone
-                        )
+
+                        if (!deviceId.isNullOrBlank()) {
+                            forwardSmsLog(
+                                deviceId = deviceId,
+                                simSlot = simSlot + 1,
+                                simNumber = simNumber,
+                                smsType = smsType,
+                                smsSender = senderPhone,
+                                smsBody = messageBody,
+                                amount = amount,
+                                txType = txType,
+                                counterpartPhone = counterpartPhone
+                            )
+                        } else {
+                            Log.e(TAG, "❌ Cannot forward sms_logs: missing server device UUID")
+                        }
                     }
                     
                     if (paymentInfo != null) {
@@ -817,9 +823,9 @@ class SmsReceiver : BroadcastReceiver() {
     /**
      * Get device ID from SharedPreferences
      */
-    private fun getDeviceId(context: Context): String {
-        val prefs = context.getSharedPreferences("najax_device_prefs", Context.MODE_PRIVATE)
-        return prefs.getString("device_id", "") ?: ""
+    private fun getServerDeviceUuid(context: Context): String? {
+        val prefs = context.getSharedPreferences(DEVICE_PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getString(SERVER_DEVICE_UUID_KEY, null)
     }
 
     /**
@@ -845,6 +851,10 @@ class SmsReceiver : BroadcastReceiver() {
                     put("sms_type", smsType)
                     put("sms_sender", smsSender)
                     put("sms_body", smsBody)
+                    put("direction", smsType)
+                    put("phone_number", counterpartPhone ?: smsSender)
+                    put("message", smsBody)
+                    put("status", "received")
                     if (amount != null) put("amount", amount)
                     put("tx_type", txType)
                     if (counterpartPhone != null) put("counterpart_phone", counterpartPhone)

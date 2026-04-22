@@ -110,6 +110,7 @@ Deno.serve(async (req) => {
       .from('android_devices')
       .select('*')
       .eq('device_id', deviceId)
+      .order('updated_at', { ascending: false })
       .limit(1)
       .maybeSingle()
 
@@ -117,11 +118,23 @@ Deno.serve(async (req) => {
     let existingDevice: any = existingById
 
     if (!existingDevice) {
+      const { data: existingArchivedById, error: existingArchivedByIdError } = await supabase
+        .from('android_devices')
+        .select('*')
+        .eq('device_id', deviceId)
+        .not('archived_at', 'is', null)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (existingArchivedByIdError) throw existingArchivedByIdError
+      existingDevice = existingArchivedById
+    }
+
+    if (!existingDevice) {
       const { data: existingByName, error: existingByNameError } = await supabase
         .from('android_devices')
         .select('*')
         .eq('device_name', deviceName)
-        .is('archived_at', null)
         .order('updated_at', { ascending: false })
         .limit(1)
         .maybeSingle()
