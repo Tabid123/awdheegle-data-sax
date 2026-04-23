@@ -34,6 +34,18 @@ const ALLOWED_CODES = new Set([
   '913',                           // Amtel
 ]);
 
+const getSenderBucket = (sender: string | null, body?: string): string => {
+  const raw = sender?.toLowerCase()?.trim() || 'unknown';
+  const provider = getProviderFromSender(raw, body);
+
+  if (provider === 'Hormuud') return '192';
+  if (provider === 'Somnet') return raw === '898' ? '898' : '801';
+  if (provider === 'Somtel') return '252888';
+  if (provider === 'Amtel') return '913';
+
+  return raw;
+};
+
 const getProviderFromSender = (sender: string, body?: string): string | null => {
   const s = sender?.toLowerCase()?.trim() || '';
   if (['801', '898'].includes(s)) return 'Somnet';
@@ -263,7 +275,7 @@ const SmsLogsViewer = () => {
     : allowedLogs;
 
   const senderGroups2 = searchFilteredLogs.reduce<Record<string, SmsLog[]>>((acc, log) => {
-    const sender = log.sms_sender || 'Unknown';
+    const sender = getSenderBucket(log.sms_sender, log.sms_body);
     if (!acc[sender]) acc[sender] = [];
     acc[sender].push(log);
     return acc;
