@@ -1487,6 +1487,55 @@ class UssdDialerService : Service() {
         }
     }
 
+    private fun clearCapturedUssdResponse() {
+        try {
+            getSharedPreferences(UssdAccessibilityService.PREFS_NAME, Context.MODE_PRIVATE)
+                .edit()
+                .remove(UssdAccessibilityService.KEY_LAST_USSD_RESPONSE)
+                .remove(UssdAccessibilityService.KEY_LAST_USSD_RESPONSE_TIME)
+                .apply()
+        } catch (e: Exception) {
+            android.util.Log.e("UssdDialer", "❌ Failed clearing previous USSD response: ${e.message}")
+        }
+    }
+
+    private fun isClockOrDateJunk(text: String): Boolean {
+        val normalized = text.trim()
+        val junkPattern = Regex(
+            """^(\d{1,2}:\d{2}.*?(\||$)|.*?(Mon|Tue|Wed|Thu|Fri|Sat|Sun|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)[a-z]*,?\s*\d{1,2}\s*(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|April|May|June|July).*)""",
+            RegexOption.IGNORE_CASE
+        )
+        return junkPattern.containsMatchIn(normalized) && !hasSuccessfulDeliveryMarkers(normalized)
+    }
+
+    private fun hasSuccessfulDeliveryMarkers(text: String): Boolean {
+        val normalized = text.lowercase()
+        val strongMarkers = listOf(
+            "ugu shubtay",
+            "ku shubtay",
+            "waad ku guulaysatay",
+            "ku guulaysatay",
+            "transaction id",
+            "transcation id",
+            "kaarka waa la diray",
+            "xirmada waa la diray",
+            "successfully sent",
+            "lacagta waa la diray",
+            "u dirtay"
+        )
+        val weakMarkers = listOf(
+            "e-voucher",
+            "voucher",
+            "jeeb",
+            "dhammays",
+            "haraagaagu waa",
+            "haraagagu waa"
+        )
+
+        return strongMarkers.any { normalized.contains(it) } ||
+            (weakMarkers.any { normalized.contains(it) } && normalized.any { it.isDigit() })
+    }
+
     private fun findSubscriptionIdByCarrierName(providerName: String, fallbackSlot: Int? = null): Int? {
         try {
             val subscriptionManager = getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE) as SubscriptionManager
@@ -1773,8 +1822,8 @@ class UssdDialerService : Service() {
                 }
             }
             
-            android.util.Log.d("UssdDialer", "⚠️ USSD timeout - assuming success")
-            return true
+            android.util.Log.d("UssdDialer", "⚠️ USSD timeout - no confirmation received")
+            return false
             
         } catch (e: Exception) {
             android.util.Log.e("UssdDialer", "❌ Intent fallback failed: ${e.message}")
