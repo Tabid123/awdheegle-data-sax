@@ -1227,6 +1227,8 @@ class UssdDialerService : Service() {
                 .apply()
             android.util.Log.d("UssdDialer", "🔐 PIN saved to SharedPreferences: ${pinToUse.take(2)}***")
             
+            clearCapturedUssdResponse()
+
             // Quick 500ms settle time - lightning fast!
             android.util.Log.d("UssdDialer", "⚡ Quick 0.5s settle time before USSD...")
             delay(500)
@@ -1245,18 +1247,14 @@ class UssdDialerService : Service() {
                 
                 // Client-side keyword detection before reporting status
                 val responseText = providerResponse.lowercase()
-                val successKeywords = listOf(
-                    "ugu shubtay", "ku guulaysatay", "u wareejiso", "u dirto",
-                    "haraagaagu waa", "transcation id", "transaction id", "jeeb",
-                    "dhammays", "abaal", "e-voucher"
-                )
                 val failureKeywords = listOf(
                     "error", "failed", "khalad", "service error", "try again",
                     "insufficient", "invalid", "unavailable", "waxba kama dhicin"
                 )
                 
-                val hasSuccess = successKeywords.any { responseText.contains(it) }
-                val hasFailure = failureKeywords.any { responseText.contains(it) }
+                val hasSuccess = providerResponse.isNotBlank() && hasSuccessfulDeliveryMarkers(providerResponse)
+                val isClockJunk = providerResponse.isNotBlank() && isClockOrDateJunk(providerResponse)
+                val hasFailure = isClockJunk || failureKeywords.any { responseText.contains(it) }
                 
                 val detectedStatus: String
                 val detectedError: String?
@@ -1268,9 +1266,13 @@ class UssdDialerService : Service() {
                         android.util.Log.d("UssdDialer", "✅ Success keywords detected in response")
                     }
                     hasFailure -> {
-                        detectedStatus = "failed"
-                        detectedError = "Provider error detected: ${responseText.take(100)}"
-                        android.util.Log.d("UssdDialer", "❌ Failure keywords detected - server will auto-retry")
+                        detectedStatus = "timeout"
+                        detectedError = if (isClockJunk) {
+                            "Invalid USSD response captured (clock/system text)"
+                        } else {
+                            "Provider error detected: ${responseText.take(100)}"
+                        }
+                        android.util.Log.d("UssdDialer", "❌ Invalid/failed response detected - server can retry")
                     }
                     responseText.isEmpty() -> {
                         detectedStatus = "timeout"
@@ -1278,9 +1280,9 @@ class UssdDialerService : Service() {
                         android.util.Log.d("UssdDialer", "⏱ No response - reporting timeout")
                     }
                     else -> {
-                        detectedStatus = "completed"
-                        detectedError = null
-                        android.util.Log.d("UssdDialer", "✅ Unknown response text - assuming success")
+                        detectedStatus = "timeout"
+                        detectedError = "USSD response did not confirm delivery"
+                        android.util.Log.d("UssdDialer", "⚠️ Unknown response text - not treating as success")
                     }
                 }
                 
