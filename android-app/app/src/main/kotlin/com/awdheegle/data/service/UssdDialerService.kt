@@ -1822,8 +1822,8 @@ class UssdDialerService : Service() {
                 }
             }
             
-            android.util.Log.d("UssdDialer", "⚠️ USSD timeout - no confirmation received")
-            return false
+            android.util.Log.d("UssdDialer", "⚠️ USSD timeout - dial opened but no confirmation received")
+            return true
             
         } catch (e: Exception) {
             android.util.Log.e("UssdDialer", "❌ Intent fallback failed: ${e.message}")
