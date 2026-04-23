@@ -219,10 +219,15 @@ class UssdAccessibilityService : AccessibilityService() {
             // CAPTURE ALL DIALOG TEXT FIRST - before any filtering
             val dialogText = extractDialogText(source)
             
-            // ALWAYS save dialog text if not empty - for delivery_notes
-            if (!dialogText.isNullOrBlank()) {
+            // Save dialog text ONLY if it looks like a real USSD response.
+            // This prevents lock-screen / clock / home-screen junk like
+            // "06:24 | 06 | : | 24 | Mon, 20 April | Monday, 20 April"
+            // from being stored as delivery_notes.
+            if (!dialogText.isNullOrBlank() && isLikelyUssdResponse(dialogText)) {
                 Log.d(TAG, "📝 Dialog text captured: ${dialogText.take(200)}")
                 saveUssdResponse(dialogText)
+            } else if (!dialogText.isNullOrBlank()) {
+                Log.d(TAG, "🚫 Ignored non-USSD text (clock/home screen): ${dialogText.take(120)}")
             }
             
             // CHECK FOR PIN INPUT DIALOG - only enter PIN once per USSD session
@@ -377,6 +382,11 @@ class UssdAccessibilityService : AccessibilityService() {
      * UssdDialerService will read this and send to backend as delivery_notes
      */
     private fun saveUssdResponse(text: String) {
+        // Double-check before persisting (defense-in-depth)
+        if (!isLikelyUssdResponse(text)) {
+            Log.d(TAG, "🚫 saveUssdResponse rejected non-USSD text: ${text.take(80)}")
+            return
+        }
         try {
             getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 .edit()
@@ -387,6 +397,44 @@ class UssdAccessibilityService : AccessibilityService() {
         } catch (e: Exception) {
             Log.e(TAG, "❌ Failed to save USSD response: ${e.message}")
         }
+    }
+
+    /**
+     * Heuristic: distinguish a real USSD/SIM-toolkit response (Hormuud/Somnet/Somtel)
+     * from junk text captured off the lock-screen, status bar, or home screen
+     * (e.g. "06:24 | 06 | : | 24 | Mon, 20 April | Monday, 20 April").
+     *
+     * Real USSD responses always contain at least one of:
+     *   - A currency marker ($, USD, dollar)
+     *   - A USSD keyword (Waxaad, ku shubtay, ugu shubtay, Haraagaagu, Mahadsanid,
+     *     wareejiso, guulaysatay, lambarkani, ma shaqaynayo, OK, Voucher, e-voucher,
+     *     received, sent, success, failed, error, balance, "Bille", "Dhammays")
+     */
+    private fun isLikelyUssdResponse(text: String): Boolean {
+        val t = text.trim()
+        if (t.length < 3) return false
+
+        // Reject obvious clock / date-only patterns: "06:24 | 06 | : | 24 | Mon, 20 April | ..."
+        // i.e. text that's mostly time/date tokens separated by " | " with no letters except weekday/month
+        val clockJunkPattern = Regex(
+            """^(\d{1,2}:\d{2}.*?(\||$)|.*?(Mon|Tue|Wed|Thu|Fri|Sat|Sun)[a-z]*,\s*\d{1,2}\s*(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec).*)""",
+            RegexOption.IGNORE_CASE
+        )
+        val onlyTimeOrDate = clockJunkPattern.containsMatchIn(t) &&
+            !Regex("""\$|USD|dollar|waxaad|shubtay|haraag|mahadsanid|wareejis|guulaysatay|lambark|shaqayn|voucher|received|sent|balance|bille|dhammays|mobile|airtime|ugu|haye|waafi""", RegexOption.IGNORE_CASE)
+                .containsMatchIn(t)
+        if (onlyTimeOrDate) return false
+
+        val ussdKeywords = listOf(
+            "$", "USD", "dollar",
+            "waxaad", "ku shubtay", "ugu shubtay", "haraag", "mahadsanid",
+            "wareejis", "guulaysatay", "lambark", "shaqayn",
+            "voucher", "e-voucher", "received from", "ka heshay",
+            "balance", "bille", "dhammays", "airtime", "sent to",
+            "OK", "okay", "success", "failed", "error", "PIN", "pin",
+            "waafi", "hormuud", "somnet", "somtel", "amtel", "somlink"
+        )
+        return ussdKeywords.any { t.contains(it, ignoreCase = true) }
     }
     
     /**
