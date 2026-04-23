@@ -219,10 +219,15 @@ class UssdAccessibilityService : AccessibilityService() {
             // CAPTURE ALL DIALOG TEXT FIRST - before any filtering
             val dialogText = extractDialogText(source)
             
-            // ALWAYS save dialog text if not empty - for delivery_notes
-            if (!dialogText.isNullOrBlank()) {
+            // Save dialog text ONLY if it looks like a real USSD response.
+            // This prevents lock-screen / clock / home-screen junk like
+            // "06:24 | 06 | : | 24 | Mon, 20 April | Monday, 20 April"
+            // from being stored as delivery_notes.
+            if (!dialogText.isNullOrBlank() && isLikelyUssdResponse(dialogText)) {
                 Log.d(TAG, "📝 Dialog text captured: ${dialogText.take(200)}")
                 saveUssdResponse(dialogText)
+            } else if (!dialogText.isNullOrBlank()) {
+                Log.d(TAG, "🚫 Ignored non-USSD text (clock/home screen): ${dialogText.take(120)}")
             }
             
             // CHECK FOR PIN INPUT DIALOG - only enter PIN once per USSD session
