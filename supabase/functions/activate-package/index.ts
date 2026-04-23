@@ -509,11 +509,10 @@ serve(async (req) => {
       // Determine final status with provider response heuristics
       const text = String(providerResponse || '').toLowerCase();
       const successKeywords = [
-        'ugu shubtay', 'u shubtay', 'e-voucher', 'haraagaagu waa',
-        'success', 'successful', 'complete', 'completed', 'approved',
-        'confirm', 'confirmed', 'activated',
+        'ugu shubtay', 'u shubtay', 'success', 'successful',
+        'approved', 'confirm', 'confirmed', 'activated',
         'ku guulaysatay', 'u wareejiso', 'u dirto', 'transcation id',
-        'transaction id', 'jeeb', 'dhammays', 'abaal'
+        'transaction id', 'lacagta waa la diray', 'successfully sent'
       ];
       const failureKeywords = [
         'khalad', 'fail', 'failed', 'error', 'reject', 'rejected',
@@ -580,8 +579,11 @@ serve(async (req) => {
         
         normalizedStatus = 'completed';
         console.log('✅ Overriding status to COMPLETED based on provider message keywords');
-      } else if (status === 'completed') {
+      } else if (status === 'completed' && providerIndicatesSuccess) {
         normalizedStatus = 'completed';
+      } else if (status === 'timeout' || (status === 'completed' && !providerIndicatesSuccess)) {
+        normalizedStatus = currentAttempts < 2 ? 'pending' : 'failed';
+        isAutoRetry = currentAttempts < 2;
       } else if (status === 'failed') {
         normalizedStatus = 'failed';
       }
