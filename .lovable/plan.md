@@ -1,45 +1,96 @@
 
+## Dhibaatada (Root Cause Analysis)
 
-## Plan: Fix 6 issues
+Sawiradaada waxay si cad u muujinayaan dhacdo soo noqnoqonaysa:
 
-### Issue 1 — Order History: `$undefined` & "Failed"
-The RPC `get_customer_order_history` only returns `id, order_number, sender_phone, receiver_phone, amount, status, package_name, provider_name, created_at`. The UI reads `selling_price`, `delivery_status`, `provider_logo`, `validity_days`, `payment_source`, `invoice_url` — all missing → "$undefined" and "Failed".
+| Dalab | Attempts | Status | Natiijada (USSD response) |
+|-------|----------|--------|---------------------------|
+| 1aad | 4 | ❌ Failed - "No USSD response received" | `"Waxaad $0.8 ugu shubtay 252616277356, Haraagaagu waa $37.1..."` ✅ GUUL DHAB AH |
+| 2aad (Dib u Daar) | 2 | ✅ Delivered in 6-16s | Isla jawaabta guul leh |
 
-**Fix:** Update the RPC to also return: `selling_price`, `delivery_status`, `provider_logo`, `validity_days`, `payment_source`, `invoice_url`, `paid_via_secret_price`. Fall back to `amount` when `selling_price` is null.
+**Tani waxay xaqiijinaysaa lacagta DHAB AHAANTII la diray markii hore**, laakiin Android-ku khaldan ayaa "Failed" u soo sheegay. Markaan baadhay code-ka (`UssdDialerService.kt`), waxaa jira **3 cilad oo isku xidhan**:
 
-### Issue 2 — Send Notification fails: "Could not find the 'message' column"
-The `notifications` table uses columns `title` + `body`, but `SendNotification.tsx` and `useNotifications.ts` insert/read `message`.
+### Cilad #1 — Sugitaanka jawaabta aad ayaa loo gaabiyay (`getLastUssdResponse`)
+- Hadda: `1s wait + 3 retries × 500ms = 2.5s` total.
+- Hormuud silent USSD wuxuu qaataa **3-8 ilbiriqsi** si uu jawaab u soo celiyo.
+- Natiijo: response-ka wuu yimaadaa, laakiin `processOrder` mar hore wuu dhammaystay → soo sheegay `"timeout"`.
 
-**Fix:** Update both files to use `body` instead of `message` (map `body` → display as message in customer UI). No DB change needed.
+### Cilad #2 — Race condition: jawaabta dib u soo gaadho ka dib timeout
+- `dialUssdViaIntent` wuxuu return `true` ka dib `15s` keliya, kadib wuxuu wacaa `getLastUssdResponse()` taasoo akhrida + **xayuubinaysa** (line 1467-1471) jawaabta SharedPreferences-ka.
+- Marka silent USSD uu mar dambe yimaado (5-10s ka dib), wuxuu kaydiyaa jawaab cusub. Re-attempt-ka 2aad ayaa qaata jawaabtaas → "Delivered in 6s" — sidoo kale waxaa loo arkaa "guul" mararka qaar inkasta oo lacag dheeraad ah la diray!
 
-### Issue 3 — Somtel USSD sends literal `{sim_password}`
-Image shows USSD `829*685673015*020*{sim_password}#`. The Android `buildFinalUssd` STRIPS `{sim_password}` instead of substituting the actual password. The server already substitutes it before sending — but when the Android-side template still contains the placeholder (e.g., template stored on device or fallback path), it's wiped.
+### Cilad #3 — Server retry waxay ku darsataa attempts ka hor success-check
+`activate-package/index.ts` line 584-586:
+```typescript
+} else if (status === 'timeout' || (status === 'completed' && !providerIndicatesSuccess)) {
+  normalizedStatus = currentAttempts < 2 ? 'pending' : 'failed';
+}
+```
+Tani **ma hubiso** haddii `provider_response` hore ee la kaydiyay uu hore u xambaarsanaa marker guul ah. Sidaas darteed dalabka oo dhab ahaantii dhacay wuxuu helaa `failed` ka dib 2 timeout — taas oo USSD dial dheeraad ah keenta (lacag-luminta!).
 
-**Fix:** In `UssdDialerService.kt` `buildFinalUssd()`, substitute `{sim_password}` with the SIM password value (passed from server payload `sim_password` field, or read from local SIM config) BEFORE the strip step. Also ensure `process-payment-receipt` always resolves `sim_password` (not falsy default) by reading from `sim_credentials`/`delivery_instructions` for the actual SIM used.
+---
 
-### Issue 4 — Offline registration: add Edit button
-In `src/components/admin/simple/CustomerViews.tsx`, add an Edit button inside the expanded accordion (next to Delete) that opens an inline edit form to update `sender_phone`, `receiver_phone`, `provider_id`. Save via `supabase.from('offline_registrations').update(...)`.
+## Xalka — Dalab Kasta %99 Markii Ugu Horeysay Ha Dhaco
 
-### Issue 5 — SMS Logs tab shows nothing
-Verified: `sms_logs` table is empty (count = 0). Android devices are not inserting rows. Root cause: device-side SMS receiver writes to `payment_sms_log` only, not `sms_logs`.
+### 1. **Kor u qaad sugitaanka USSD response (UssdDialerService.kt)**
+- `getLastUssdResponse()`: `2s wait + 8 retries × 1000ms = 10s`
+- `trySilentUssd()` timeout: `10s → 15s`
+- `dialUssdViaIntent` post-timeout: ku dar `5s extra polling` ka hor inta aan la return-gareyn
 
-**Fix:** Update `SmsLogsViewer.tsx` query to merge from `payment_sms_log` (already partially supported via `source` field). Ensure the fetch actually queries both tables and unions results. Also confirm RLS on `sms_logs` allows admin SELECT.
+### 2. **Tag responses with queue_id (prevent cross-order leak)**
+- `saveUssdResponse()`: ku dar `KEY_LAST_USSD_RESPONSE_QUEUE_ID = order.id`
+- `getLastUssdResponse()`: kaliya isticmaal jawaabta haddii `queue_id` uu la mid yahay dalabka socda
+- Ka hortagaysa cilad #2 ee jawaab daahay oo lagu khaldo dalab cusub
 
-### Issue 6 — Auto Top-Up not delivering $1.25 / $1.30 chained packages
-Likely: the chained-delivery rule lookup in `process-payment-receipt` uses exact equality on numeric amounts and the trigger amount doesn't match the rule trigger value, OR the chain rule runs but the second delivery's cost_price is not found.
+### 3. **Ka hor "timeout" → re-check SharedPreferences (delayed capture)**
+Ka hor inta aan la soo sheegin `detectedStatus = "timeout"` (line 1277-1280), sii sug **3s extra**, kadib akhri SharedPreferences mar kale. Haddii la helay jawaab oo `hasSuccessfulDeliveryMarkers` → soo sheeg `"completed"` halkii `"timeout"`.
 
-**Fix:** Add diagnostic logging + use tolerance comparison (`abs(a-b) < 0.01`) for trigger amount lookup in `package_delivery_rules`. Verify the rule rows exist for $1.25 and $1.30 packages and that `chained_package_id` is set.
+### 4. **Server-side guard: hubi prior-success ka hor retry (activate-package)**
+Ka hor inta aan la jajabin retry `pending`, ka soo akhri `delivery_queue.provider_response`. Haddii uu hore u xambaarsanaa keyword guul (`ugu shubtay`, `Haraagaagu waa`, `transaction id`):
+- Toos u dhig `completed` (ma diraan USSD mar kale!)
+- Ka hortag duplicate USSD dial → ka hortag lacag-lumin
 
-### Files to edit
-1. **DB migration** — recreate `get_customer_order_history` RPC with full columns.
-2. `src/components/admin/SendNotification.tsx` — `message` → `body`.
-3. `src/hooks/useNotifications.ts` — read `body` field; update `Notification` type.
-4. `android-app/.../UssdDialerService.kt` — substitute `{sim_password}` properly in `buildFinalUssd`.
-5. `supabase/functions/process-payment-receipt/index.ts` — ensure sim_password always resolved; tolerance match for auto-topup rules; add logs for $1.25/$1.30 path.
-6. `src/components/admin/simple/CustomerViews.tsx` — add Edit button + inline edit form for offline registrations.
-7. `src/components/admin/SmsLogsViewer.tsx` — ensure union query of `sms_logs` + `payment_sms_log` works and renders.
+### 5. **Database cleanup migration**
+Beddel orders-ka dhab ahaantii dhacay (lacagta la diray) laakiin loo calaamadeeyay `failed`:
+```sql
+UPDATE orders 
+SET delivery_status = 'delivered', status = 'completed'
+WHERE delivery_status IN ('failed', 'timeout')
+  AND (delivery_notes ILIKE '%ugu shubtay%' OR delivery_notes ILIKE '%haraagaagu waa%');
+```
 
-### Notes
-- Android APK rebuild required for Issue 3 (sim_password fix on device).
-- Issue 6 may need follow-up after seeing the new diagnostic logs from a real $1.25 SMS.
+### 6. **Yaree settle time ka hor USSD (degdeg)**
+Line 1234: `delay(500)` waa hagaagsan tahay. Laakiin `lastOrderCompletedAt` cooldown 8s waa la yarayn karaa → `4s` si dalabyada xigta ay degdeg ula bilowdaan.
 
+---
+
+## Faallooyin Faafa Ah (Technical Files)
+
+**Files la beddelayo:**
+
+1. **`android-app/app/src/main/kotlin/com/awdheegle/data/service/UssdDialerService.kt`**
+   - `getLastUssdResponse()` (line 1448-1488) — sugitaan 10s + queue-id check
+   - `dialUssdViaIntent()` (line 1810-1826) — 5s extra polling ka hor return
+   - `trySilentUssd()` (line 1718) — timeout `10s → 15s`
+   - `saveUssdResponse()` (line 1730-1736) — ku dar queue_id tag
+   - `processOrder()` (line 1262-1287) — re-check ka hor timeout
+   - `ORDER_COOLDOWN_MS` (line 82) — `8000L → 4000L`
+
+2. **`android-app/app/src/main/kotlin/com/awdheegle/data/service/UssdAccessibilityService.kt`**
+   - `saveUssdResponse()` (line 384-396) — sidoo kale ku dar queue_id tag
+
+3. **`supabase/functions/activate-package/index.ts`**
+   - Line ~530-590 — ka hor retry, query `delivery_queue.provider_response` & hubi success markers. Haddii la helay → `completed` toos.
+
+4. **Database migration** — clean up false-failed orders.
+
+---
+
+## Outcome (Filashada)
+
+- **~99% dalabyada hal mar ayey ku dhacayaan markii ugu horeysay** (10s timeout vs. 2.5s siiyaa Hormuud waqti ku filan).
+- "Dib u Daar" si dhif ah ayaa loo isticmaali doonaa (kaliya marka SIM-ku off yahay ama balance-ku yahay 0).
+- Lacag-lumin (duplicate USSD dial) waa la xidhayaa server-side guard.
+- Dalabyo hore oo khaldan ayaa la sax doonaa.
+
+**⚠️ Android APK rebuild loo baahan yahay** si tani u shaqeyso aaladaha (GitHub Actions workflow `build-and-upload-apk.yml` ayaa si toos ah u dhisi doonta marka code-ka la commit-gareeyo).
