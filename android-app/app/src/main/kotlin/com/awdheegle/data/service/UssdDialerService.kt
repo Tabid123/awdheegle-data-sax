@@ -1282,9 +1282,29 @@ class UssdDialerService : Service() {
                         android.util.Log.d("UssdDialer", "❌ Invalid/failed response detected - server can retry")
                     }
                     responseText.isEmpty() -> {
-                        detectedStatus = "timeout"
-                        detectedError = "No USSD response received"
-                        android.util.Log.d("UssdDialer", "⏱ No response - reporting timeout")
+                        // Late-capture: give Accessibility 4 more seconds to
+                        // deliver a delayed Hormuud popup before declaring timeout.
+                        android.util.Log.d("UssdDialer", "⏱ Empty response, polling 4s extra for late capture...")
+                        var lateResp: String? = null
+                        repeat(8) {
+                            delay(500)
+                            val r = getLastUssdResponse(order.id, clearAfter = false)
+                            if (!r.isNullOrBlank() && hasSuccessfulDeliveryMarkers(r)) {
+                                lateResp = r
+                                return@repeat
+                            }
+                        }
+                        if (lateResp != null) {
+                            detectedStatus = "completed"
+                            detectedError = null
+                            // Now consume it
+                            getLastUssdResponse(order.id, clearAfter = true)
+                            android.util.Log.d("UssdDialer", "✅ Late-capture success: ${lateResp!!.take(100)}")
+                        } else {
+                            detectedStatus = "timeout"
+                            detectedError = "No USSD response received"
+                            android.util.Log.d("UssdDialer", "⏱ No response after late capture - reporting timeout")
+                        }
                     }
                     else -> {
                         detectedStatus = "timeout"
