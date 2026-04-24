@@ -529,13 +529,20 @@ serve(async (req) => {
       // Fetch current attempts for auto-retry logic
       const { data: existingAttempts, error: attemptsErr } = await supabase
         .from('delivery_queue')
-        .select('attempts')
+        .select('attempts, provider_response')
         .eq('id', queueId)
         .maybeSingle();
       if (attemptsErr) {
         console.warn('Attempts fetch error:', attemptsErr);
       }
       const currentAttempts = ((existingAttempts?.attempts as number | null) ?? 0);
+
+      // 🛡️ PRIOR-SUCCESS GUARD: if a previous attempt for THIS queue id already
+      // captured a successful provider response, never retry again. This stops
+      // duplicate USSD dials (= money loss) when the Android dialer reports
+      // a false "timeout" even though Hormuud actually completed the transfer.
+      const priorResponse = String(existingAttempts?.provider_response || '').toLowerCase();
+      const priorIndicatesSuccess = priorResponse.length > 0 && successKeywords.some(k => priorResponse.includes(k));
 
       // Priority: failure keywords override Android status; success keywords override failure
       let normalizedStatus = 'failed';
