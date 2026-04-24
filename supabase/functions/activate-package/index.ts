@@ -589,8 +589,17 @@ serve(async (req) => {
       } else if (status === 'completed' && providerIndicatesSuccess) {
         normalizedStatus = 'completed';
       } else if (status === 'timeout' || (status === 'completed' && !providerIndicatesSuccess)) {
-        normalizedStatus = currentAttempts < 2 ? 'pending' : 'failed';
-        isAutoRetry = currentAttempts < 2;
+        // 🛡️ If a PRIOR attempt for this same queue id already had a success
+        // marker in the captured response, do NOT retry. Mark as completed.
+        // This prevents duplicate USSD dials (= money loss) when the Android
+        // dialer falsely reports a timeout for an already-completed transfer.
+        if (priorIndicatesSuccess) {
+          normalizedStatus = 'completed';
+          console.log(`🛡️ Prior-success guard: queue ${queueId} already had success markers - marking completed (no retry)`);
+        } else {
+          normalizedStatus = currentAttempts < 2 ? 'pending' : 'failed';
+          isAutoRetry = currentAttempts < 2;
+        }
       } else if (status === 'failed') {
         normalizedStatus = 'failed';
       }
