@@ -1236,11 +1236,18 @@ class UssdDialerService : Service() {
             // Dial USSD code using simplified Intent.ACTION_CALL approach
             // Use order.provider if available, otherwise fallback to loop provider
             val orderProvider = order.provider.ifEmpty { provider }
+            // Tag this queue id as the "active" one BEFORE dialing so the
+            // AccessibilityService can stamp captured responses with it.
+            getSharedPreferences(UssdAccessibilityService.PREFS_NAME, Context.MODE_PRIVATE)
+                .edit()
+                .putString(UssdAccessibilityService.KEY_ACTIVE_QUEUE_ID, order.id)
+                .apply()
+
             val success = dialUssdCode(order.ussdCode, order.receiverPhone, order.packageCode, orderProvider, order.simSlot)
             
             if (success) {
                 // Get the captured USSD response from AccessibilityService
-                val ussdResponse = getLastUssdResponse()
+                val ussdResponse = getLastUssdResponse(order.id)
                 val providerResponse = ussdResponse ?: ""
                 
                 android.util.Log.d("UssdDialer", "📝 Captured USSD response: ${ussdResponse?.take(100) ?: "none"}")
