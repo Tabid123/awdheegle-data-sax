@@ -79,7 +79,7 @@ class UssdDialerService : Service() {
     private var isProcessingOrder = false
     @Volatile
     private var activeQueueId: String? = null
-    private val ORDER_COOLDOWN_MS = 8000L // 8 seconds between orders
+    private val ORDER_COOLDOWN_MS = 4000L // 4 seconds between orders (faster throughput)
     @Volatile
     private var lastOrderCompletedAt = 0L
     private val recentlyProcessedIds = Collections.synchronizedSet(mutableSetOf<String>())
