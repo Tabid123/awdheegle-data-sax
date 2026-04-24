@@ -1468,45 +1468,57 @@ class UssdDialerService : Service() {
     }
     
     /**
-     * Get the last USSD response captured by AccessibilityService
-     * Waits up to 2 seconds with retries for response to be captured
-     * Only returns response if captured within last 30 seconds
+     * Get the last USSD response captured by AccessibilityService.
+     *
+     * Waits up to 10 seconds total (2s initial + 8 retries × 1000ms) so we
+     * give Hormuud's silent USSD callbacks enough time to arrive.
+     *
+     * Only accepts responses tagged with the same queue id we are processing,
+     * preventing a delayed response from a previous order from being mis-
+     * attributed to a new one (race-condition fix).
      */
-    private suspend fun getLastUssdResponse(): String? {
+    private suspend fun getLastUssdResponse(
+        orderQueueId: String,
+        clearAfter: Boolean = true
+    ): String? {
         try {
             val prefs = getSharedPreferences(UssdAccessibilityService.PREFS_NAME, Context.MODE_PRIVATE)
-            
-            // Wait 1 second for AccessibilityService to capture response
-            android.util.Log.d("UssdDialer", "⏳ Waiting 1s for USSD response capture...")
-            delay(1000)
-            
-            // Retry up to 3 times with 500ms delay
-            repeat(3) { attempt ->
+
+            android.util.Log.d("UssdDialer", "⏳ Waiting up to 10s for USSD response capture (queue=$orderQueueId)...")
+            delay(2000)
+
+            repeat(8) { attempt ->
                 val response = prefs.getString(UssdAccessibilityService.KEY_LAST_USSD_RESPONSE, null)
                 val responseTime = prefs.getLong(UssdAccessibilityService.KEY_LAST_USSD_RESPONSE_TIME, 0)
-                
-                // Only use response if it was captured within the last 30 seconds
+                val responseQueueId = prefs.getString(UssdAccessibilityService.KEY_LAST_USSD_RESPONSE_QUEUE_ID, null)
+
                 val ageMs = System.currentTimeMillis() - responseTime
-                if (ageMs < 30000 && !response.isNullOrBlank()) {
-                    android.util.Log.d("UssdDialer", "📥 Retrieved USSD response (age: ${ageMs}ms, attempt: ${attempt+1})")
+                val belongsToThisOrder = responseQueueId == null || responseQueueId == orderQueueId
+
+                if (ageMs < 30000 && !response.isNullOrBlank() && belongsToThisOrder) {
+                    android.util.Log.d("UssdDialer", "📥 Retrieved USSD response (age=${ageMs}ms, attempt=${attempt+1}, queue=$responseQueueId)")
                     android.util.Log.d("UssdDialer", "📝 Response content: ${response.take(150)}")
-                    
-                    // Clear the response after reading to prevent reuse
-                    prefs.edit()
-                        .remove(UssdAccessibilityService.KEY_LAST_USSD_RESPONSE)
-                        .remove(UssdAccessibilityService.KEY_LAST_USSD_RESPONSE_TIME)
-                        .apply()
-                        
+
+                    if (clearAfter) {
+                        prefs.edit()
+                            .remove(UssdAccessibilityService.KEY_LAST_USSD_RESPONSE)
+                            .remove(UssdAccessibilityService.KEY_LAST_USSD_RESPONSE_TIME)
+                            .remove(UssdAccessibilityService.KEY_LAST_USSD_RESPONSE_QUEUE_ID)
+                            .apply()
+                    }
                     return response
                 }
-                
-                if (attempt < 2) {
-                    android.util.Log.d("UssdDialer", "⏳ No response yet, retrying in 500ms (attempt ${attempt+1}/3)")
-                    delay(500)
+
+                if (!response.isNullOrBlank() && !belongsToThisOrder) {
+                    android.util.Log.w("UssdDialer", "🚫 Ignoring stale response from queue=$responseQueueId (active=$orderQueueId)")
+                }
+
+                if (attempt < 7) {
+                    delay(1000)
                 }
             }
-            
-            android.util.Log.d("UssdDialer", "⚠️ No USSD response captured after 3 attempts")
+
+            android.util.Log.d("UssdDialer", "⚠️ No USSD response captured after 10s")
             return null
         } catch (e: Exception) {
             android.util.Log.e("UssdDialer", "❌ Error reading USSD response: ${e.message}")
