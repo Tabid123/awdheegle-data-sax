@@ -79,7 +79,7 @@ class UssdDialerService : Service() {
     private var isProcessingOrder = false
     @Volatile
     private var activeQueueId: String? = null
-    private val ORDER_COOLDOWN_MS = 8000L // 8 seconds between orders
+    private val ORDER_COOLDOWN_MS = 4000L // 4 seconds between orders (faster throughput)
     @Volatile
     private var lastOrderCompletedAt = 0L
     private val recentlyProcessedIds = Collections.synchronizedSet(mutableSetOf<String>())
@@ -1236,11 +1236,18 @@ class UssdDialerService : Service() {
             // Dial USSD code using simplified Intent.ACTION_CALL approach
             // Use order.provider if available, otherwise fallback to loop provider
             val orderProvider = order.provider.ifEmpty { provider }
+            // Tag this queue id as the "active" one BEFORE dialing so the
+            // AccessibilityService can stamp captured responses with it.
+            getSharedPreferences(UssdAccessibilityService.PREFS_NAME, Context.MODE_PRIVATE)
+                .edit()
+                .putString(UssdAccessibilityService.KEY_ACTIVE_QUEUE_ID, order.id)
+                .apply()
+
             val success = dialUssdCode(order.ussdCode, order.receiverPhone, order.packageCode, orderProvider, order.simSlot)
             
             if (success) {
                 // Get the captured USSD response from AccessibilityService
-                val ussdResponse = getLastUssdResponse()
+                val ussdResponse = getLastUssdResponse(order.id)
                 val providerResponse = ussdResponse ?: ""
                 
                 android.util.Log.d("UssdDialer", "📝 Captured USSD response: ${ussdResponse?.take(100) ?: "none"}")
@@ -1256,8 +1263,8 @@ class UssdDialerService : Service() {
                 val isClockJunk = providerResponse.isNotBlank() && isClockOrDateJunk(providerResponse)
                 val hasFailure = isClockJunk || failureKeywords.any { responseText.contains(it) }
                 
-                val detectedStatus: String
-                val detectedError: String?
+                var detectedStatus: String
+                var detectedError: String?
                 
                 when {
                     hasSuccess -> {
@@ -1275,9 +1282,29 @@ class UssdDialerService : Service() {
                         android.util.Log.d("UssdDialer", "❌ Invalid/failed response detected - server can retry")
                     }
                     responseText.isEmpty() -> {
-                        detectedStatus = "timeout"
-                        detectedError = "No USSD response received"
-                        android.util.Log.d("UssdDialer", "⏱ No response - reporting timeout")
+                        // Late-capture: give Accessibility 4 more seconds to
+                        // deliver a delayed Hormuud popup before declaring timeout.
+                        android.util.Log.d("UssdDialer", "⏱ Empty response, polling 4s extra for late capture...")
+                        var lateResp: String? = null
+                        repeat(8) {
+                            delay(500)
+                            val r = getLastUssdResponse(order.id, clearAfter = false)
+                            if (!r.isNullOrBlank() && hasSuccessfulDeliveryMarkers(r)) {
+                                lateResp = r
+                                return@repeat
+                            }
+                        }
+                        if (lateResp != null) {
+                            detectedStatus = "completed"
+                            detectedError = null
+                            // Now consume it
+                            getLastUssdResponse(order.id, clearAfter = true)
+                            android.util.Log.d("UssdDialer", "✅ Late-capture success: ${lateResp!!.take(100)}")
+                        } else {
+                            detectedStatus = "timeout"
+                            detectedError = "No USSD response received"
+                            android.util.Log.d("UssdDialer", "⏱ No response after late capture - reporting timeout")
+                        }
                     }
                     else -> {
                         detectedStatus = "timeout"
@@ -1441,45 +1468,57 @@ class UssdDialerService : Service() {
     }
     
     /**
-     * Get the last USSD response captured by AccessibilityService
-     * Waits up to 2 seconds with retries for response to be captured
-     * Only returns response if captured within last 30 seconds
+     * Get the last USSD response captured by AccessibilityService.
+     *
+     * Waits up to 10 seconds total (2s initial + 8 retries × 1000ms) so we
+     * give Hormuud's silent USSD callbacks enough time to arrive.
+     *
+     * Only accepts responses tagged with the same queue id we are processing,
+     * preventing a delayed response from a previous order from being mis-
+     * attributed to a new one (race-condition fix).
      */
-    private suspend fun getLastUssdResponse(): String? {
+    private suspend fun getLastUssdResponse(
+        orderQueueId: String,
+        clearAfter: Boolean = true
+    ): String? {
         try {
             val prefs = getSharedPreferences(UssdAccessibilityService.PREFS_NAME, Context.MODE_PRIVATE)
-            
-            // Wait 1 second for AccessibilityService to capture response
-            android.util.Log.d("UssdDialer", "⏳ Waiting 1s for USSD response capture...")
-            delay(1000)
-            
-            // Retry up to 3 times with 500ms delay
-            repeat(3) { attempt ->
+
+            android.util.Log.d("UssdDialer", "⏳ Waiting up to 10s for USSD response capture (queue=$orderQueueId)...")
+            delay(2000)
+
+            repeat(8) { attempt ->
                 val response = prefs.getString(UssdAccessibilityService.KEY_LAST_USSD_RESPONSE, null)
                 val responseTime = prefs.getLong(UssdAccessibilityService.KEY_LAST_USSD_RESPONSE_TIME, 0)
-                
-                // Only use response if it was captured within the last 30 seconds
+                val responseQueueId = prefs.getString(UssdAccessibilityService.KEY_LAST_USSD_RESPONSE_QUEUE_ID, null)
+
                 val ageMs = System.currentTimeMillis() - responseTime
-                if (ageMs < 30000 && !response.isNullOrBlank()) {
-                    android.util.Log.d("UssdDialer", "📥 Retrieved USSD response (age: ${ageMs}ms, attempt: ${attempt+1})")
+                val belongsToThisOrder = responseQueueId == null || responseQueueId == orderQueueId
+
+                if (ageMs < 30000 && !response.isNullOrBlank() && belongsToThisOrder) {
+                    android.util.Log.d("UssdDialer", "📥 Retrieved USSD response (age=${ageMs}ms, attempt=${attempt+1}, queue=$responseQueueId)")
                     android.util.Log.d("UssdDialer", "📝 Response content: ${response.take(150)}")
-                    
-                    // Clear the response after reading to prevent reuse
-                    prefs.edit()
-                        .remove(UssdAccessibilityService.KEY_LAST_USSD_RESPONSE)
-                        .remove(UssdAccessibilityService.KEY_LAST_USSD_RESPONSE_TIME)
-                        .apply()
-                        
+
+                    if (clearAfter) {
+                        prefs.edit()
+                            .remove(UssdAccessibilityService.KEY_LAST_USSD_RESPONSE)
+                            .remove(UssdAccessibilityService.KEY_LAST_USSD_RESPONSE_TIME)
+                            .remove(UssdAccessibilityService.KEY_LAST_USSD_RESPONSE_QUEUE_ID)
+                            .apply()
+                    }
                     return response
                 }
-                
-                if (attempt < 2) {
-                    android.util.Log.d("UssdDialer", "⏳ No response yet, retrying in 500ms (attempt ${attempt+1}/3)")
-                    delay(500)
+
+                if (!response.isNullOrBlank() && !belongsToThisOrder) {
+                    android.util.Log.w("UssdDialer", "🚫 Ignoring stale response from queue=$responseQueueId (active=$orderQueueId)")
+                }
+
+                if (attempt < 7) {
+                    delay(1000)
                 }
             }
-            
-            android.util.Log.d("UssdDialer", "⚠️ No USSD response captured after 3 attempts")
+
+            android.util.Log.d("UssdDialer", "⚠️ No USSD response captured after 10s")
             return null
         } catch (e: Exception) {
             android.util.Log.e("UssdDialer", "❌ Error reading USSD response: ${e.message}")
@@ -1493,6 +1532,7 @@ class UssdDialerService : Service() {
                 .edit()
                 .remove(UssdAccessibilityService.KEY_LAST_USSD_RESPONSE)
                 .remove(UssdAccessibilityService.KEY_LAST_USSD_RESPONSE_TIME)
+                .remove(UssdAccessibilityService.KEY_LAST_USSD_RESPONSE_QUEUE_ID)
                 .apply()
         } catch (e: Exception) {
             android.util.Log.e("UssdDialer", "❌ Failed clearing previous USSD response: ${e.message}")
@@ -1709,13 +1749,13 @@ class UssdDialerService : Service() {
                     android.os.Handler(android.os.Looper.getMainLooper())
                 )
                 
-                // Timeout after 10 seconds
+                // Timeout after 15 seconds (Hormuud silent callbacks can take 3-8s+)
                 android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
                     if (continuation.isActive) {
-                        android.util.Log.w("UssdDialer", "⏱️ Silent USSD timeout (10s)")
+                        android.util.Log.w("UssdDialer", "⏱️ Silent USSD timeout (15s)")
                         continuation.resume(false)
                     }
-                }, 10000)
+                }, 15000)
                 
             } catch (e: SecurityException) {
                 android.util.Log.e("UssdDialer", "🔒 Silent USSD permission denied: ${e.message}")

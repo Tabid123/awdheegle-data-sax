@@ -529,13 +529,20 @@ serve(async (req) => {
       // Fetch current attempts for auto-retry logic
       const { data: existingAttempts, error: attemptsErr } = await supabase
         .from('delivery_queue')
-        .select('attempts')
+        .select('attempts, provider_response')
         .eq('id', queueId)
         .maybeSingle();
       if (attemptsErr) {
         console.warn('Attempts fetch error:', attemptsErr);
       }
       const currentAttempts = ((existingAttempts?.attempts as number | null) ?? 0);
+
+      // 🛡️ PRIOR-SUCCESS GUARD: if a previous attempt for THIS queue id already
+      // captured a successful provider response, never retry again. This stops
+      // duplicate USSD dials (= money loss) when the Android dialer reports
+      // a false "timeout" even though Hormuud actually completed the transfer.
+      const priorResponse = String(existingAttempts?.provider_response || '').toLowerCase();
+      const priorIndicatesSuccess = priorResponse.length > 0 && successKeywords.some(k => priorResponse.includes(k));
 
       // Priority: failure keywords override Android status; success keywords override failure
       let normalizedStatus = 'failed';
@@ -582,8 +589,17 @@ serve(async (req) => {
       } else if (status === 'completed' && providerIndicatesSuccess) {
         normalizedStatus = 'completed';
       } else if (status === 'timeout' || (status === 'completed' && !providerIndicatesSuccess)) {
-        normalizedStatus = currentAttempts < 2 ? 'pending' : 'failed';
-        isAutoRetry = currentAttempts < 2;
+        // 🛡️ If a PRIOR attempt for this same queue id already had a success
+        // marker in the captured response, do NOT retry. Mark as completed.
+        // This prevents duplicate USSD dials (= money loss) when the Android
+        // dialer falsely reports a timeout for an already-completed transfer.
+        if (priorIndicatesSuccess) {
+          normalizedStatus = 'completed';
+          console.log(`🛡️ Prior-success guard: queue ${queueId} already had success markers - marking completed (no retry)`);
+        } else {
+          normalizedStatus = currentAttempts < 2 ? 'pending' : 'failed';
+          isAutoRetry = currentAttempts < 2;
+        }
       } else if (status === 'failed') {
         normalizedStatus = 'failed';
       }
