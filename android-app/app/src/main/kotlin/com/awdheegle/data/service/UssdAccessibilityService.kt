@@ -390,12 +390,16 @@ class UssdAccessibilityService : AccessibilityService() {
             return
         }
         try {
-            getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                .edit()
+            val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            // Tag with the active queue id (if any) so the dialer can verify
+            // the response actually belongs to the order it just dialed.
+            val activeQueueId = prefs.getString(KEY_ACTIVE_QUEUE_ID, null)
+            prefs.edit()
                 .putString(KEY_LAST_USSD_RESPONSE, text)
                 .putLong(KEY_LAST_USSD_RESPONSE_TIME, System.currentTimeMillis())
+                .putString(KEY_LAST_USSD_RESPONSE_QUEUE_ID, activeQueueId)
                 .apply()
-            Log.d(TAG, "💾 Saved USSD response to SharedPreferences: ${text.take(100)}")
+            Log.d(TAG, "💾 Saved USSD response (queue=$activeQueueId): ${text.take(100)}")
         } catch (e: Exception) {
             Log.e(TAG, "❌ Failed to save USSD response: ${e.message}")
         }
