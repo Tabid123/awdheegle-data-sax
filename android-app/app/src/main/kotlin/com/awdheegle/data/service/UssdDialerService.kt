@@ -1263,8 +1263,8 @@ class UssdDialerService : Service() {
                 val isClockJunk = providerResponse.isNotBlank() && isClockOrDateJunk(providerResponse)
                 val hasFailure = isClockJunk || failureKeywords.any { responseText.contains(it) }
                 
-                val detectedStatus: String
-                val detectedError: String?
+                var detectedStatus: String
+                var detectedError: String?
                 
                 when {
                     hasSuccess -> {
