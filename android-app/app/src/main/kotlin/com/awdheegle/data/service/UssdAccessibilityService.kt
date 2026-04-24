@@ -34,6 +34,8 @@ class UssdAccessibilityService : AccessibilityService() {
         const val KEY_LAST_USSD_TIME = "last_ussd_time"
         const val KEY_LAST_USSD_RESPONSE = "last_ussd_response"
         const val KEY_LAST_USSD_RESPONSE_TIME = "last_ussd_response_time"
+        const val KEY_LAST_USSD_RESPONSE_QUEUE_ID = "last_ussd_response_queue_id"
+        const val KEY_ACTIVE_QUEUE_ID = "active_queue_id"
         
         // Button texts to auto-click (Somali and English) - EXPANDED LIST
         private val CONFIRM_BUTTONS = listOf(
