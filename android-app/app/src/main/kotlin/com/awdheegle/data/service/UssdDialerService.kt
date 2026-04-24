@@ -1532,6 +1532,7 @@ class UssdDialerService : Service() {
                 .edit()
                 .remove(UssdAccessibilityService.KEY_LAST_USSD_RESPONSE)
                 .remove(UssdAccessibilityService.KEY_LAST_USSD_RESPONSE_TIME)
+                .remove(UssdAccessibilityService.KEY_LAST_USSD_RESPONSE_QUEUE_ID)
                 .apply()
         } catch (e: Exception) {
             android.util.Log.e("UssdDialer", "❌ Failed clearing previous USSD response: ${e.message}")
@@ -1748,13 +1749,13 @@ class UssdDialerService : Service() {
                     android.os.Handler(android.os.Looper.getMainLooper())
                 )
                 
-                // Timeout after 10 seconds
+                // Timeout after 15 seconds (Hormuud silent callbacks can take 3-8s+)
                 android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
                     if (continuation.isActive) {
-                        android.util.Log.w("UssdDialer", "⏱️ Silent USSD timeout (10s)")
+                        android.util.Log.w("UssdDialer", "⏱️ Silent USSD timeout (15s)")
                         continuation.resume(false)
                     }
-                }, 10000)
+                }, 15000)
                 
             } catch (e: SecurityException) {
                 android.util.Log.e("UssdDialer", "🔒 Silent USSD permission denied: ${e.message}")
