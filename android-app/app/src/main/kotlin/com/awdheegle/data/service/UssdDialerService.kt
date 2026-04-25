@@ -1327,20 +1327,22 @@ class UssdDialerService : Service() {
                 }
                 android.util.Log.d("UssdDialer", "📊 Order ${order.orderId} reported as $detectedStatus")
             } else {
-                // Dial failed (permission issue or no SIM) - mark as failed
+                // Dial failed — most common cause is "no SIM for provider".
+                // Report as 'pending' so server can re-queue the order for a device that
+                // actually has the right SIM. This prevents wrong-SIM dialing entirely.
+                val errMsg = "NO_SIM_FOR_PROVIDER:$orderProvider — re-queueing for correct device"
                 val statusUpdated = updateDeliveryStatusWithRetry(
                     queueId = order.id,
-                    status = "failed",
-                    errorMessage = "USSD dial failed - check permissions and SIM",
+                    status = "pending",
+                    errorMessage = errMsg,
                     providerResponse = null
                 )
-                database.deliveryTaskDao().updateStatus(order.id, "failed")
+                database.deliveryTaskDao().updateStatus(order.id, "pending")
                 if (statusUpdated) {
-                    updateStats(success = false)
+                    android.util.Log.w("UssdDialer", "🔁 Order ${order.orderId} re-queued: no SIM for $orderProvider on this device")
                 } else {
-                    saveToOfflineQueue(order.id, "failed", "USSD dial failed", null)
+                    saveToOfflineQueue(order.id, "pending", errMsg, null)
                 }
-                android.util.Log.e("UssdDialer", "❌ Order ${order.orderId} failed - could not dial USSD")
             }
             
         } catch (e: Exception) {
