@@ -135,7 +135,7 @@ async function fetchBusinessData(supabaseAdmin: any): Promise<BusinessData> {
         const pkg = packageMap.get(o.package_id);
         if (pkg) {
           const actualRevenue = o.selling_price * (1 + evoucherRate);
-          profit += actualRevenue - pkg.cost_price;
+          profit += actualRevenue - (pkg as any).cost_price;
         }
       });
       return profit;
@@ -160,7 +160,7 @@ async function fetchBusinessData(supabaseAdmin: any): Promise<BusinessData> {
     const pkg = packageMap.get(o.package_id);
     const provider = providerMap.get(o.provider_id);
     if (pkg) {
-      const existing = packageSales.get(key) || { name: o.package_name, provider: provider?.provider_name || 'Unknown', count: 0, revenue: 0 };
+      const existing = packageSales.get(key) || { name: o.package_name, provider: (provider as any)?.provider_name || 'Unknown', count: 0, revenue: 0 };
       existing.count += 1;
       existing.revenue += o.selling_price || 0;
       packageSales.set(key, existing);
@@ -175,11 +175,11 @@ async function fetchBusinessData(supabaseAdmin: any): Promise<BusinessData> {
     return orders?.reduce((sum, o) => {
       const pkg = packageMap.get(o.package_id);
       const provider = providerMap.get(o.provider_id);
-      const evoucherRate = provider?.evoucher_rate || 0;
+      const evoucherRate = (provider as any)?.evoucher_rate || 0;
       
       if (pkg) {
         const actualRevenue = o.selling_price * (1 + evoucherRate);
-        return sum + (actualRevenue - pkg.cost_price);
+        return sum + (actualRevenue - (pkg as any).cost_price);
       }
       return sum;
     }, 0) || 0;
@@ -231,7 +231,7 @@ async function fetchBusinessData(supabaseAdmin: any): Promise<BusinessData> {
       offline: (devices?.length || 0) - onlineDevices,
     },
     providers: providerStats,
-    top_packages: topPackages,
+    top_packages: topPackages as any,
   };
 }
 
