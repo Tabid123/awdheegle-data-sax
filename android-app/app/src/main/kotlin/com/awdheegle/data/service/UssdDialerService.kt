@@ -1616,18 +1616,11 @@ class UssdDialerService : Service() {
                 }
             }
             
-            // If no carrier match and we have a fallback slot from database, use it
-            if (fallbackSlot != null) {
-                android.util.Log.w("UssdDialer", "⚠️ No carrier match for '$providerName', using database fallback slot: $fallbackSlot")
-                val fallbackInfo = subscriptionInfoList.find { it.simSlotIndex == fallbackSlot }
-                if (fallbackInfo != null) {
-                    android.util.Log.d("UssdDialer", "✅ Using fallback SIM slot $fallbackSlot (subId=${fallbackInfo.subscriptionId})")
-                    return fallbackInfo.subscriptionId
-                }
-            }
-            
-            // If no match, log ALL available SIMs for debugging
-            android.util.Log.e("UssdDialer", "❌ NO SIM MATCH for '$providerName'")
+            // 🚫 CRITICAL: NO FALLBACK to a different SIM!
+            // Diraysta USSD-ga provider gaar ah waa inay ka baxdaa SIM-ka provider-kaas.
+            // Haddii SIM-ka aan la helin, HA dirin USSD — order-ka waa la celin doonaa server-ka
+            // si aalad kale oo leh SIM-ka saxda ah u qaado.
+            android.util.Log.e("UssdDialer", "❌ NO_SIM_FOR_PROVIDER:$providerName — refusing to dial from wrong SIM (no fallback)")
             return null
         } catch (e: Exception) {
             android.util.Log.e("UssdDialer", "❌ Error finding SIM: ${e.message}")
