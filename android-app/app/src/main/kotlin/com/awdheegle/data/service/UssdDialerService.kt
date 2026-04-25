@@ -1550,6 +1550,25 @@ class UssdDialerService : Service() {
 
     private fun hasSuccessfulDeliveryMarkers(text: String): Boolean {
         val normalized = text.lowercase()
+
+        // 🚫 Reject app's own status text — never count as success
+        if (normalized.contains("awdheegle data") ||
+            normalized.contains("always on") ||
+            normalized.contains("service running") ||
+            normalized.contains("setup instructions") ||
+            normalized.contains("disable battery") ||
+            normalized.contains("enable ussd")) {
+            return false
+        }
+
+        // 🚫 Reject explicit failure signals
+        if (normalized.contains("receiver airtime partner not found") ||
+            normalized.contains("partner not found") ||
+            normalized.contains("not found")) {
+            return false
+        }
+
+        // ✅ Only STRONG, unambiguous success markers
         val strongMarkers = listOf(
             "ugu shubtay",
             "ku shubtay",
@@ -1563,17 +1582,8 @@ class UssdDialerService : Service() {
             "lacagta waa la diray",
             "u dirtay"
         )
-        val weakMarkers = listOf(
-            "e-voucher",
-            "voucher",
-            "jeeb",
-            "dhammays",
-            "haraagaagu waa",
-            "haraagagu waa"
-        )
 
-        return strongMarkers.any { normalized.contains(it) } ||
-            (weakMarkers.any { normalized.contains(it) } && normalized.any { it.isDigit() })
+        return strongMarkers.any { normalized.contains(it) }
     }
 
     private fun findSubscriptionIdByCarrierName(providerName: String, fallbackSlot: Int? = null): Int? {
