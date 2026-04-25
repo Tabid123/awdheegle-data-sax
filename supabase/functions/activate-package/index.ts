@@ -544,11 +544,23 @@ serve(async (req) => {
       const priorResponse = String(existingAttempts?.provider_response || '').toLowerCase();
       const priorIndicatesSuccess = priorResponse.length > 0 && successKeywords.some(k => priorResponse.includes(k));
 
+      // 🚦 Detect explicit "wrong device for provider" — re-queue WITHOUT counting as retry
+      const isNoSimForProvider = (status === 'pending') &&
+        typeof errorMessage === 'string' &&
+        errorMessage.includes('NO_SIM_FOR_PROVIDER');
+
       // Priority: failure keywords override Android status; success keywords override failure
       let normalizedStatus = 'failed';
       let isAutoRetry = false;
+      let isNoSimRequeue = false;
 
-      if (providerIndicatesFailure && !providerIndicatesSuccess) {
+      if (isNoSimForProvider) {
+        // Order ka claim gareeyay device aan lahayn SIM-ka saxda ah.
+        // Dib u celi queue-ga, HA xisaabin sidii retry, HA u dirin device-kaas mar kale.
+        normalizedStatus = 'pending';
+        isNoSimRequeue = true;
+        console.log(`🔁 NO_SIM_FOR_PROVIDER for queue ${queueId} — re-queueing for correct device`);
+      } else if (providerIndicatesFailure && !providerIndicatesSuccess) {
         // Check for Somtel-specific "horey" + "furtay" keywords → 60s cooldown, MAX 10 attempts
         const isSomtelRetry = text.includes('horey') && text.includes('furtay');
         
@@ -616,7 +628,15 @@ serve(async (req) => {
         updateData.provider_response = providerResponse;
       }
 
-      if (isAutoRetry) {
+      if (isNoSimRequeue) {
+        // Release device, do NOT increment attempts (overwrite the increment above)
+        updateData.attempts = currentAttempts;
+        updateData.android_device_id = null;
+        updateData.claimed_by = null;
+        updateData.claimed_at = null;
+        updateData.scheduled_at = new Date(Date.now() + 5000).toISOString();
+        updateData.error_message = errorMessage || 'NO_SIM_FOR_PROVIDER — waiting for correct device';
+      } else if (isAutoRetry) {
         // Somtel retry uses 60s cooldown, others use 15s
         const isSomtelRetry = text.includes('horey') && text.includes('furtay');
         const cooldownMs = isSomtelRetry ? 60000 : 15000;
