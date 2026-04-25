@@ -228,12 +228,12 @@ serve(async (req) => {
       const buildUssd = (amountPart: number) => {
         const amountFormatted = formatAmountForUssd(amountPart);
         return sanitizeUssdCode(
-          instruction.code_template
+          instruction!.code_template!
             .replace('{receiver_phone}', receiverForUssd)
             .replace('{cost_price}', amountFormatted)
             .replace('{selling_price}', amountFormatted)
             .replace('{amount}', amountFormatted)
-            .replace('{sim_password}', instruction.sim_password || '5516')
+            .replace('{sim_password}', instruction!.sim_password || '5516')
         );
       };
 
