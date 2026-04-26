@@ -2,7 +2,20 @@
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Background color - Awdheegle Data brand blue -->
     <item android:drawable="@color/splash_background" />
-    
+
+    <!-- Soft shadow layer behind the logo (offset down + blurred via alpha) -->
+    <item
+        android:gravity="center"
+        android:width="190dp"
+        android:height="190dp"
+        android:top="12dp">
+        <bitmap
+            android:gravity="center"
+            android:src="@drawable/splash_logo"
+            android:tint="@color/splash_logo_shadow"
+            android:alpha="0.45" />
+    </item>
+
     <!-- Centered logo - fitted -->
     <item
         android:gravity="center"
