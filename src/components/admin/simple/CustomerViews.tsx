@@ -405,17 +405,23 @@ export const DevicesCustomView = ({ isSo }: { isSo: boolean }) => {
                       const sim2Balances = devBalances.filter(b => b.sim_slot === 2);
                       const renderBal = (bals: any[], simLabel: string, provider: string) => {
                         if (bals.length === 0) return null;
-                        const evc = bals.find(b => b.balance_type === 'evc_plus');
+                        const p = (provider || '').toLowerCase();
+                        const walletType = p.includes('somnet') || p.includes('telesom') || p.includes('golis')
+                          ? { type: 'jeeb', label: 'Jeeb' }
+                          : (p.includes('somtel') || p.includes('edahab') || p.includes('e-dahab') || p.includes('zaad'))
+                          ? { type: 'edahab', label: 'E-Dahab' }
+                          : { type: 'evc_plus', label: 'EVC+' };
+                        const wallet = bals.find(b => b.balance_type === walletType.type);
                         const evoucher = bals.find(b => b.balance_type === 'evoucher');
                         return (
                           <div className="bg-white/10 rounded-lg p-2">
                             <div className="text-[10px] opacity-70 font-bold mb-1">{simLabel} ({provider})</div>
                             <div className="flex gap-3 text-xs">
-                              {evc && <div>EVC+: <span className="font-bold">${evc.balance?.toFixed(2)}</span></div>}
+                              {wallet && <div>{walletType.label}: <span className="font-bold">${wallet.balance?.toFixed(2)}</span></div>}
                               {evoucher && <div>E-Voucher: <span className="font-bold">${evoucher.balance?.toFixed(2)}</span></div>}
-                              {!evc && !evoucher && <div className="opacity-50">—</div>}
+                              {!wallet && !evoucher && <div className="opacity-50">—</div>}
                             </div>
-                            {(evc || evoucher) && <div className="text-[9px] opacity-50 mt-0.5">{formatTimeAgo((evc || evoucher).last_updated)}</div>}
+                            {(wallet || evoucher) && <div className="text-[9px] opacity-50 mt-0.5">{formatTimeAgo((wallet || evoucher).last_updated)}</div>}
                           </div>
                         );
                       };

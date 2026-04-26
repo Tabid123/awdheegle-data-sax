@@ -37,6 +37,8 @@ interface SimInfo {
   provider_logo: string | null;
   evc_balance: number;
   evoucher_balance: number;
+  wallet_balance: number;
+  wallet_label: string;
   evoucher_rate: number;
 }
 
@@ -278,23 +280,44 @@ const SimpleAdminDashboard = () => {
         // sim_balances.device_id stores android_devices.id (UUID)
         const deviceBalances = balanceData.filter(b => b.device_id === d.id);
         
+        // Determine wallet bucket per provider:
+        //   hormuud -> evc_plus (label: EVC Plus)
+        //   somnet  -> jeeb     (label: Jeeb)
+        //   somtel  -> edahab   (label: E-Dahab)
+        const getWalletConfig = (prov: string) => {
+          const p = (prov || '').toLowerCase();
+          if (p.includes('somnet') || p.includes('telesom') || p.includes('golis'))
+            return { type: 'jeeb', label: 'Jeeb' };
+          if (p.includes('somtel') || p.includes('edahab') || p.includes('e-dahab') || p.includes('zaad'))
+            return { type: 'edahab', label: 'E-Dahab' };
+          return { type: 'evc_plus', label: 'EVC Plus' };
+        };
+
         const sims: SimInfo[] = [];
         const sim1Provider = d.sim1_provider || d.provider_name || '';
+        const sim1Wallet = getWalletConfig(sim1Provider);
         const sim1Evc = deviceBalances.find(b => b.sim_slot === 1 && b.balance_type === 'evc_plus');
         const sim1Ev = deviceBalances.find(b => b.sim_slot === 1 && b.balance_type === 'evoucher');
+        const sim1WalletBal = deviceBalances.find(b => b.sim_slot === 1 && b.balance_type === sim1Wallet.type);
         sims.push({
           sim_slot: 1, sim_number: d.sim_number || '', provider_name: sim1Provider,
           provider_logo: findProviderLogo(sim1Provider),
           evc_balance: sim1Evc?.balance || 0, evoucher_balance: sim1Ev?.balance || 0,
+          wallet_balance: sim1WalletBal?.balance || 0,
+          wallet_label: sim1Wallet.label,
           evoucher_rate: findProviderRate(sim1Provider),
         });
         if (d.sim2_number && d.sim2_provider) {
+          const sim2Wallet = getWalletConfig(d.sim2_provider);
           const sim2Evc = deviceBalances.find(b => b.sim_slot === 2 && b.balance_type === 'evc_plus');
           const sim2Ev = deviceBalances.find(b => b.sim_slot === 2 && b.balance_type === 'evoucher');
+          const sim2WalletBal = deviceBalances.find(b => b.sim_slot === 2 && b.balance_type === sim2Wallet.type);
           sims.push({
             sim_slot: 2, sim_number: d.sim2_number, provider_name: d.sim2_provider,
             provider_logo: findProviderLogo(d.sim2_provider),
             evc_balance: sim2Evc?.balance || 0, evoucher_balance: sim2Ev?.balance || 0,
+            wallet_balance: sim2WalletBal?.balance || 0,
+            wallet_label: sim2Wallet.label,
             evoucher_rate: findProviderRate(d.sim2_provider),
           });
         }
@@ -586,23 +609,16 @@ const SimpleAdminDashboard = () => {
                                     </span>
                                   )}
                                 </div>
-                                {isHormuud ? (
-                                  <div className="space-y-0.5 text-[10px]">
-                                    <div className="flex items-center justify-between">
-                                      <span className="text-gray-500">EVC Plus:</span>
-                                      <span className="font-bold text-gray-900 dark:text-white">${sim.evc_balance.toFixed(2)} <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 align-middle" /></span>
-                                    </div>
-                                    <div className="flex items-center justify-between">
-                                      <span className="text-gray-500">E-Voucher:</span>
-                                      <span className="font-bold text-gray-900 dark:text-white">${sim.evoucher_balance.toFixed(2)} <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 align-middle" /></span>
-                                    </div>
+                                <div className="space-y-0.5 text-[10px]">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-gray-500">{sim.wallet_label}:</span>
+                                    <span className="font-bold text-gray-900 dark:text-white">${sim.wallet_balance.toFixed(2)} <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 align-middle" /></span>
                                   </div>
-                                ) : (
-                                  <div className="flex items-center justify-between text-[10px]">
-                                    <span className="text-gray-500">Balance:</span>
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-gray-500">E-Voucher:</span>
                                     <span className="font-bold text-gray-900 dark:text-white">${sim.evoucher_balance.toFixed(2)} <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 align-middle" /></span>
                                   </div>
-                                )}
+                                </div>
                               </div>
                             </div>
                           );
@@ -616,8 +632,8 @@ const SimpleAdminDashboard = () => {
               {/* Wadarta Lacagta - Total Balances Summary */}
               {deviceCards.length > 0 && (() => {
                 const totalEvoucher = deviceCards.reduce((sum, d) => sum + d.sims.reduce((s, sim) => s + sim.evoucher_balance, 0), 0);
-                const totalEvc = deviceCards.reduce((sum, d) => sum + d.sims.reduce((s, sim) => s + sim.evc_balance, 0), 0);
-                const totalAll = totalEvoucher + totalEvc;
+                const totalWallet = deviceCards.reduce((sum, d) => sum + d.sims.reduce((s, sim) => s + sim.wallet_balance, 0), 0);
+                const totalAll = totalEvoucher + totalWallet;
                 return (
                   <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-gray-800 dark:to-gray-750 rounded-xl border border-blue-200 dark:border-gray-700 p-3 mt-3 shadow-sm">
                     <div className="flex items-center gap-1.5 mb-2">
@@ -630,8 +646,8 @@ const SimpleAdminDashboard = () => {
                         <div className="font-bold text-green-700 dark:text-green-400 text-sm">${totalEvoucher.toFixed(2)}</div>
                       </div>
                       <div className="bg-white dark:bg-gray-800 rounded-lg border border-blue-200 dark:border-blue-800 p-2 text-center">
-                        <div className="text-[9px] text-gray-500 mb-0.5">EVC Plus</div>
-                        <div className="font-bold text-gray-900 dark:text-white text-sm">${totalEvc.toFixed(2)}</div>
+                        <div className="text-[9px] text-gray-500 mb-0.5">Wallet (EVC/Jeeb/eDahab)</div>
+                        <div className="font-bold text-gray-900 dark:text-white text-sm">${totalWallet.toFixed(2)}</div>
                       </div>
                       <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-300 dark:border-blue-700 p-2 text-center">
                         <div className="text-[9px] text-gray-500 mb-0.5">Wadarta Guud</div>
