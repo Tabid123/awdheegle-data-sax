@@ -167,7 +167,7 @@ const Index = () => {
   // Show splash screen
   if (isChecking) {
     return (
-      <div className="fixed inset-0 flex flex-col items-center justify-center z-50 overflow-hidden" style={{ background: '#1370F0' }}>
+      <div className="fixed inset-0 flex flex-col items-center justify-center z-50 overflow-hidden" style={{ background: '#1236C0' }}>
         {/* Ambient radial glow behind logo */}
         <div
           className="absolute pointer-events-none"
