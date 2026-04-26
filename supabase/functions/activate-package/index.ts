@@ -228,7 +228,7 @@ serve(async (req) => {
       const buildUssd = (amountPart: number) => {
         const amountFormatted = formatAmountForUssd(amountPart);
         return sanitizeUssdCode(
-          instruction.code_template
+          (instruction.code_template ?? '')
             .replace('{receiver_phone}', receiverForUssd)
             .replace('{cost_price}', amountFormatted)
             .replace('{selling_price}', amountFormatted)
