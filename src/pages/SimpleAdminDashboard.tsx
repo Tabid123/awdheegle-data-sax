@@ -609,23 +609,16 @@ const SimpleAdminDashboard = () => {
                                     </span>
                                   )}
                                 </div>
-                                {isHormuud ? (
-                                  <div className="space-y-0.5 text-[10px]">
-                                    <div className="flex items-center justify-between">
-                                      <span className="text-gray-500">EVC Plus:</span>
-                                      <span className="font-bold text-gray-900 dark:text-white">${sim.evc_balance.toFixed(2)} <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 align-middle" /></span>
-                                    </div>
-                                    <div className="flex items-center justify-between">
-                                      <span className="text-gray-500">E-Voucher:</span>
-                                      <span className="font-bold text-gray-900 dark:text-white">${sim.evoucher_balance.toFixed(2)} <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 align-middle" /></span>
-                                    </div>
+                                <div className="space-y-0.5 text-[10px]">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-gray-500">{sim.wallet_label}:</span>
+                                    <span className="font-bold text-gray-900 dark:text-white">${sim.wallet_balance.toFixed(2)} <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 align-middle" /></span>
                                   </div>
-                                ) : (
-                                  <div className="flex items-center justify-between text-[10px]">
-                                    <span className="text-gray-500">Balance:</span>
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-gray-500">E-Voucher:</span>
                                     <span className="font-bold text-gray-900 dark:text-white">${sim.evoucher_balance.toFixed(2)} <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 align-middle" /></span>
                                   </div>
-                                )}
+                                </div>
                               </div>
                             </div>
                           );
