@@ -5,7 +5,8 @@
     <color name="awdheegle_blue_dark">#0B2447</color>
     <color name="awdheegle_blue_light">#4A95F5</color>
     <color name="awdheegle_navy">#0B2447</color>
-    <color name="splash_background">#1370F0</color>
+    <color name="splash_background">#1236C0</color>
+    <color name="splash_logo_shadow">#80000000</color>
     <color name="white">#FFFFFF</color>
     <color name="black">#000000</color>
 </resources>
