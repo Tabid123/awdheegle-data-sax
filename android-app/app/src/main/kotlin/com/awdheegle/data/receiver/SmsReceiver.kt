@@ -80,14 +80,18 @@ class SmsReceiver : BroadcastReceiver() {
                     val isEvoucherSms = bodyLower.contains("voucher") || bodyLower.contains("evoucher") || 
                                         bodyLower.contains("e-voucher") || bodyLower.contains("xirmo") || 
                                         bodyLower.contains("xirmada") || bodyLower.contains("dhammays")
+                    val isJeebSms = bodyLower.contains("[-jeeb-]") || bodyLower.contains("[-jeeb -]")
+                    val isEdahabSms = bodyLower.contains("[-edahab") || bodyLower.contains("edahab") ||
+                                      bodyLower.contains("e-dahab")
                     
-                    if (isEvcSms || isEvoucherSms) {
-                        val txType = if (isEvoucherSms) "evoucher" else "evc_plus"
+                    if (isEvcSms || isEvoucherSms || isJeebSms || isEdahabSms) {
+                        val txType = detectBalanceType(bodyLower)
                         val smsType = when {
                             bodyLower.contains("ka heshay") || bodyLower.contains("received from") || 
                             bodyLower.contains("received airtime") -> "incoming"
                             bodyLower.contains("uwareejisay") || bodyLower.contains("you have sent") || 
-                            bodyLower.contains("sent to") -> "outgoing"
+                            bodyLower.contains("sent to") || bodyLower.contains("ugu shubtay") ||
+                            bodyLower.contains("wareejiso") -> "outgoing"
                             else -> "incoming"
                         }
                         val amount = extractAmount(messageBody)
