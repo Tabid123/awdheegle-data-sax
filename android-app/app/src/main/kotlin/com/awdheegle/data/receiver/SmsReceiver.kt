@@ -506,27 +506,12 @@ class SmsReceiver : BroadcastReceiver() {
         
         val bodyLower = body.lowercase()
         
-        // SMART BALANCE TYPE DETECTION based on SMS content
-        val balanceType = when {
-            // E-Voucher indicators (including Somtel data package keywords)
-            bodyLower.contains("voucher") ||
-            bodyLower.contains("evoucher") ||
-            bodyLower.contains("e-voucher") ||
-            bodyLower.contains("xirmo") ||
-            bodyLower.contains("xirmada") ||
-            bodyLower.contains("e-xirmada") ||
-            bodyLower.contains("dhammays") -> "evoucher"
-            
-            // EVC Plus indicators (or default)
-            bodyLower.contains("evcplus") ||
-            bodyLower.contains("evc plus") ||
-            bodyLower.contains("[-evcplus-]") ||
-            bodyLower.contains("evc-plus") -> "evc_plus"
-            
-            // Default to evoucher for non-Hormuud providers (Somtel, Amtel, Somnet)
-            // Only Hormuud has evc_plus, others use evoucher for data credit
-            else -> "evoucher"
-        }
+        // SMART BALANCE TYPE DETECTION based on provider tag + transaction direction
+        // 4 distinct balance buckets:
+        //   - hormuud: evc_plus (wallet) | evoucher (data credit)
+        //   - somnet:  jeeb     (wallet) | evoucher (data credit)
+        //   - somtel:  edahab   (wallet) | evoucher (data credit)
+        val balanceType = detectBalanceType(bodyLower)
         
         Log.d(TAG, "🔍 Detected balance type from SMS content: $balanceType")
         
