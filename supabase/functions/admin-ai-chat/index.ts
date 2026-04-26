@@ -127,12 +127,12 @@ async function fetchBusinessData(supabaseAdmin: any): Promise<BusinessData> {
     const providerTodayOrders = todayOrders?.filter((o: any) => o.provider_id === provider.id) || [];
     const providerYesterdayOrders = yesterdayOrders?.filter((o: any) => o.provider_id === provider.id) || [];
     const providerAllOrders = allOrders?.filter((o: any) => o.provider_id === provider.id) || [];
-    const evoucherRate = provider.evoucher_rate || 0;
+    const evoucherRate = (provider as any).evoucher_rate || 0;
     
     const calcProviderProfit = (orders: any[]) => {
       let profit = 0;
       orders.forEach((o: any) => {
-        const pkg = packageMap.get(o.package_id);
+        const pkg: any = packageMap.get(o.package_id);
         if (pkg) {
           const actualRevenue = o.selling_price * (1 + evoucherRate);
           profit += actualRevenue - pkg.cost_price;
@@ -157,10 +157,10 @@ async function fetchBusinessData(supabaseAdmin: any): Promise<BusinessData> {
   const packageSales = new Map<string, { name: string; provider: string; count: number; revenue: number }>();
   allOrders?.forEach((o: any) => {
     const key = o.package_id;
-    const pkg = packageMap.get(o.package_id);
-    const provider = providerMap.get(o.provider_id);
+    const pkg: any = packageMap.get(o.package_id);
+    const provider: any = providerMap.get(o.provider_id);
     if (pkg) {
-      const existing = packageSales.get(key) || { name: o.package_name, provider: provider?.provider_name || 'Unknown', count: 0, revenue: 0 };
+      const existing = packageSales.get(key) || { name: o.package_name, provider: (provider?.provider_name as string) || 'Unknown', count: 0, revenue: 0 };
       existing.count += 1;
       existing.revenue += o.selling_price || 0;
       packageSales.set(key, existing);
@@ -168,13 +168,14 @@ async function fetchBusinessData(supabaseAdmin: any): Promise<BusinessData> {
   });
   const topPackages = Array.from(packageSales.values())
     .sort((a, b) => b.count - a.count)
-    .slice(0, 10);
+    .slice(0, 10)
+    .map((p) => ({ name: p.name, provider: p.provider, sales_count: p.count, revenue: p.revenue }));
 
   // Calculate profits correctly: (selling_price * (1 + evoucher_rate)) - cost_price
   const calcProfit = (orders: any[]) => {
     return orders?.reduce((sum, o) => {
-      const pkg = packageMap.get(o.package_id);
-      const provider = providerMap.get(o.provider_id);
+      const pkg: any = packageMap.get(o.package_id);
+      const provider: any = providerMap.get(o.provider_id);
       const evoucherRate = provider?.evoucher_rate || 0;
       
       if (pkg) {
