@@ -352,6 +352,59 @@ export const BalanceManagement = () => {
         </div>
       </Card>
 
+      {/* Hormuud E-Voucher (data credit) */}
+      <Card className="overflow-hidden">
+        <div className="bg-gradient-to-br from-amber-500 via-orange-500 to-rose-500 p-5 text-white">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Wallet className="h-5 w-5" />
+              <h3 className="text-base font-semibold">Hormuud E-Voucher</h3>
+            </div>
+            <p className="text-3xl font-extrabold tracking-tight">${hormuudEvoucher.toFixed(2)}</p>
+          </div>
+        </div>
+      </Card>
+
+      {/* Somnet: Jeeb + E-Voucher */}
+      <Card className="overflow-hidden">
+        <div className="bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 p-5 text-white">
+          <div className="flex items-center gap-2 mb-3">
+            <Wallet className="h-5 w-5" />
+            <h3 className="text-base font-semibold">Somnet</h3>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-white/10 rounded-lg p-3 text-center">
+              <p className="text-xs text-white/70 mb-1">Jeeb</p>
+              <p className="text-2xl font-bold">${somnetJeeb.toFixed(2)}</p>
+            </div>
+            <div className="bg-white/10 rounded-lg p-3 text-center">
+              <p className="text-xs text-white/70 mb-1">E-Voucher</p>
+              <p className="text-2xl font-bold">${somnetEvoucher.toFixed(2)}</p>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* Somtel: E-Dahab + E-Voucher */}
+      <Card className="overflow-hidden">
+        <div className="bg-gradient-to-br from-red-600 via-rose-600 to-pink-700 p-5 text-white">
+          <div className="flex items-center gap-2 mb-3">
+            <Wallet className="h-5 w-5" />
+            <h3 className="text-base font-semibold">Somtel</h3>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-white/10 rounded-lg p-3 text-center">
+              <p className="text-xs text-white/70 mb-1">E-Dahab</p>
+              <p className="text-2xl font-bold">${somtelEdahab.toFixed(2)}</p>
+            </div>
+            <div className="bg-white/10 rounded-lg p-3 text-center">
+              <p className="text-xs text-white/70 mb-1">E-Voucher</p>
+              <p className="text-2xl font-bold">${somtelEvoucher.toFixed(2)}</p>
+            </div>
+          </div>
+        </div>
+      </Card>
+
       {/* Send Money Button */}
       <Button 
         onClick={() => { resetDialog(); setShowSendDialog(true); }} 
