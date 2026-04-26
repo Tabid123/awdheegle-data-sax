@@ -69,7 +69,7 @@ async function ensureBalanceRows(
 
   if (!missingRows.length) return
 
-  const { error: insertError } = await supabase.from('sim_balances').insert(missingRows)
+  const { error: insertError } = await (supabase as any).from('sim_balances').insert(missingRows)
   if (insertError) {
     console.error('Error creating sim_balances rows:', insertError)
   }
@@ -173,7 +173,7 @@ Deno.serve(async (req) => {
       throw upsertError
     }
 
-    await ensureBalanceRows(supabase, androidDevice.id, sim1Provider, sim2Provider)
+    await ensureBalanceRows(supabase as any, androidDevice.id, sim1Provider, sim2Provider)
 
     return jsonResponse({
       success: true,
