@@ -80,14 +80,18 @@ class SmsReceiver : BroadcastReceiver() {
                     val isEvoucherSms = bodyLower.contains("voucher") || bodyLower.contains("evoucher") || 
                                         bodyLower.contains("e-voucher") || bodyLower.contains("xirmo") || 
                                         bodyLower.contains("xirmada") || bodyLower.contains("dhammays")
+                    val isJeebSms = bodyLower.contains("[-jeeb-]") || bodyLower.contains("[-jeeb -]")
+                    val isEdahabSms = bodyLower.contains("[-edahab") || bodyLower.contains("edahab") ||
+                                      bodyLower.contains("e-dahab")
                     
-                    if (isEvcSms || isEvoucherSms) {
-                        val txType = if (isEvoucherSms) "evoucher" else "evc_plus"
+                    if (isEvcSms || isEvoucherSms || isJeebSms || isEdahabSms) {
+                        val txType = detectBalanceType(bodyLower)
                         val smsType = when {
                             bodyLower.contains("ka heshay") || bodyLower.contains("received from") || 
                             bodyLower.contains("received airtime") -> "incoming"
                             bodyLower.contains("uwareejisay") || bodyLower.contains("you have sent") || 
-                            bodyLower.contains("sent to") -> "outgoing"
+                            bodyLower.contains("sent to") || bodyLower.contains("ugu shubtay") ||
+                            bodyLower.contains("wareejiso") -> "outgoing"
                             else -> "incoming"
                         }
                         val amount = extractAmount(messageBody)
@@ -506,27 +510,12 @@ class SmsReceiver : BroadcastReceiver() {
         
         val bodyLower = body.lowercase()
         
-        // SMART BALANCE TYPE DETECTION based on SMS content
-        val balanceType = when {
-            // E-Voucher indicators (including Somtel data package keywords)
-            bodyLower.contains("voucher") ||
-            bodyLower.contains("evoucher") ||
-            bodyLower.contains("e-voucher") ||
-            bodyLower.contains("xirmo") ||
-            bodyLower.contains("xirmada") ||
-            bodyLower.contains("e-xirmada") ||
-            bodyLower.contains("dhammays") -> "evoucher"
-            
-            // EVC Plus indicators (or default)
-            bodyLower.contains("evcplus") ||
-            bodyLower.contains("evc plus") ||
-            bodyLower.contains("[-evcplus-]") ||
-            bodyLower.contains("evc-plus") -> "evc_plus"
-            
-            // Default to evoucher for non-Hormuud providers (Somtel, Amtel, Somnet)
-            // Only Hormuud has evc_plus, others use evoucher for data credit
-            else -> "evoucher"
-        }
+        // SMART BALANCE TYPE DETECTION based on provider tag + transaction direction
+        // 4 distinct balance buckets:
+        //   - hormuud: evc_plus (wallet) | evoucher (data credit)
+        //   - somnet:  jeeb     (wallet) | evoucher (data credit)
+        //   - somtel:  edahab   (wallet) | evoucher (data credit)
+        val balanceType = detectBalanceType(bodyLower)
         
         Log.d(TAG, "🔍 Detected balance type from SMS content: $balanceType")
         
@@ -597,6 +586,9 @@ class SmsReceiver : BroadcastReceiver() {
             return null
         }
         
+        // Detect provider/wallet bucket from SMS content
+        val detectedType = detectBalanceType(bodyLower)
+        
         // E-Voucher balance patterns (check first - more specific)
         // "E-Voucher haraagaagu waa $12.50" or "Xirmadaada waa $5.00" or "Xirmo: $5.00"
         if (bodyLower.contains("e-voucher") || bodyLower.contains("evoucher") || 
@@ -644,7 +636,7 @@ class SmsReceiver : BroadcastReceiver() {
                         }
                         
                         Log.d(TAG, "💳 E-Voucher balance detected: $$amount")
-                        return BalanceInfo("evoucher", amount)
+                        return BalanceInfo(detectedType, amount)
                     }
                 }
             }
@@ -738,13 +730,83 @@ class SmsReceiver : BroadcastReceiver() {
                         }
                         
                         Log.d(TAG, "💵 EVC Plus balance detected: $$amount")
-                        return BalanceInfo("evc_plus", amount)
+                        return BalanceInfo(detectedType, amount)
                     }
                 }
             }
         }
         
         return null
+    }
+
+    /**
+     * Detect which balance bucket an SMS belongs to.
+     * Returns one of: evc_plus, evoucher, jeeb, edahab
+     *
+     * Logic:
+     *   1. Identify provider tag in SMS ([-Jeeb-] / [-eDahab-] / [-EVCPlus-])
+     *      and combine with transaction direction ("ka heshay" vs "ugu shubtay" /
+     *      "wareejiso" / "Dhammays") to pick the right bucket.
+     *   2. Hormuud: EVCPlus tag or "evc plus" => evc_plus, voucher/xirmo/dhammays => evoucher.
+     *   3. Somnet ([-Jeeb-]): "ka heshay" => jeeb (wallet), "ugu shubtay" => evoucher (data credit sent).
+     *   4. Somtel ([-eDahab-]): always edahab. Somtel data tx ("Dhammays" / "wareejiso" / Asiya/Saabir
+     *      bot without eDahab tag) => evoucher.
+     */
+    private fun detectBalanceType(bodyLower: String): String {
+        // ---- Hormuud ----
+        val isHormuud = bodyLower.contains("[-evcplus-]") || bodyLower.contains("evcplus") ||
+                bodyLower.contains("evc plus") || bodyLower.contains("evc-plus") ||
+                bodyLower.contains("sahal")
+        // ---- Somnet (Jeeb) ----
+        val isSomnetTag = bodyLower.contains("[-jeeb-]") || bodyLower.contains("[-jeeb -]") ||
+                bodyLower.contains("somnet") || bodyLower.contains("telesom") ||
+                bodyLower.contains("golis")
+        // ---- Somtel (eDahab) ----
+        val isSomtelEdahabTag = bodyLower.contains("[-edahab") || bodyLower.contains("edahab") ||
+                bodyLower.contains("e-dahab") || bodyLower.contains("zaad")
+        val isSomtelDataTag = bodyLower.contains("dhammays") || bodyLower.contains("somtel") ||
+                bodyLower.contains("saabir") || bodyLower.contains("asiya")
+
+        // ---- Direction markers ----
+        val isReceived = bodyLower.contains("ka heshay") || bodyLower.contains("received from") ||
+                bodyLower.contains("ka helay") || bodyLower.contains("ayaad ka heshay")
+        val isSent = bodyLower.contains("ugu shubtay") || bodyLower.contains("u shubtay") ||
+                bodyLower.contains("wareejiso") || bodyLower.contains("u wareejiyay") ||
+                bodyLower.contains("uwareejisay") || bodyLower.contains("you have sent") ||
+                bodyLower.contains("sent to")
+        val isDataCreditKeyword = bodyLower.contains("voucher") || bodyLower.contains("xirmo") ||
+                bodyLower.contains("xirmada") || bodyLower.contains("dhammays")
+
+        // Hormuud bucket
+        if (isHormuud) {
+            return if (isDataCreditKeyword) "evoucher" else "evc_plus"
+        }
+
+        // Somnet bucket: distinguish jeeb (wallet) vs evoucher (data credit) by direction
+        if (isSomnetTag) {
+            return when {
+                // "ugu shubtay" = topped someone up = e-voucher data credit deduction
+                isSent && !isReceived -> "evoucher"
+                // "ka heshay" = received money in Jeeb wallet
+                isReceived -> "jeeb"
+                // explicit data credit words win
+                isDataCreditKeyword -> "evoucher"
+                else -> "jeeb"
+            }
+        }
+
+        // Somtel: explicit eDahab tag => wallet
+        if (isSomtelEdahabTag) {
+            return "edahab"
+        }
+        // Somtel data SMS (Asiya/Saabir style "wareejiso ... Dhammays")
+        if (isSomtelDataTag) {
+            return "evoucher"
+        }
+
+        // Generic fallbacks
+        if (isDataCreditKeyword) return "evoucher"
+        return "evc_plus"
     }
     
     /**

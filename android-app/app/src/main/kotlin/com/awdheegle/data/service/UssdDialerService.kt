@@ -1327,22 +1327,20 @@ class UssdDialerService : Service() {
                 }
                 android.util.Log.d("UssdDialer", "📊 Order ${order.orderId} reported as $detectedStatus")
             } else {
-                // Dial failed — most common cause is "no SIM for provider".
-                // Report as 'pending' so server can re-queue the order for a device that
-                // actually has the right SIM. This prevents wrong-SIM dialing entirely.
-                val errMsg = "NO_SIM_FOR_PROVIDER:$orderProvider — re-queueing for correct device"
+                // Dial failed (permission issue or no SIM) - mark as failed
                 val statusUpdated = updateDeliveryStatusWithRetry(
                     queueId = order.id,
-                    status = "pending",
-                    errorMessage = errMsg,
+                    status = "failed",
+                    errorMessage = "USSD dial failed - check permissions and SIM",
                     providerResponse = null
                 )
-                database.deliveryTaskDao().updateStatus(order.id, "pending")
+                database.deliveryTaskDao().updateStatus(order.id, "failed")
                 if (statusUpdated) {
-                    android.util.Log.w("UssdDialer", "🔁 Order ${order.orderId} re-queued: no SIM for $orderProvider on this device")
+                    updateStats(success = false)
                 } else {
-                    saveToOfflineQueue(order.id, "pending", errMsg, null)
+                    saveToOfflineQueue(order.id, "failed", "USSD dial failed", null)
                 }
+                android.util.Log.e("UssdDialer", "❌ Order ${order.orderId} failed - could not dial USSD")
             }
             
         } catch (e: Exception) {
@@ -1552,25 +1550,6 @@ class UssdDialerService : Service() {
 
     private fun hasSuccessfulDeliveryMarkers(text: String): Boolean {
         val normalized = text.lowercase()
-
-        // 🚫 Reject app's own status text — never count as success
-        if (normalized.contains("awdheegle data") ||
-            normalized.contains("always on") ||
-            normalized.contains("service running") ||
-            normalized.contains("setup instructions") ||
-            normalized.contains("disable battery") ||
-            normalized.contains("enable ussd")) {
-            return false
-        }
-
-        // 🚫 Reject explicit failure signals
-        if (normalized.contains("receiver airtime partner not found") ||
-            normalized.contains("partner not found") ||
-            normalized.contains("not found")) {
-            return false
-        }
-
-        // ✅ Only STRONG, unambiguous success markers
         val strongMarkers = listOf(
             "ugu shubtay",
             "ku shubtay",
@@ -1584,8 +1563,17 @@ class UssdDialerService : Service() {
             "lacagta waa la diray",
             "u dirtay"
         )
+        val weakMarkers = listOf(
+            "e-voucher",
+            "voucher",
+            "jeeb",
+            "dhammays",
+            "haraagaagu waa",
+            "haraagagu waa"
+        )
 
-        return strongMarkers.any { normalized.contains(it) }
+        return strongMarkers.any { normalized.contains(it) } ||
+            (weakMarkers.any { normalized.contains(it) } && normalized.any { it.isDigit() })
     }
 
     private fun findSubscriptionIdByCarrierName(providerName: String, fallbackSlot: Int? = null): Int? {
@@ -1628,11 +1616,18 @@ class UssdDialerService : Service() {
                 }
             }
             
-            // 🚫 CRITICAL: NO FALLBACK to a different SIM!
-            // Diraysta USSD-ga provider gaar ah waa inay ka baxdaa SIM-ka provider-kaas.
-            // Haddii SIM-ka aan la helin, HA dirin USSD — order-ka waa la celin doonaa server-ka
-            // si aalad kale oo leh SIM-ka saxda ah u qaado.
-            android.util.Log.e("UssdDialer", "❌ NO_SIM_FOR_PROVIDER:$providerName — refusing to dial from wrong SIM (no fallback)")
+            // If no carrier match and we have a fallback slot from database, use it
+            if (fallbackSlot != null) {
+                android.util.Log.w("UssdDialer", "⚠️ No carrier match for '$providerName', using database fallback slot: $fallbackSlot")
+                val fallbackInfo = subscriptionInfoList.find { it.simSlotIndex == fallbackSlot }
+                if (fallbackInfo != null) {
+                    android.util.Log.d("UssdDialer", "✅ Using fallback SIM slot $fallbackSlot (subId=${fallbackInfo.subscriptionId})")
+                    return fallbackInfo.subscriptionId
+                }
+            }
+            
+            // If no match, log ALL available SIMs for debugging
+            android.util.Log.e("UssdDialer", "❌ NO SIM MATCH for '$providerName'")
             return null
         } catch (e: Exception) {
             android.util.Log.e("UssdDialer", "❌ Error finding SIM: ${e.message}")

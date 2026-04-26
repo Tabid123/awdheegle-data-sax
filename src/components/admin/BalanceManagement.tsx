@@ -34,6 +34,7 @@ type SendStep = 'form' | 'pin' | 'polling' | 'result';
 export const BalanceManagement = () => {
   const { language } = useLanguage();
   const [balances, setBalances] = useState<SimBalance[]>([]);
+  const [allBalances, setAllBalances] = useState<SimBalance[]>([]);
   const [devices, setDevices] = useState<AndroidDevice[]>([]);
   const [loading, setLoading] = useState(true);
   const [showSendDialog, setShowSendDialog] = useState(false);
@@ -61,6 +62,14 @@ export const BalanceManagement = () => {
         async (payload) => {
           if (payload.eventType === 'UPDATE' || payload.eventType === 'INSERT') {
             const updatedBalance = payload.new as SimBalance;
+            // Refresh all balances (covers evc_plus, evoucher, jeeb, edahab)
+            setAllBalances(prev => {
+              const exists = prev.find(b => b.id === updatedBalance.id);
+              if (exists) {
+                return prev.map(b => b.id === updatedBalance.id ? { ...b, ...updatedBalance } : b);
+              }
+              return [updatedBalance, ...prev];
+            });
             if (updatedBalance.balance_type === 'evc_plus') {
               setBalances(prev => {
                 const exists = prev.find(b => b.id === updatedBalance.id);
@@ -90,22 +99,46 @@ export const BalanceManagement = () => {
   const loadData = async () => {
     setLoading(true);
     const [balRes, devRes] = await Promise.all([
-      supabase.from('sim_balances').select('*').eq('balance_type', 'evc_plus').order('last_updated', { ascending: false }),
+      supabase.from('sim_balances').select('*').order('last_updated', { ascending: false }),
       supabase.from('android_devices').select('id, device_name, sim_number, sim1_provider, sim2_provider, sim2_number').is('archived_at', null),
     ]);
     
     const allDevices = devRes.data || [];
+    const allBal = balRes.data || [];
+    setAllBalances(allBal);
+
     const hormuudDevices = allDevices.filter(d => 
       d.sim1_provider?.toLowerCase().includes('hormuud') || 
       d.sim2_provider?.toLowerCase().includes('hormuud')
     );
     const hormuudDeviceIds = new Set(hormuudDevices.map(d => d.id));
-    const hormuudBalances = (balRes.data || []).filter(b => hormuudDeviceIds.has(b.device_id));
+    const hormuudBalances = allBal.filter(b => b.balance_type === 'evc_plus' && hormuudDeviceIds.has(b.device_id));
     
     setBalances(hormuudBalances);
     setDevices(allDevices);
     setLoading(false);
   };
+
+  // Helper: sum balance entries by provider (sim1/sim2 match) and a list of balance_types
+  const sumByProvider = (providerKeyword: string, balanceTypes: string[]) => {
+    const matchingDeviceIds = new Set(
+      devices
+        .filter(d =>
+          d.sim1_provider?.toLowerCase().includes(providerKeyword) ||
+          d.sim2_provider?.toLowerCase().includes(providerKeyword)
+        )
+        .map(d => d.id)
+    );
+    return allBalances
+      .filter(b => balanceTypes.includes(b.balance_type) && matchingDeviceIds.has(b.device_id))
+      .reduce((sum, b) => sum + Number(b.balance), 0);
+  };
+
+  const somnetJeeb = sumByProvider('somnet', ['jeeb']);
+  const somnetEvoucher = sumByProvider('somnet', ['evoucher']);
+  const somtelEdahab = sumByProvider('somtel', ['edahab']);
+  const somtelEvoucher = sumByProvider('somtel', ['evoucher']);
+  const hormuudEvoucher = sumByProvider('hormuud', ['evoucher']);
 
   const totalEvcBalance = balances.reduce((sum, b) => sum + Number(b.balance), 0);
   const lastUpdated = balances.length > 0 ? balances[0].last_updated : null;
@@ -316,6 +349,59 @@ export const BalanceManagement = () => {
               })}
             </div>
           )}
+        </div>
+      </Card>
+
+      {/* Hormuud E-Voucher (data credit) */}
+      <Card className="overflow-hidden">
+        <div className="bg-gradient-to-br from-amber-500 via-orange-500 to-rose-500 p-5 text-white">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Wallet className="h-5 w-5" />
+              <h3 className="text-base font-semibold">Hormuud E-Voucher</h3>
+            </div>
+            <p className="text-3xl font-extrabold tracking-tight">${hormuudEvoucher.toFixed(2)}</p>
+          </div>
+        </div>
+      </Card>
+
+      {/* Somnet: Jeeb + E-Voucher */}
+      <Card className="overflow-hidden">
+        <div className="bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 p-5 text-white">
+          <div className="flex items-center gap-2 mb-3">
+            <Wallet className="h-5 w-5" />
+            <h3 className="text-base font-semibold">Somnet</h3>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-white/10 rounded-lg p-3 text-center">
+              <p className="text-xs text-white/70 mb-1">Jeeb</p>
+              <p className="text-2xl font-bold">${somnetJeeb.toFixed(2)}</p>
+            </div>
+            <div className="bg-white/10 rounded-lg p-3 text-center">
+              <p className="text-xs text-white/70 mb-1">E-Voucher</p>
+              <p className="text-2xl font-bold">${somnetEvoucher.toFixed(2)}</p>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* Somtel: E-Dahab + E-Voucher */}
+      <Card className="overflow-hidden">
+        <div className="bg-gradient-to-br from-red-600 via-rose-600 to-pink-700 p-5 text-white">
+          <div className="flex items-center gap-2 mb-3">
+            <Wallet className="h-5 w-5" />
+            <h3 className="text-base font-semibold">Somtel</h3>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-white/10 rounded-lg p-3 text-center">
+              <p className="text-xs text-white/70 mb-1">E-Dahab</p>
+              <p className="text-2xl font-bold">${somtelEdahab.toFixed(2)}</p>
+            </div>
+            <div className="bg-white/10 rounded-lg p-3 text-center">
+              <p className="text-xs text-white/70 mb-1">E-Voucher</p>
+              <p className="text-2xl font-bold">${somtelEvoucher.toFixed(2)}</p>
+            </div>
+          </div>
         </div>
       </Card>
 

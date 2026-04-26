@@ -9,7 +9,7 @@ const corsHeaders = {
 interface BalanceUpdateRequest {
   sim_number: string;
   provider_name: string;
-  balance_type: 'evc_plus' | 'evoucher';
+  balance_type: 'evc_plus' | 'evoucher' | 'jeeb' | 'edahab';
   balance: number;
   source?: 'sms' | 'ussd';
   sim_slot?: number; // Optional - will be auto-detected if not provided
@@ -47,14 +47,15 @@ serve(async (req) => {
     });
 
     // Normalize balance_type (Android sends "evoucher" but we want consistency)
-    const normalizedBalanceType = balance_type.toLowerCase().replace('-', '_') as 'evc_plus' | 'evoucher';
+    const normalizedBalanceType = balance_type.toLowerCase().replace('-', '_') as
+      'evc_plus' | 'evoucher' | 'jeeb' | 'edahab';
 
     // Validate balance_type
-    if (!['evc_plus', 'evoucher'].includes(normalizedBalanceType)) {
+    if (!['evc_plus', 'evoucher', 'jeeb', 'edahab'].includes(normalizedBalanceType)) {
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: 'Invalid balance_type. Must be "evc_plus" or "evoucher"' 
+          error: 'Invalid balance_type. Must be one of: evc_plus, evoucher, jeeb, edahab'
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );

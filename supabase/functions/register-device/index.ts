@@ -69,7 +69,7 @@ async function ensureBalanceRows(
 
   if (!missingRows.length) return
 
-  const { error: insertError } = await supabase.from('sim_balances').insert(missingRows as any)
+  const { error: insertError } = await (supabase as any).from('sim_balances').insert(missingRows)
   if (insertError) {
     console.error('Error creating sim_balances rows:', insertError)
   }

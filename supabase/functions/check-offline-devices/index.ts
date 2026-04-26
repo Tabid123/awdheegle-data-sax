@@ -95,7 +95,7 @@ async function sendSmsAlert(
     const result = await smsResponse.json();
     console.log(`SMS sent successfully:`, result);
     return true;
-  } catch (error) {
+  } catch (error: any) {
     console.error(`Error sending SMS:`, error);
     return false;
   }
