@@ -95,7 +95,7 @@ async function sendSmsAlert(
     const result = await smsResponse.json();
     console.log(`SMS sent successfully:`, result);
     return true;
-  } catch (error) {
+  } catch (error: any) {
     console.error(`Error sending SMS:`, error);
     return false;
   }
@@ -415,7 +415,7 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in check-offline-devices:', error);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),

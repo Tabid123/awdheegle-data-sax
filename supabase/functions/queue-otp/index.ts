@@ -78,7 +78,7 @@ serve(async (req) => {
       { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ queue-otp error:', error);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
