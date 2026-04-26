@@ -280,23 +280,44 @@ const SimpleAdminDashboard = () => {
         // sim_balances.device_id stores android_devices.id (UUID)
         const deviceBalances = balanceData.filter(b => b.device_id === d.id);
         
+        // Determine wallet bucket per provider:
+        //   hormuud -> evc_plus (label: EVC Plus)
+        //   somnet  -> jeeb     (label: Jeeb)
+        //   somtel  -> edahab   (label: E-Dahab)
+        const getWalletConfig = (prov: string) => {
+          const p = (prov || '').toLowerCase();
+          if (p.includes('somnet') || p.includes('telesom') || p.includes('golis'))
+            return { type: 'jeeb', label: 'Jeeb' };
+          if (p.includes('somtel') || p.includes('edahab') || p.includes('e-dahab') || p.includes('zaad'))
+            return { type: 'edahab', label: 'E-Dahab' };
+          return { type: 'evc_plus', label: 'EVC Plus' };
+        };
+
         const sims: SimInfo[] = [];
         const sim1Provider = d.sim1_provider || d.provider_name || '';
+        const sim1Wallet = getWalletConfig(sim1Provider);
         const sim1Evc = deviceBalances.find(b => b.sim_slot === 1 && b.balance_type === 'evc_plus');
         const sim1Ev = deviceBalances.find(b => b.sim_slot === 1 && b.balance_type === 'evoucher');
+        const sim1WalletBal = deviceBalances.find(b => b.sim_slot === 1 && b.balance_type === sim1Wallet.type);
         sims.push({
           sim_slot: 1, sim_number: d.sim_number || '', provider_name: sim1Provider,
           provider_logo: findProviderLogo(sim1Provider),
           evc_balance: sim1Evc?.balance || 0, evoucher_balance: sim1Ev?.balance || 0,
+          wallet_balance: sim1WalletBal?.balance || 0,
+          wallet_label: sim1Wallet.label,
           evoucher_rate: findProviderRate(sim1Provider),
         });
         if (d.sim2_number && d.sim2_provider) {
+          const sim2Wallet = getWalletConfig(d.sim2_provider);
           const sim2Evc = deviceBalances.find(b => b.sim_slot === 2 && b.balance_type === 'evc_plus');
           const sim2Ev = deviceBalances.find(b => b.sim_slot === 2 && b.balance_type === 'evoucher');
+          const sim2WalletBal = deviceBalances.find(b => b.sim_slot === 2 && b.balance_type === sim2Wallet.type);
           sims.push({
             sim_slot: 2, sim_number: d.sim2_number, provider_name: d.sim2_provider,
             provider_logo: findProviderLogo(d.sim2_provider),
             evc_balance: sim2Evc?.balance || 0, evoucher_balance: sim2Ev?.balance || 0,
+            wallet_balance: sim2WalletBal?.balance || 0,
+            wallet_label: sim2Wallet.label,
             evoucher_rate: findProviderRate(d.sim2_provider),
           });
         }
