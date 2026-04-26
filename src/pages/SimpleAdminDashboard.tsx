@@ -37,6 +37,8 @@ interface SimInfo {
   provider_logo: string | null;
   evc_balance: number;
   evoucher_balance: number;
+  wallet_balance: number;
+  wallet_label: string;
   evoucher_rate: number;
 }
 
