@@ -5,6 +5,7 @@ import PhoneInput from '@/components/PhoneInput';
 import Footer from '@/components/Footer';
 import { useConnectivity } from '@/contexts/ConnectivityContext';
 import { useOfflineCache } from '@/hooks/useOfflineCache';
+import najaxLogoSplash from '@/assets/awdhegle-logo-new.png';
  // Validate Somali phone format: 9 digits starting with 61, 77, 62, or 68
 const isValidSomaliPhone = (phone: string | null): boolean => {
   if (!phone) return false;
@@ -165,9 +166,19 @@ const Index = () => {
   // Show splash screen
   if (isChecking) {
     return (
-      <div className="fixed inset-0 z-50 overflow-hidden" style={{ background: '#1236C0' }}>
+      <div className="fixed inset-0 flex flex-col items-center justify-center z-50 overflow-hidden" style={{ background: '#1236C0' }}>
+        {/* Standard splash: plain logo on brand bg (no white card shape) */}
+        <img
+          src={najaxLogoSplash}
+          alt="Awdhegle Data"
+          className="w-40 h-40 object-contain animate-pulse"
+          style={{ filter: 'drop-shadow(0 18px 40px rgba(0,0,0,0.45)) drop-shadow(0 8px 16px rgba(0,0,0,0.3))' }}
+        />
+
+        <div className="w-10 h-10 mt-10 border-4 border-white/30 border-t-white rounded-full animate-spin" />
+
         {extendedSplashReached && connectivityChecking && !forceExit && (
-          <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center">
+          <div className="flex flex-col items-center mt-6">
             <div className="w-48 h-2 bg-white/20 rounded-full overflow-hidden">
               <div className="h-full bg-white rounded-full animate-pulse" style={{ width: '70%' }} />
             </div>
