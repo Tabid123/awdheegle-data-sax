@@ -182,15 +182,12 @@ const OfflineMode = () => {
 
       {/* Logo */}
       <div className="mb-6 mt-2">
-        <div
-          className="w-28 h-28 flex items-center justify-center rounded-3xl bg-card p-3 ring-1 ring-primary/10"
-          style={{
-            boxShadow:
-              '0 12px 30px -10px hsl(var(--primary) / 0.35), 0 4px 12px -4px hsl(var(--primary) / 0.18), 0 0 0 1px hsl(var(--primary) / 0.06)',
-          }}
-        >
-          <img alt="Awdhegle Data" className="w-full h-full object-contain" src={najaxLogo} />
-        </div>
+        <img
+          alt="Awdhegle Data"
+          src={najaxLogo}
+          className="w-28 h-28 object-contain rounded-2xl"
+          style={{ filter: 'drop-shadow(0 12px 24px hsl(var(--primary) / 0.35))' }}
+        />
       </div>
 
       {/* Tagline */}
@@ -216,12 +213,12 @@ const OfflineMode = () => {
         {/* Sender Phone Input */}
         <div className="space-y-2">
           <label className="text-sm font-medium text-foreground">📤 Lambarka lacagta laga dirayo</label>
-          <div className={`flex items-center border-2 rounded-xl overflow-hidden bg-background transition-colors ${senderError ? 'border-destructive' : 'border-border focus-within:border-primary'}`}>
-            <div className="flex items-center gap-2 py-3 bg-muted/30 border-r border-border px-[15px]">
-              <img src={somaliaFlag} alt="Somalia" className="w-6 h-4 object-cover rounded-sm" />
+          <div className={`flex items-stretch flex-nowrap border-2 rounded-xl overflow-hidden bg-background transition-colors ${senderError ? 'border-destructive' : 'border-border focus-within:border-primary'}`}>
+            <div className="flex items-center gap-2 py-3 bg-muted/30 border-r border-border px-[15px] flex-shrink-0 whitespace-nowrap">
+              <img src={somaliaFlag} alt="Somalia" className="w-6 h-4 object-cover rounded-sm flex-shrink-0" />
               <span className="text-foreground font-medium">+252</span>
             </div>
-            <div className="flex-1 px-[15px] flex items-center gap-[8px]">
+            <div className="flex-1 min-w-0 px-[15px] flex items-center gap-[8px]">
               {detectedSenderProvider ? (
                 <img src={detectedSenderProvider.logo} alt={detectedSenderProvider.name} className="w-6 h-6 rounded-full flex-shrink-0 object-contain" />
               ) : (
@@ -236,7 +233,7 @@ const OfflineMode = () => {
                   setSenderPhone(value);
                 }}
                 maxLength={9}
-                className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground outline-none text-lg py-[10px] px-0"
+                className="flex-1 min-w-0 w-full bg-transparent text-foreground placeholder:text-muted-foreground outline-none text-lg py-[10px] px-0"
               />
             </div>
           </div>
@@ -249,12 +246,12 @@ const OfflineMode = () => {
         {/* Receiver Phone Input */}
         <div className="space-y-2">
           <label className="text-sm font-medium text-foreground">📥 Lambarka internet-ka loo rabo</label>
-          <div className={`flex items-center border-2 rounded-xl overflow-hidden bg-background transition-colors ${receiverError ? 'border-destructive' : 'border-border focus-within:border-primary'}`}>
-            <div className="flex items-center gap-2 px-4 py-3 bg-muted/30 border-r border-border">
-              <img src={somaliaFlag} alt="Somalia" className="w-6 h-4 object-cover rounded-sm" />
+          <div className={`flex items-stretch flex-nowrap border-2 rounded-xl overflow-hidden bg-background transition-colors ${receiverError ? 'border-destructive' : 'border-border focus-within:border-primary'}`}>
+            <div className="flex items-center gap-2 px-4 py-3 bg-muted/30 border-r border-border flex-shrink-0 whitespace-nowrap">
+              <img src={somaliaFlag} alt="Somalia" className="w-6 h-4 object-cover rounded-sm flex-shrink-0" />
               <span className="text-foreground font-medium">+252</span>
             </div>
-            <div className="flex items-center flex-1 px-3 gap-[8px]">
+            <div className="flex items-center flex-1 min-w-0 px-3 gap-[8px]">
               {detectedProvider ? (
                 <img src={detectedProvider.logo} alt={detectedProvider.name} className="w-6 h-6 rounded-full flex-shrink-0 object-scale-down" />
               ) : (
@@ -269,7 +266,7 @@ const OfflineMode = () => {
                   setReceiverPhone(value);
                 }}
                 maxLength={9}
-                className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground outline-none text-lg py-[10px] px-0"
+                className="flex-1 min-w-0 w-full bg-transparent text-foreground placeholder:text-muted-foreground outline-none text-lg py-[10px] px-0"
               />
             </div>
           </div>
