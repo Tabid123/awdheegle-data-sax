@@ -27,7 +27,7 @@ All colors MUST be HSL.
     --popover-foreground: 220 45% 12%;
 
     /* Brand vivid blue from logo - #1236C0 */
-    --primary: 214 95% 52%;
+    --primary: 226 83% 41%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 210 25% 95%;
@@ -37,7 +37,7 @@ All colors MUST be HSL.
     --muted-foreground: 220 15% 45%;
 
     /* Deep navy from logo as accent */
-    --accent: 220 70% 18%;
+    --accent: 226 70% 22%;
     --accent-foreground: 0 0% 100%;
 
     --orange: 25 95% 53%;
@@ -60,14 +60,14 @@ All colors MUST be HSL.
 
     --border: 215 20% 90%;
     --input: 215 20% 90%;
-    --ring: 214 95% 52%;
+    --ring: 226 83% 41%;
 
     /* Custom design tokens - Awdhegle Transfer #1236C0 */
-    --gradient-primary: linear-gradient(135deg, hsl(220, 70%, 18%), hsl(214, 95%, 52%));
-    --gradient-button: linear-gradient(135deg, hsl(214, 95%, 52%), hsl(214, 90%, 60%));
+    --gradient-primary: linear-gradient(135deg, hsl(226, 70%, 22%), hsl(226, 83%, 41%));
+    --gradient-button: linear-gradient(135deg, hsl(226, 83%, 41%), hsl(226, 80%, 50%));
     --gradient-subtle: linear-gradient(180deg, hsl(210, 20%, 98%), hsl(0, 0%, 100%));
-    --shadow-elegant: 0 10px 30px -10px hsl(214 95% 52% / 0.3);
-    --shadow-glow: 0 0 40px hsl(214 95% 52% / 0.25);
+    --shadow-elegant: 0 10px 30px -10px hsl(226 83% 41% / 0.3);
+    --shadow-glow: 0 0 40px hsl(226 83% 41% / 0.25);
     --shadow-card: 0 4px 15px -2px hsl(220 45% 12% / 0.08);
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
@@ -75,12 +75,12 @@ All colors MUST be HSL.
 
     --sidebar-background: 210 20% 98%;
     --sidebar-foreground: 220 45% 20%;
-    --sidebar-primary: 214 95% 52%;
+    --sidebar-primary: 226 83% 41%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 210 20% 95%;
     --sidebar-accent-foreground: 220 45% 15%;
     --sidebar-border: 215 20% 90%;
-    --sidebar-ring: 214 95% 52%;
+    --sidebar-ring: 226 83% 41%;
   }
 
   .dark {
@@ -95,7 +95,7 @@ All colors MUST be HSL.
     --popover-foreground: 210 20% 96%;
 
     /* Vivid brand blue - #1236C0 lifted for dark */
-    --primary: 214 95% 58%;
+    --primary: 226 83% 52%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 220 35% 18%;
@@ -105,7 +105,7 @@ All colors MUST be HSL.
     --muted-foreground: 215 15% 65%;
 
     /* Lighter navy accent */
-    --accent: 214 90% 65%;
+    --accent: 226 80% 65%;
     --accent-foreground: 220 50% 6%;
 
     --orange: 25 95% 55%;
@@ -127,26 +127,26 @@ All colors MUST be HSL.
 
     --border: 220 30% 18%;
     --input: 220 30% 15%;
-    --ring: 214 95% 58%;
+    --ring: 226 83% 52%;
 
-    --gradient-primary: linear-gradient(135deg, hsl(220, 70%, 25%), hsl(214, 95%, 58%));
-    --gradient-button: linear-gradient(135deg, hsl(214, 95%, 55%), hsl(214, 90%, 65%));
+    --gradient-primary: linear-gradient(135deg, hsl(226, 70%, 25%), hsl(226, 83%, 52%));
+    --gradient-button: linear-gradient(135deg, hsl(226, 83%, 48%), hsl(226, 80%, 65%));
     --gradient-subtle: linear-gradient(180deg, hsl(220, 50%, 6%), hsl(220, 45%, 12%));
-    --gradient-glow: radial-gradient(ellipse at center, hsl(214 95% 58% / 0.18), transparent 70%);
+    --gradient-glow: radial-gradient(ellipse at center, hsl(226 83% 52% / 0.18), transparent 70%);
 
-    --shadow-elegant: 0 10px 40px -10px hsl(214 95% 58% / 0.35);
-    --shadow-glow: 0 0 60px hsl(214 95% 58% / 0.25);
+    --shadow-elegant: 0 10px 40px -10px hsl(226 83% 52% / 0.35);
+    --shadow-glow: 0 0 60px hsl(226 83% 52% / 0.25);
     --shadow-card: 0 4px 20px -2px hsl(0 0% 0% / 0.4), 0 0 0 1px hsl(220 30% 18% / 0.5);
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
     --sidebar-background: 220 50% 8%;
     --sidebar-foreground: 210 20% 96%;
-    --sidebar-primary: 214 95% 58%;
+    --sidebar-primary: 226 83% 52%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 220 35% 18%;
     --sidebar-accent-foreground: 210 20% 96%;
     --sidebar-border: 220 30% 15%;
-    --sidebar-ring: 214 95% 58%;
+    --sidebar-ring: 226 83% 52%;
   }
 }
 
