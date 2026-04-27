@@ -13,7 +13,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { AddManualDeliveryDialog } from '@/components/admin/AddManualDeliveryDialog';
 import { useRealtimeRefresh } from '@/hooks/useRealtimeRefresh';
-import najaxLogo from '@/assets/najax-logo.jpeg';
+import najaxLogo from '@/assets/awdhegle-logo-new.png';
 
 interface DashboardStats {
   todayOrderCount: number;

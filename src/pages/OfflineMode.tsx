@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { useState, useEffect } from 'react';
-import najaxLogo from '@/assets/najax-logo.jpeg';
+import najaxLogo from '@/assets/awdhegle-logo-new.png';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Phone, CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';

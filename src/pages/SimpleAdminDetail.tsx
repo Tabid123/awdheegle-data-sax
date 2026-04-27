@@ -7,7 +7,7 @@ import { SimpleAdminSidebar } from '@/components/admin/SimpleAdminSidebar';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { ArrowLeft, Menu, Globe, Moon, Sun, Loader2 } from 'lucide-react';
-import najaxLogo from '@/assets/najax-logo.jpeg';
+import najaxLogo from '@/assets/awdhegle-logo-new.png';
 
 // Lazy-loaded custom views (code-split per view)
 const DailyOrdersCustomView = lazy(() => import('@/components/admin/simple/OrderViews').then(m => ({ default: m.DailyOrdersCustomView })));
