@@ -56,7 +56,7 @@ export const generateInvoiceImage = async (order: InvoiceData): Promise<Blob> =>
   
   // Load and draw Awdhegle Data logo (right side of header)
   try {
-    const najaxLogoModule = await import('@/assets/najax-logo.jpeg');
+    const najaxLogoModule = await import('@/assets/awdhegle-logo-new.png');
     const najaxLogo = await loadLocalImage(najaxLogoModule.default);
     const logoWidth = 120;
     const logoHeight = 80;

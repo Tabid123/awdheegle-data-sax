@@ -26,7 +26,7 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 220 45% 12%;
 
-    /* Brand vivid blue from logo - #1370F0 */
+    /* Brand vivid blue from logo - #1236C0 */
     --primary: 214 95% 52%;
     --primary-foreground: 0 0% 100%;
 
@@ -62,7 +62,7 @@ All colors MUST be HSL.
     --input: 215 20% 90%;
     --ring: 214 95% 52%;
 
-    /* Custom design tokens - Awdhegle Transfer #1370F0 */
+    /* Custom design tokens - Awdhegle Transfer #1236C0 */
     --gradient-primary: linear-gradient(135deg, hsl(220, 70%, 18%), hsl(214, 95%, 52%));
     --gradient-button: linear-gradient(135deg, hsl(214, 95%, 52%), hsl(214, 90%, 60%));
     --gradient-subtle: linear-gradient(180deg, hsl(210, 20%, 98%), hsl(0, 0%, 100%));
@@ -94,7 +94,7 @@ All colors MUST be HSL.
     --popover: 220 45% 12%;
     --popover-foreground: 210 20% 96%;
 
-    /* Vivid brand blue - #1370F0 lifted for dark */
+    /* Vivid brand blue - #1236C0 lifted for dark */
     --primary: 214 95% 58%;
     --primary-foreground: 0 0% 100%;
 

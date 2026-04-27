@@ -361,7 +361,7 @@ export function SmsLacagoCards() {
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header bar */}
-              <div className="bg-[#1370F0] rounded-t-xl px-4 py-3 flex items-center justify-between">
+              <div className="bg-[#1236C0] rounded-t-xl px-4 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <MessageSquare className="w-3.5 h-3.5 text-white/70" />
                   <h3 className="font-bold text-[13px] text-white">{isSo ? 'Faahfaahinta SMS' : 'SMS Invoice'}</h3>
@@ -418,7 +418,7 @@ export function SmsLacagoCards() {
 
                 {/* Order Details */}
                 <div>
-                  <h4 className="text-[9px] font-bold text-[#1370F0] dark:text-purple-400 uppercase tracking-wider mb-1">
+                  <h4 className="text-[9px] font-bold text-[#1236C0] dark:text-purple-400 uppercase tracking-wider mb-1">
                     {isSo ? 'FAAHFAAHINTA ORDER-KA' : 'ORDER DETAILS'}
                   </h4>
                   <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">

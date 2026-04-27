@@ -21,7 +21,7 @@ import {
   Star, Layers, Zap, ImageIcon, WifiOff, ShieldCheck, FileText,
   Receipt, Moon, Sun, Globe,
 } from 'lucide-react';
-import najaxLogo from '@/assets/najax-logo.jpeg';
+import najaxLogo from '@/assets/awdhegle-logo-new.png';
 
 interface MenuItem {
   label: string;

@@ -1,5 +1,5 @@
 import React from 'react';
-import brandLogo from '@/assets/najax-logo.jpeg';
+import brandLogo from '@/assets/awdhegle-logo-new.png';
 
 const HeroSection = () => {
   return (

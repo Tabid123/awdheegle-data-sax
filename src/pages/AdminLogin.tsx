@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
 import { Shield, Loader2, AlertTriangle, KeyRound } from 'lucide-react';
-import najaxLogo from '@/assets/najax-logo.jpeg';
+import najaxLogo from '@/assets/awdhegle-logo-new.png';
 
 // TEMPORARY EMERGENCY BYPASS
 const EMERGENCY_PIN = '5516';

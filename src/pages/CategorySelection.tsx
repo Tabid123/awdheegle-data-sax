@@ -266,7 +266,7 @@ const CategorySelection = () => {
       <div 
         className="fixed top-0 left-0 right-0 z-50" 
         style={{
-          background: 'linear-gradient(135deg, #1370F0 0%, #0B2447 100%)',
+          background: 'linear-gradient(135deg, #1236C0 0%, #0B2447 100%)',
           paddingTop: 'var(--effective-safe-area-top, 0px)',
           boxSizing: 'border-box' as const
         }}
