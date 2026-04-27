@@ -2,14 +2,4 @@
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Background color - Awdheegle Data brand blue -->
     <item android:drawable="@color/splash_background" />
-
-    <!-- Centered logo - fitted -->
-    <item
-        android:gravity="center"
-        android:width="180dp"
-        android:height="180dp">
-        <bitmap
-            android:gravity="center"
-            android:src="@drawable/splash_logo" />
-    </item>
 </layer-list>
