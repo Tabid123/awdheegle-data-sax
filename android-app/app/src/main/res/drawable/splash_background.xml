@@ -3,7 +3,7 @@
     <!-- Background color - Awdheegle Data brand blue -->
     <item android:drawable="@color/splash_background" />
 
-    <!-- Centered logo - fitted -->
+    <!-- Centered logo with rounded corners (built into PNG asset) -->
     <item
         android:gravity="center"
         android:width="180dp"
