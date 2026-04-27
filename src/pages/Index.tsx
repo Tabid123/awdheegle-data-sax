@@ -85,7 +85,7 @@ const Index = () => {
     
     const splashTimer = setTimeout(() => {
       setSplashMinimumReached(true);
-    }, 2000); // 2 seconds
+    }, 3000); // 3 seconds
     
     return () => clearTimeout(splashTimer);
   }, [wasAlreadyInitialized, isChecking]);
