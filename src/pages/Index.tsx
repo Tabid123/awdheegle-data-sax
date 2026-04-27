@@ -166,41 +166,13 @@ const Index = () => {
   if (isChecking) {
     return (
       <div className="fixed inset-0 flex flex-col items-center justify-center z-50 overflow-hidden" style={{ background: '#1236C0' }}>
-        {/* Ambient radial glow behind logo */}
-        <div
-          className="absolute pointer-events-none"
-          style={{
-            width: '520px',
-            height: '520px',
-            background:
-              'radial-gradient(circle, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.08) 35%, rgba(255,255,255,0) 70%)',
-            filter: 'blur(20px)',
-          }}
+        {/* Standard splash: plain logo on brand bg (no white card shape) */}
+        <img
+          src={najaxLogoSplash}
+          alt="Awdhegle Data"
+          className="w-40 h-40 object-contain animate-pulse"
+          style={{ filter: 'drop-shadow(0 18px 40px rgba(0,0,0,0.45)) drop-shadow(0 8px 16px rgba(0,0,0,0.3))' }}
         />
-
-        {/* Logo card with rich layered shadow */}
-        <div
-          className="relative w-44 h-44 flex items-center justify-center rounded-[2rem] bg-white p-5 animate-pulse"
-          style={{
-            boxShadow:
-              '0 40px 80px -20px rgba(0,0,0,0.55), 0 25px 50px -12px rgba(11,36,71,0.6), 0 12px 24px -8px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.9), 0 0 0 1px rgba(255,255,255,0.15)',
-          }}
-        >
-          {/* Inner glow ring */}
-          <div
-            className="absolute inset-0 rounded-[2rem] pointer-events-none"
-            style={{
-              background:
-                'linear-gradient(135deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0) 50%, rgba(0,0,0,0.05) 100%)',
-            }}
-          />
-          <img
-            src={najaxLogoSplash}
-            alt="Awdhegle Data"
-            className="relative w-full h-full object-contain"
-            style={{ filter: 'drop-shadow(0 6px 12px rgba(19,112,240,0.35))' }}
-          />
-        </div>
 
         <div className="w-10 h-10 mt-10 border-4 border-white/30 border-t-white rounded-full animate-spin" />
 
