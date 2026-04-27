@@ -3,20 +3,7 @@
     <!-- Background color - Awdheegle Data brand blue -->
     <item android:drawable="@color/splash_background" />
 
-    <!-- Centered logo with rounded corners -->
-    <item
-        android:gravity="center"
-        android:width="180dp"
-        android:height="180dp">
-        <inset
-            android:inset="0dp">
-            <shape android:shape="rectangle">
-                <corners android:radius="28dp" />
-                <solid android:color="@color/splash_background" />
-            </shape>
-        </inset>
-    </item>
-
+    <!-- Centered logo with rounded corners (built into PNG asset) -->
     <item
         android:gravity="center"
         android:width="180dp"
