@@ -26,15 +26,16 @@ const allProviderMap: {
   '64': { id: 'somlink', name: 'Somlink', logo: somlinkLogo }
 };
 
-// Sender phone only supports Hormuud (61, 77) and Somnet (68)
+// Sender phone supports Hormuud (61, 77), Somnet (68), and Somtel (62)
 const senderProviderMap: {
   [key: string]: { id: string; name: string; logo: string };
 } = {
   '61': { id: 'hormuud', name: 'Hormuud', logo: hormuudLogo },
   '77': { id: 'hormuud', name: 'Hormuud', logo: hormuudLogo },
-  '68': { id: 'somnet', name: 'Somnet', logo: somnetLogo }
+  '68': { id: 'somnet', name: 'Somnet', logo: somnetLogo },
+  '62': { id: 'somtel', name: 'Somtel', logo: somtelLogo }
 };
-const supportedSenderPrefixes = ['61', '77', '68'];
+const supportedSenderPrefixes = ['61', '77', '68', '62'];
 
 const detectReceiverProvider = (phone: string) => {
   if (phone.length < 2) return null;
@@ -239,7 +240,7 @@ const OfflineMode = () => {
           </div>
           {senderError && <p className="text-sm text-destructive">Fadlan geli lambar saxan (9 tiro)</p>}
           {isUnsupportedSenderPrefix(senderPhone) && !senderError && (
-            <p className="text-sm text-destructive">Hormuud (61, 77) iyo Somnet (68) kaliya ayaa la taageera</p>
+            <p className="text-sm text-destructive">Hormuud (61, 77), Somnet (68) iyo Somtel (62) kaliya ayaa la taageera</p>
           )}
         </div>
 
