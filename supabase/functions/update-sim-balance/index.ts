@@ -96,6 +96,11 @@ serve(async (req) => {
       const configLower = configProvider.toLowerCase().trim();
       const searchLower = searchProvider.toLowerCase().trim();
       
+      // ⛔ Guard: empty/null provider cannot match anything (otherwise '' is contained in every string)
+      if (!configLower || !searchLower) {
+        return false;
+      }
+      
       // Direct match (existing logic)
       if (configLower.includes(searchLower) || searchLower.includes(configLower)) {
         return true;
