@@ -1,0 +1,1 @@
+DELETE FROM sim_balances WHERE device_id='a9e1e229-6a53-4585-8b39-e28862662772' AND balance_type IN ('evc_plus','evoucher','edahab');
