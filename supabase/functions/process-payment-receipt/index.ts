@@ -161,24 +161,40 @@ function normalizeProviderSlug(name: string | null | undefined): string {
 
 /**
  * Resolve the provider slug given an optional name AND a provider_id.
- * If `name` is empty/null, falls back to looking up providers_config by id.
- * This prevents empty providerSlug → null sim_slot → wrong SIM dialing.
+ * `provider_id` is ALWAYS the source of truth (FK → providers_config).
+ * `provider_name` is a free-text label that can drift out of sync with the id
+ * (e.g. an offline_registration row whose name says "Somnet" but whose id
+ * points to Hormuud). Trusting the name in that case routes USSD to the
+ * wrong SIM and the carrier replies "Unrecognized mobile number".
+ *
+ * Strategy: prefer provider_id lookup; only fall back to the name when no id.
  */
 async function resolveProviderSlug(
   supabase: any,
   providerId: string | null | undefined,
   providerName: string | null | undefined,
 ): Promise<string> {
-  const fromName = normalizeProviderSlug(providerName);
-  if (fromName) return fromName;
-  if (!providerId) return "";
-  const { data: prov } = await supabase
-    .from("providers_config")
-    .select("provider_name, display_name")
-    .eq("id", providerId)
-    .maybeSingle();
-  if (!prov) return "";
-  return normalizeProviderSlug(prov.provider_name) || normalizeProviderSlug(prov.display_name);
+  if (providerId) {
+    const { data: prov } = await supabase
+      .from("providers_config")
+      .select("provider_name, display_name")
+      .eq("id", providerId)
+      .maybeSingle();
+    const fromId =
+      normalizeProviderSlug(prov?.provider_name) ||
+      normalizeProviderSlug(prov?.display_name);
+    if (fromId) {
+      const fromName = normalizeProviderSlug(providerName);
+      if (fromName && fromName !== fromId) {
+        console.warn(
+          `⚠️ provider_name "${providerName}" (slug=${fromName}) disagrees with provider_id ${providerId} (slug=${fromId}). Trusting provider_id.`,
+        );
+      }
+      return fromId;
+    }
+  }
+  // No id (or id not found) — fall back to the name.
+  return normalizeProviderSlug(providerName);
 }
 
 function formatAmountForUssd(amount: number): string {
