@@ -366,19 +366,31 @@ export const AddManualDeliveryDialog: React.FC<AddManualDeliveryDialogProps> = (
           })),
       ];
 
-      const queueEntries = queuePackages.map((item) => ({
-        order_id: order.id,
-        package_id: item.pkg.id,
-        execution_order: item.execution_order,
-        delay_seconds: item.delay_seconds,
-        status: autoDeliver ? 'pending' : 'completed',
-        ussd_command: autoDeliver ? buildUssdCommand(item.pkg, receiverPhone) ?? 'MANUAL' : 'MANUAL',
-        ussd_code: autoDeliver ? buildUssdCommand(item.pkg, receiverPhone) ?? 'MANUAL' : 'MANUAL',
-        provider_name: providerSlug,
-        receiver_phone: receiverPhone,
-        sim_slot: dialingSimSlot,
-        completed_at: autoDeliver ? null : selectedDateISO,
-      }));
+      const queueEntries = await Promise.all(
+        queuePackages.map(async (item) => {
+          const ussd = autoDeliver ? await buildUssdCommandAsync(item.pkg, receiverPhone) : null;
+          if (autoDeliver && !ussd) {
+            throw new Error(
+              language === 'so'
+                ? `USSD template lama helin package-ka "${item.pkg.package_name}". Fadlan ku dar Delivery Instruction.`
+                : `No USSD template found for package "${item.pkg.package_name}". Please add a Delivery Instruction.`,
+            );
+          }
+          return {
+            order_id: order.id,
+            package_id: item.pkg.id,
+            execution_order: item.execution_order,
+            delay_seconds: item.delay_seconds,
+            status: autoDeliver ? 'pending' : 'completed',
+            ussd_command: autoDeliver ? ussd! : 'MANUAL',
+            ussd_code: autoDeliver ? ussd! : 'MANUAL',
+            provider_name: providerSlug,
+            receiver_phone: receiverPhone,
+            sim_slot: dialingSimSlot,
+            completed_at: autoDeliver ? null : selectedDateISO,
+          };
+        }),
+      );
 
       const { error: queueError } = await supabase.from('delivery_queue').insert(queueEntries);
       if (queueError) throw queueError;
