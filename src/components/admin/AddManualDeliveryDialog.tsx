@@ -52,6 +52,9 @@ interface DataPackage {
   data_amount: string | null;
   price: number;
   ussd_template: string | null;
+  cost_price?: number | null;
+  category_id?: string | null;
+  provider_id?: string | null;
 }
 
 interface DeliveryRule {
@@ -128,7 +131,7 @@ export const AddManualDeliveryDialog: React.FC<AddManualDeliveryDialogProps> = (
       setLoadingPackages(true);
       const { data } = await supabase
         .from('data_packages_config')
-        .select('id, package_name, data_amount, price, ussd_template')
+        .select('id, package_name, data_amount, price, ussd_template, cost_price, category_id, provider_id')
         .eq('provider_id', selectedProviderId)
         .eq('is_active', true)
         .order('price');
@@ -161,7 +164,7 @@ export const AddManualDeliveryDialog: React.FC<AddManualDeliveryDialogProps> = (
       const targetIds = rules.map((rule) => rule.target_package_id);
       const { data: targetPackages } = await supabase
         .from('data_packages_config')
-        .select('id, package_name, data_amount, price, ussd_template')
+        .select('id, package_name, data_amount, price, ussd_template, cost_price, category_id, provider_id')
         .in('id', targetIds);
 
       const packageMap = new Map((targetPackages ?? []).map((pkg) => [pkg.id, pkg as DataPackage]));
@@ -188,15 +191,87 @@ export const AddManualDeliveryDialog: React.FC<AddManualDeliveryDialogProps> = (
     }
   }, [open]);
 
-  const buildUssdCommand = useCallback((pkg: DataPackage, receiverRaw: string) => {
-    if (!pkg.ussd_template) return null;
+  const formatAmount = (value: number) => {
+    const fixed = Number(value).toFixed(2);
+    return fixed.endsWith('.00') ? fixed.slice(0, -3) : fixed;
+  };
 
+  const sanitizeUssd = (code: string) =>
+    code.replace(/\s+/g, '').replace(/##+/g, '#');
+
+  const lookupDeliveryInstruction = async (
+    providerId: string,
+    packageId?: string | null,
+    categoryId?: string | null,
+  ): Promise<{ code_template: string; sim_password: string | null } | null> => {
+    // 1. Package-specific
+    if (packageId) {
+      const { data } = await supabase
+        .from('delivery_instructions')
+        .select('code_template, sim_password')
+        .eq('provider_id', providerId)
+        .eq('package_id', packageId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (data?.code_template) return data as any;
+    }
+    // 2. Category-specific
+    if (categoryId) {
+      const { data } = await supabase
+        .from('delivery_instructions')
+        .select('code_template, sim_password')
+        .eq('provider_id', providerId)
+        .eq('category_id', categoryId)
+        .is('package_id', null)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (data?.code_template) return data as any;
+    }
+    // 3. Provider default
+    const { data } = await supabase
+      .from('delivery_instructions')
+      .select('code_template, sim_password')
+      .eq('provider_id', providerId)
+      .is('category_id', null)
+      .is('package_id', null)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    return (data?.code_template ? data : null) as any;
+  };
+
+  const buildUssdFromTemplate = (
+    template: string,
+    receiverRaw: string,
+    costPrice: number,
+    simPassword: string,
+  ) => {
     const normalizedPhone = normalizePhoneForUssd(receiverRaw);
-    return pkg.ussd_template
-      .replace(/\{receiver_phone\}|\{phone\}|\{number\}|\{receiver\}/g, normalizedPhone)
-      .replace(/\{package_name\}/g, pkg.package_name)
-      .replace(/\{amount\}|\{price\}/g, String(pkg.price));
-  }, []);
+    return sanitizeUssd(
+      template
+        .replace(/\{receiver_phone\}|\{phone\}|\{number\}|\{receiver\}/g, normalizedPhone)
+        .replace(/\{cost_price\}|\{amount\}|\{price\}/g, formatAmount(Number(costPrice)))
+        .replace(/\{sim_password\}/g, simPassword || '5516')
+        .replace(/\{package_code\}/g, ''),
+    );
+  };
+
+  const buildUssdCommandAsync = async (pkg: DataPackage, receiverRaw: string): Promise<string | null> => {
+    const providerId = pkg.provider_id || selectedProviderId;
+    const cost = Number(pkg.cost_price ?? pkg.price ?? 0);
+    // Prefer delivery_instructions (matches edge function behavior)
+    const instr = await lookupDeliveryInstruction(providerId, pkg.id, pkg.category_id ?? null);
+    if (instr?.code_template) {
+      return buildUssdFromTemplate(instr.code_template, receiverRaw, cost, instr.sim_password || '5516');
+    }
+    // Fallback to package's own ussd_template if any
+    if (pkg.ussd_template) {
+      return buildUssdFromTemplate(pkg.ussd_template, receiverRaw, cost, '5516');
+    }
+    return null;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
