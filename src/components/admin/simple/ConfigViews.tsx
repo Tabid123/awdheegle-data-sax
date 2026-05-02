@@ -10,7 +10,7 @@ import {
   Globe, Package, DollarSign, CheckCircle, XCircle, Hash, Calendar, Code, Settings, Star,
   Pencil, Power, Trash2, Plus, ChevronDown, Image, CreditCard, Phone,
 } from './shared';
-import { FileText, ArrowUp, ArrowDown } from 'lucide-react';
+import { FileText } from 'lucide-react';
 
 // ========== PROVIDERS ==========
 export const ProvidersCustomView = ({ isSo }: { isSo: boolean }) => {
@@ -855,28 +855,17 @@ export const PaymentSettingsCustomView = ({ isSo }: { isSo: boolean }) => {
     toast.success('Deleted');
   };
 
-  const moveProvider = async (id: string, direction: -1 | 1) => {
-    const sorted = [...providers].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
-    const idx = sorted.findIndex(p => p.id === id);
-    const swapIdx = idx + direction;
-    if (idx < 0 || swapIdx < 0 || swapIdx >= sorted.length) return;
-    const a = sorted[idx];
-    const b = sorted[swapIdx];
-    const aOrder = a.display_order ?? idx;
-    const bOrder = b.display_order ?? swapIdx;
-    // Optimistic UI
-    setProviders(prev => prev.map(p => {
-      if (p.id === a.id) return { ...p, display_order: bOrder };
-      if (p.id === b.id) return { ...p, display_order: aOrder };
-      return p;
-    }));
-    const [r1, r2] = await Promise.all([
-      supabase.from('payment_providers_config').update({ display_order: bOrder }).eq('id', a.id),
-      supabase.from('payment_providers_config').update({ display_order: aOrder }).eq('id', b.id),
-    ]);
-    if (r1.error || r2.error) {
-      toast.error('Reorder failed');
+  const updateOrder = async (id: string, value: number) => {
+    if (!Number.isFinite(value)) return;
+    const current = providers.find(p => p.id === id);
+    if (current && (current.display_order ?? 0) === value) return;
+    setProviders(prev => prev.map(p => p.id === id ? { ...p, display_order: value } : p));
+    const { error } = await supabase.from('payment_providers_config').update({ display_order: value }).eq('id', id);
+    if (error) {
+      toast.error('Order update failed');
       loadPaymentProviders();
+    } else {
+      toast.success(isSo ? 'Tartiibka waa la cusboonaysiiyay' : 'Order updated');
     }
   };
 
@@ -944,29 +933,21 @@ export const PaymentSettingsCustomView = ({ isSo }: { isSo: boolean }) => {
       )}
       {loading ? <LazyFallback /> : providers.length === 0 ? <EmptyState message="No payment providers" /> : (
         <div className="space-y-2">
-          {[...providers].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0)).map((item, idx, arr) => {
+          {[...providers].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0)).map((item) => {
             const isExpanded = expandedId === item.id;
             return (
               <div key={item.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-purple-100/50 dark:border-purple-900/20 overflow-hidden">
                 <div className="w-full px-3 py-2.5 flex items-center gap-2">
-                  <div className="flex flex-col gap-0.5 shrink-0">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); moveProvider(item.id, -1); }}
-                      disabled={idx === 0}
-                      className="p-0.5 rounded text-violet-600 disabled:text-gray-300 active:bg-violet-100"
-                      title={isSo ? 'Kor u qaad' : 'Move up'}
-                    >
-                      <ArrowUp className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); moveProvider(item.id, 1); }}
-                      disabled={idx === arr.length - 1}
-                      className="p-0.5 rounded text-violet-600 disabled:text-gray-300 active:bg-violet-100"
-                      title={isSo ? 'Hoos u dhig' : 'Move down'}
-                    >
-                      <ArrowDown className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+                  <input
+                    type="number"
+                    defaultValue={item.display_order ?? 0}
+                    key={`order-${item.id}-${item.display_order ?? 0}`}
+                    onClick={(e) => e.stopPropagation()}
+                    onBlur={(e) => updateOrder(item.id, Number(e.target.value))}
+                    onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+                    title={isSo ? 'Tartiibka (tiro yar = horay)' : 'Order (lower = first)'}
+                    className="w-12 shrink-0 px-1.5 py-1 text-center rounded-md bg-violet-50 dark:bg-violet-900/30 border border-violet-200 dark:border-violet-800 text-xs font-bold text-violet-700 dark:text-violet-200 outline-none focus:border-violet-500"
+                  />
                   <button onClick={() => setExpandedId(isExpanded ? null : item.id)} className="flex-1 flex items-center gap-3 text-left active:bg-purple-50/50 -my-2.5 py-2.5 -mr-3 pr-3">
                     {item.provider_logo && <img src={item.provider_logo} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />}
                     <div className="flex-1 min-w-0"><div className="font-bold text-sm text-gray-800 dark:text-white">{item.provider_name}</div></div>
