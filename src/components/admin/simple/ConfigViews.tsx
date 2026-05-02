@@ -10,7 +10,7 @@ import {
   Globe, Package, DollarSign, CheckCircle, XCircle, Hash, Calendar, Code, Settings, Star,
   Pencil, Power, Trash2, Plus, ChevronDown, Image, CreditCard, Phone,
 } from './shared';
-import { FileText } from 'lucide-react';
+import { FileText, ArrowUp, ArrowDown } from 'lucide-react';
 
 // ========== PROVIDERS ==========
 export const ProvidersCustomView = ({ isSo }: { isSo: boolean }) => {
