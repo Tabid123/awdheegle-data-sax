@@ -344,7 +344,7 @@ const CategorySelection = () => {
 
       {/* Change Offline Numbers Button - Only show in offline mode */}
       {isOffline && (
-        <div className="fixed bottom-28 left-1/2 -translate-x-1/2 z-40 px-4">
+        <div className="fixed bottom-36 left-1/2 -translate-x-1/2 z-40 px-4">
           <Button
             onClick={handleChangeOfflineNumbers}
             className="bg-card hover:bg-card/90 text-primary border-2 border-primary shadow-lg font-semibold h-9 text-xs px-4 rounded-full"

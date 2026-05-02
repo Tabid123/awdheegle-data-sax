@@ -873,7 +873,7 @@ return <div className="min-h-screen bg-[#efefef] pb-24">
         </div>}
 
       {/* Fixed Bottom Button */}
-      <div className="fixed bottom-0 left-0 right-0 px-4 pt-4 pb-8 bg-[#efefef]">
+      <div className="fixed bottom-20 left-0 right-0 px-4 pt-4 pb-4 bg-[#efefef]">
         <Button onClick={handleProceedToPayment} className="w-full gradient-button text-white font-semibold py-4 rounded-2xl text-lg hover:opacity-90 transition-opacity">
           {selectedProvider ? `Bixi Hada ${packageData?.price}` : 'Dooro habka lacag bixinta'}
         </Button>
