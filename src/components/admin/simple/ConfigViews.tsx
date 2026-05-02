@@ -10,7 +10,7 @@ import {
   Globe, Package, DollarSign, CheckCircle, XCircle, Hash, Calendar, Code, Settings, Star,
   Pencil, Power, Trash2, Plus, ChevronDown, Image, CreditCard, Phone,
 } from './shared';
-import { FileText, ArrowUp, ArrowDown } from 'lucide-react';
+import { FileText } from 'lucide-react';
 
 // ========== PROVIDERS ==========
 export const ProvidersCustomView = ({ isSo }: { isSo: boolean }) => {
@@ -933,7 +933,7 @@ export const PaymentSettingsCustomView = ({ isSo }: { isSo: boolean }) => {
       )}
       {loading ? <LazyFallback /> : providers.length === 0 ? <EmptyState message="No payment providers" /> : (
         <div className="space-y-2">
-          {[...providers].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0)).map((item, idx, arr) => {
+          {[...providers].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0)).map((item) => {
             const isExpanded = expandedId === item.id;
             return (
               <div key={item.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-purple-100/50 dark:border-purple-900/20 overflow-hidden">
