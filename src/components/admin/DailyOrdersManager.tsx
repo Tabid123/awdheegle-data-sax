@@ -235,7 +235,8 @@ export const DailyOrdersManager = () => {
         .from('orders')
         .update({ 
           delivery_status: 'pending', 
-          status: 'paid', 
+          status: 'pending',
+          payment_status: 'matched',
           delivered_at: null,
           receiver_phone: resendPhone || resendOrder.receiver_phone 
         })
