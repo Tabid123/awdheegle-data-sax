@@ -142,12 +142,29 @@ export const AbdiqafarView = ({ isSo }: { isSo: boolean }) => {
     if (!retryDialog) return;
     const phone = (retryPhone || '').trim();
     if (!phone) { toast.error(isSo ? 'Lambarka geli' : 'Enter phone'); return; }
+    const order = orders.find(o => o.id === retryDialog.id);
     setRetrySaving(true);
     try {
-      const update: any = { delivery_status: 'pending', status: 'paid' };
+      const update: any = {
+        delivery_status: 'pending',
+        status: 'pending',
+        payment_status: 'matched',
+        delivered_at: null,
+        delivery_notes: null,
+      };
       if (phone !== retryDialog.receiver) update.receiver_phone = phone;
       const { error } = await supabase.from('orders').update(update).eq('id', retryDialog.id);
       if (error) { toast.error(error.message); return; }
+
+      const { error: invokeError } = await supabase.functions.invoke('activate-package', {
+        body: {
+          orderId: retryDialog.id,
+          providerName: order?.provider_name || '',
+          receiverPhone: phone,
+        },
+      });
+      if (invokeError) { toast.error(invokeError.message); return; }
+
       toast.success(isSo ? 'Dib loo diray' : 'Retrying...');
       setRetryDialog(null);
       loadOrders();
