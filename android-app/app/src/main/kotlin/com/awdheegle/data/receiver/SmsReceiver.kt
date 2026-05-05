@@ -232,7 +232,9 @@ class SmsReceiver : BroadcastReceiver() {
             (bodyLower.contains("airtime") && bodyLower.contains("received")) ||
             senderLower == "913" -> "amtel"
             
-            bodyLower.contains("somnet") || bodyLower.contains("telesom") -> "somnet"
+            bodyLower.contains("[-jeeb-]") || bodyLower.contains("[-jeeb -]") ||
+            bodyLower.contains("somnet") || bodyLower.contains("telesom") ||
+            bodyLower.contains("golis") -> "somnet"
             
             else -> if (simSlot == 0) "hormuud" else "somnet"
         }
