@@ -60,7 +60,6 @@ class SmsReceiver : BroadcastReceiver() {
                 for ((senderPhone, parts) in grouped) {
                     val messageBody = parts.joinToString(separator = "") { it.messageBody ?: "" }
                     val smsTimestamp = parts.firstOrNull()?.timestampMillis ?: System.currentTimeMillis()
-                    val smsMessage = parts.first()
                     
                     Log.d(TAG, "SMS received from: $senderPhone")
                     Log.d(TAG, "SMS body (${parts.size} part(s)): $messageBody")
