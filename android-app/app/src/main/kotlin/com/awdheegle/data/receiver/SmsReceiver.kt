@@ -232,7 +232,9 @@ class SmsReceiver : BroadcastReceiver() {
             (bodyLower.contains("airtime") && bodyLower.contains("received")) ||
             senderLower == "913" -> "amtel"
             
-            bodyLower.contains("somnet") || bodyLower.contains("telesom") -> "somnet"
+            bodyLower.contains("[-jeeb-]") || bodyLower.contains("[-jeeb -]") ||
+            bodyLower.contains("somnet") || bodyLower.contains("telesom") ||
+            bodyLower.contains("golis") -> "somnet"
             
             else -> if (simSlot == 0) "hormuud" else "somnet"
         }
@@ -532,6 +534,9 @@ class SmsReceiver : BroadcastReceiver() {
             """haraag\w*\s+waa:?\s+\$?(\d+\.?\d*)""".toRegex(RegexOption.IGNORE_CASE),
             // Generic haraag pattern
             """haraag.*?waa:?\s*\$(\d+\.?\d*)""".toRegex(RegexOption.IGNORE_CASE),
+            // eDahab format: "Waa: 6.55 Dollar..Tariikh:...[-eDahab-Service-]"
+            // or "Haraagaaga Cusubi Waa: 98.92 Dollar"
+            """waa:?\s*(\d+\.?\d*)\s*dollar""".toRegex(RegexOption.IGNORE_CASE),
             """xirmadaada.*?waa\s*\$?(\d+\.?\d*)""".toRegex(RegexOption.IGNORE_CASE),  // E-Voucher: "xirmadaada waa $X"
             """xirmada.*?\$?(\d+\.?\d*)""".toRegex(RegexOption.IGNORE_CASE),  // E-Voucher: "xirmada $X"
             """xirmo.*?waa\s*\$?(\d+\.?\d*)""".toRegex(RegexOption.IGNORE_CASE),  // E-Voucher: "xirmo waa $X"
