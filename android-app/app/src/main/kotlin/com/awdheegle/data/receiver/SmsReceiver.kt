@@ -52,14 +52,17 @@ class SmsReceiver : BroadcastReceiver() {
                 val messages = Telephony.Sms.Intents.getMessagesFromIntent(intent)
                 
                 Log.d(TAG, "📨 Total messages in bundle: ${messages.size}")
-                
-                for (smsMessage in messages) {
-                    val messageBody = smsMessage.messageBody
-                    val senderPhone = smsMessage.originatingAddress ?: ""
-                    val smsTimestamp = smsMessage.timestampMillis
+
+                // ✅ Group multi-part SMS by sender so long messages (e.g. eDahab)
+                // are concatenated into a single body before parsing.
+                val grouped = messages.groupBy { it.originatingAddress ?: "" }
+
+                for ((senderPhone, parts) in grouped) {
+                    val messageBody = parts.joinToString(separator = "") { it.messageBody ?: "" }
+                    val smsTimestamp = parts.firstOrNull()?.timestampMillis ?: System.currentTimeMillis()
                     
                     Log.d(TAG, "SMS received from: $senderPhone")
-                    Log.d(TAG, "SMS body: $messageBody")
+                    Log.d(TAG, "SMS body (${parts.size} part(s)): $messageBody")
                     
                     // Get which SIM received this SMS
                     val simSlot = getSimSlot(context, intent)
