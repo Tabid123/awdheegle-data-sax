@@ -1,109 +1,48 @@
-# Sababta Somtel SIM Uu U Mari Waayay
+## Hadafka
 
-Somtel SIM way jirtaa, sida sawirkaaga ka muuqata. Ciladu ma ahan in Somtel SIM la waayay guud ahaan. Ciladu waxay ahayd:
+Sameey nidaam admin uu ku xidhi karo lambar gaar ah xirmo gaar ah. Markii lambarkaas uu lacag soo dirsado, xirmadaas ayaa loo diraa — ma ka tegayo qiime-ka guud (selling_price match).
 
-**Dalabka Somtel waxaa qaatay aalad kale oo aan lahayn Somtel SIM.**
+## Xaaladda Hadda
 
-Xogta dalabka aan arkay:
+- Edge function `process-payment-receipt` mar hore wuu eegi karaa table la yidhaahdo `auto_topup_phone_mappings` (lines 873-942 ee `index.ts`).
+- Logic-ku waa: hadduu sender-ka lambarkiisu ku jiro mapping → ku xidh xirmadaas si toos ah; haddii kale → ku xulo qiimaha guud.
+- Laakiin **table-kaas weli ma jiro** database-ka, UI-na ma jiro lagu maamulo.
 
-```text
-Order: 3ff7e7e1 / a8c03439
-Provider: somtel
-USSD: *831*622622705*020*5641#
-Claimed device: 036f842573c40cc8
-Device SIMs: SIM1 = Somnet, SIM2 = empty/null
-```
+## Qorshe
 
-Laakiin sawirkaaga wuxuu muujinayaa aalad kale oo leh:
+### 1. Database — table cusub `auto_topup_phone_mappings`
 
-```text
-SIM1: Hormuud
-SIM2: Somtel
-```
+Goobaha:
+- `id` uuid PK
+- `phone_number` text (sender-ka loo xidhayo, normalized)
+- `package_id` uuid → `auto_topup_packages.id`
+- `custom_amount` text nullable (qiime/qiimooyin gaar ah comma-separated; haddii NULL la isticmaalo `selling_price` xirmada)
+- `label` text nullable
+- `is_active` boolean default true
+- `created_at`, `updated_at`
 
-Marka dalabku Somtel SIM buu lahaa meesha uu ku dhici lahaa, laakiin **server-ka ayaa u dhiibay device khaldan**. Device-ka khaldan wuxuu lahaa Somnet SIM kaliya, kadib Android app-ka wuxuu isku dayay fallback, wuxuuna USSD-ga Somtel ka diray Somnet SIM. Sidaas ayaa Somnet u soo celisay:
+RLS: Admins manage (ALL, `is_admin(auth.uid())`), Public read (si edge function-ku u akhriyo) — la mid ah `auto_topup_packages`.
 
-```text
-Receiver Airtime Partner not found
-```
+Index: `(phone_number, is_active)`.
 
-## Root Cause
+### 2. UI Admin — tab cusub `AutoTopUpView.tsx`
 
-Waxaa jira labo meel oo u baahan in la adkeeyo:
+Tab cusub oo la dhigayo dhinaca packages-ka kor: **"Lambar → Xirmo"** (Phone Mappings).
 
-1. **Database RPC `claim_next_delivery`**
-   - Waa inuu dalab Somtel ah u dhiibaa kaliya device leh Somtel active SIM.
-   - Hadda waxaa dhacay in device Somnet-only uu claim gareeyay Somtel order.
+Waxa uu user-ku qaban karo:
+- Geli lambar (sender phone) + label
+- Dooro xirmo (`auto_topup_packages` liiska, lagu kala saari karo provider/topup-number)
+- Dooro qiime gaar ah (ikhtiyaari, comma-separated tusaale `0.50, 1.00`); haddii la dhaafo, `selling_price` xirmada ayaa la isticmaalaa
+- Beddel/Tirtir/Toggle active
 
-2. **Android fallback logic**
-   - Haddii Android-ku uusan helin SIM-ka provider-ka saxda ah, waa inuusan USSD dirin.
-   - Waa inuu yiraahdaa `NO_SIM_FOR_PROVIDER:somtel`, kadib dalabka server-ku ha u celiyo queue-ga si device kale oo Somtel leh u qaato.
+Liis ka muuqdaa: lambarka, label, xirmada (magac + provider), qiimaha la rabo, xaalada.
 
-# Qorshaha Fix-ka
+### 3. Sidee u shaqayso (warar)
 
-## 1. Adkeyn Database Claiming
+Lambar 615123456 → la xidho xirmada "24 Saac Hormuud" oo qiimo $0.50.
+Markii 615123456 lacag $0.50 dirsado → si toos ah loo diro xirmada 24 Saac, iyada oo aan la eegin xirmooyin kale oo $0.50 leh.
 
-Waxaan cusboonaysiin doonaa `claim_next_delivery` RPC si:
+### Faylasha la beddelayo
 
-- Somtel order → kaliya device leh `sim1_provider='Somtel'` ama `sim2_provider='Somtel'`
-- Somnet order → kaliya Somnet SIM device
-- Hormuud order → kaliya Hormuud SIM device
-- Haddii provider-ka uusan ku jirin device-ka, order-ka lama siinayo device-kaas.
-
-## 2. Ka saar Android fallback-ka khatarta ah
-
-`UssdDialerService.kt` waxaa laga saari doonaa fallback-ka ku dira SIM kale marka provider SIM la waayo.
-
-Logic cusub:
-
-```text
-If provider = somtel:
-  find active Somtel SIM
-  if found: dial from Somtel SIM
-  if not found: do not dial, return NO_SIM_FOR_PROVIDER:somtel
-```
-
-Tani waxay joojinaysaa in Somnet SIM lagu diro Somtel USSD.
-
-## 3. Server-ku ha re-queue gareeyo haddii SIM sax ah la waayo
-
-Haddii Android soo celiso:
-
-```text
-NO_SIM_FOR_PROVIDER:somtel
-```
-
-Edge function-ku wuxuu dalabka u celin doonaa `pending`, si device-ka leh Somtel SIM uu u qaato.
-
-## 4. Sax status-ka khaldan
-
-Waxaa la adkeyn doonaa success detection-ka:
-
-- `AWDHEEGLE DATA | ALWAYS ON...` looma aqoonsan doono success.
-- `Receiver Airtime Partner not found` waxaa loo aqoonsan doonaa failure cad.
-- Success wuxuu noqon doonaa kaliya haddii jawaabtu leedahay marker cad sida:
-  - `ugu shubtay`
-  - `ku shubtay`
-  - `transaction id`
-  - `successfully sent`
-
-## 5. Cleanup dalabyadan khaldan
-
-Dalabyada sida kuwa sawirkaaga oo kale:
-
-- provider = Somtel
-- provider_response = status text ama `Receiver Airtime Partner not found`
-- status = completed
-
-waxaa loo beddeli doonaa `failed` ama `pending` si dib loogu diro device-ka saxda ah.
-
-## Natiijada
-
-Kadib fix-kan:
-
-- Somtel dalab → Somtel SIM kaliya ayuu ka bixi doonaa.
-- Somnet SIM mar dambe ma qaadan doono Somtel order.
-- Haddii device sax ah offline yahay, order-ku ma bixi doono SIM khaldan; wuxuu sugi doonaa device sax ah.
-- Jawaabta khaldan looma calaamadin doono `Successfully`.
-
-Markaad approve gareyso, waxaan sameyn doonaa migration-ka database, edge function update, iyo Android app update. APK cusub ayaa loo baahan doonaa in lagu rakibo devices-ka.
+- `supabase/migrations/<new>.sql` — table cusub + RLS + index
+- `src/components/admin/simple/AutoTopUpView.tsx` — tab cusub iyo CRUD UI
