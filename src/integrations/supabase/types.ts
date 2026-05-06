@@ -304,6 +304,39 @@ export type Database = {
           },
         ]
       }
+      auto_topup_phone_mappings: {
+        Row: {
+          created_at: string
+          custom_amount: string | null
+          id: string
+          is_active: boolean
+          label: string | null
+          package_id: string
+          phone_number: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          custom_amount?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          package_id: string
+          phone_number: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          custom_amount?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          package_id?: string
+          phone_number?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       auto_topup_rules: {
         Row: {
           created_at: string
