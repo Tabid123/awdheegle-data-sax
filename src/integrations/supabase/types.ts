@@ -306,6 +306,7 @@ export type Database = {
       }
       auto_topup_phone_mappings: {
         Row: {
+          category_name: string | null
           created_at: string
           custom_amount: string | null
           id: string
@@ -313,9 +314,11 @@ export type Database = {
           label: string | null
           package_id: string
           phone_number: string
+          topup_number_id: string | null
           updated_at: string
         }
         Insert: {
+          category_name?: string | null
           created_at?: string
           custom_amount?: string | null
           id?: string
@@ -323,9 +326,11 @@ export type Database = {
           label?: string | null
           package_id: string
           phone_number: string
+          topup_number_id?: string | null
           updated_at?: string
         }
         Update: {
+          category_name?: string | null
           created_at?: string
           custom_amount?: string | null
           id?: string
@@ -333,6 +338,7 @@ export type Database = {
           label?: string | null
           package_id?: string
           phone_number?: string
+          topup_number_id?: string | null
           updated_at?: string
         }
         Relationships: []
