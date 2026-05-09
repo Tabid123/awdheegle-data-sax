@@ -277,16 +277,52 @@ const PaymentProviders = () => {
 
   const offlineSenderRef = React.useRef(false);
 
+  // Verified phone (the one user logged into the app with) — used to auto-fill payment number
+  const verifiedPhoneDigits = React.useMemo(() => {
+    const raw = (typeof window !== 'undefined' ? localStorage.getItem('verifiedPhone') : '') || '';
+    const cleaned = raw.replace(/\D/g, '');
+    // Strip leading 252 if present
+    return cleaned.startsWith('252') ? cleaned.substring(3) : cleaned;
+  }, []);
+
+  // Map verified phone prefix → payment provider name keyword
+  const matchPaymentProviderForPhone = useCallback((phone: string) => {
+    if (!phone || phone.length < 2) return null;
+    const p = phone.substring(0, 2);
+    let keywords: string[] = [];
+    if (p === '61' || p === '77') keywords = ['evc', 'hormuud'];
+    else if (p === '68') keywords = ['jeeb', 'somnet'];
+    else if (p === '62') keywords = ['edahab', 'e-dahab', 'dahab', 'somtel'];
+    else if (p === '63' || p === '65') keywords = ['somlink'];
+    else if (p === '71') keywords = ['amtel'];
+    if (keywords.length === 0) return null;
+    return paymentProviders.find((pp: any) => {
+      const n = (pp.provider_name || '').toLowerCase();
+      return keywords.some(k => n.includes(k));
+    }) || null;
+  }, [paymentProviders]);
+
   const handlePaymentSelect = useCallback((paymentId: string) => {
     setSelectedProvider(paymentId);
     const selectedPayment = paymentProviders.find(p => p.id === paymentId);
     if (selectedPayment) {
       const prefix = selectedPayment.prefix_code || getProviderPrefix(selectedPayment.provider_name);
       setPaymentProviderPrefix(prefix);
-      // Leave sender phone empty so user types full number including prefix
-      setPaymentNumber('');
+      // Auto-fill with verified phone (read-only for user)
+      setPaymentNumber(verifiedPhoneDigits);
+      setPaymentNumberError('');
     }
-  }, [paymentProviders, getProviderPrefix]);
+  }, [paymentProviders, getProviderPrefix, verifiedPhoneDigits]);
+
+  // Auto-select the payment provider matching the verified phone prefix
+  React.useEffect(() => {
+    if (selectedProvider) return;
+    if (!paymentProviders || paymentProviders.length === 0) return;
+    const match = matchPaymentProviderForPhone(verifiedPhoneDigits);
+    if (match) {
+      handlePaymentSelect(match.id);
+    }
+  }, [paymentProviders, verifiedPhoneDigits, matchPaymentProviderForPhone, selectedProvider, handlePaymentSelect]);
   const handlePaymentNumberChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value.replace(/\D/g, '');
 
@@ -716,7 +752,11 @@ return <div className="min-h-screen bg-[#efefef] pb-24">
                   value={paymentNumber} 
                   onChange={handlePaymentNumberChange} 
                   maxLength={9} 
-                  className={`flex-1 focus:border-[#0099ff] focus:ring-[#0099ff] ${paymentNumberError ? 'border-red-500' : ''}`}
+                  readOnly
+                  inputMode="none"
+                  onKeyDown={(e) => e.preventDefault()}
+                  onPaste={(e) => e.preventDefault()}
+                  className={`flex-1 bg-muted text-muted-foreground cursor-not-allowed select-none focus:border-[#0099ff] focus:ring-[#0099ff] ${paymentNumberError ? 'border-red-500' : ''}`}
                 />
               </div>
               {paymentNumberError && (
