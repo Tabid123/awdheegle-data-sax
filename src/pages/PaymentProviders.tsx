@@ -752,11 +752,7 @@ return <div className="min-h-screen bg-[#efefef] pb-24">
                   value={paymentNumber} 
                   onChange={handlePaymentNumberChange} 
                   maxLength={9} 
-                  readOnly
-                  inputMode="none"
-                  onKeyDown={(e) => e.preventDefault()}
-                  onPaste={(e) => e.preventDefault()}
-                  className={`flex-1 bg-muted text-muted-foreground cursor-not-allowed select-none focus:border-[#0099ff] focus:ring-[#0099ff] ${paymentNumberError ? 'border-red-500' : ''}`}
+                  className={`flex-1 focus:border-[#0099ff] focus:ring-[#0099ff] ${paymentNumberError ? 'border-red-500' : ''}`}
                 />
               </div>
               {paymentNumberError && (
