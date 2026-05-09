@@ -484,7 +484,8 @@ const PaymentProviders = () => {
     setUssdCodeForDisplay(generatedUssdCode);
 
     setShowPaymentModal(false);
-    setShowConfirmationScreen(true);
+    // Skip confirmation screen — go directly to payment/dealer
+    handlePaymentComplete();
   };
   const handlePaymentComplete = async () => {
     const selectedPaymentProvider = paymentProviders.find(p => p.id === selectedProvider);
