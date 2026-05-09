@@ -308,11 +308,16 @@ const PaymentProviders = () => {
     if (selectedPayment) {
       const prefix = selectedPayment.prefix_code || getProviderPrefix(selectedPayment.provider_name);
       setPaymentProviderPrefix(prefix);
-      // Auto-fill with verified phone (read-only for user)
-      setPaymentNumber(verifiedPhoneDigits);
+      // Auto-fill ONLY if verified phone matches the selected payment provider
+      const matched = matchPaymentProviderForPhone(verifiedPhoneDigits);
+      if (matched && matched.id === paymentId) {
+        setPaymentNumber(verifiedPhoneDigits);
+      } else {
+        setPaymentNumber('');
+      }
       setPaymentNumberError('');
     }
-  }, [paymentProviders, getProviderPrefix, verifiedPhoneDigits]);
+  }, [paymentProviders, getProviderPrefix, verifiedPhoneDigits, matchPaymentProviderForPhone]);
 
   // Auto-select the payment provider matching the verified phone prefix
   React.useEffect(() => {
