@@ -165,6 +165,57 @@ const PaymentProviders = () => {
   const isOfflineFromState = location.state?.isOffline;
   const [ussdCodeForDisplay, setUssdCodeForDisplay] = useState<string>('');
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [showReceiverSuggestions, setShowReceiverSuggestions] = useState(false);
+
+  // Verified phone (lambarka uu user-ku app-ka kusoo galay)
+  const verifiedPhoneRaw = React.useMemo(() => {
+    const raw = (typeof window !== 'undefined' ? localStorage.getItem('verifiedPhone') : '') || '';
+    const cleaned = raw.replace(/\D/g, '');
+    return cleaned.startsWith('252') ? cleaned.substring(3) : cleaned;
+  }, []);
+
+  // Lambarrada uu user-ku horay internet ugu shubay (recent receiver phones)
+  const { data: recentReceiverNumbers = [] } = useQuery<string[]>({
+    queryKey: ['recentReceiverNumbers', verifiedPhoneRaw],
+    queryFn: async () => {
+      if (!verifiedPhoneRaw) return [];
+      try {
+        const { data, error } = await supabase
+          .from('orders')
+          .select('receiver_phone, created_at')
+          .or(`customer_phone.eq.${verifiedPhoneRaw},sender_phone.eq.${verifiedPhoneRaw}`)
+          .not('receiver_phone', 'is', null)
+          .order('created_at', { ascending: false })
+          .limit(50);
+        if (error) throw error;
+        const seen = new Set<string>();
+        const list: string[] = [];
+        (data || []).forEach((r: any) => {
+          const num = (r.receiver_phone || '').toString().replace(/\D/g, '');
+          const norm = num.startsWith('252') ? num.substring(3) : num;
+          if (norm && !seen.has(norm)) {
+            seen.add(norm);
+            list.push(norm);
+          }
+        });
+        try { localStorage.setItem('recent_receiver_numbers', JSON.stringify(list)); } catch {}
+        return list.slice(0, 10);
+      } catch (e) {
+        try {
+          const cached = localStorage.getItem('recent_receiver_numbers');
+          return cached ? JSON.parse(cached).slice(0, 10) : [];
+        } catch { return []; }
+      }
+    },
+    enabled: !!verifiedPhoneRaw,
+    staleTime: 60_000,
+    initialData: () => {
+      try {
+        const cached = localStorage.getItem('recent_receiver_numbers');
+        return cached ? JSON.parse(cached).slice(0, 10) : [];
+      } catch { return []; }
+    },
+  });
 
   const getProviderFromPrefix = useCallback((phoneNumber: string) => {
     const prefix = phoneNumber.substring(0, 2);
