@@ -165,6 +165,57 @@ const PaymentProviders = () => {
   const isOfflineFromState = location.state?.isOffline;
   const [ussdCodeForDisplay, setUssdCodeForDisplay] = useState<string>('');
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [showReceiverSuggestions, setShowReceiverSuggestions] = useState(false);
+
+  // Verified phone (lambarka uu user-ku app-ka kusoo galay)
+  const verifiedPhoneRaw = React.useMemo(() => {
+    const raw = (typeof window !== 'undefined' ? localStorage.getItem('verifiedPhone') : '') || '';
+    const cleaned = raw.replace(/\D/g, '');
+    return cleaned.startsWith('252') ? cleaned.substring(3) : cleaned;
+  }, []);
+
+  // Lambarrada uu user-ku horay internet ugu shubay (recent receiver phones)
+  const { data: recentReceiverNumbers = [] } = useQuery<string[]>({
+    queryKey: ['recentReceiverNumbers', verifiedPhoneRaw],
+    queryFn: async () => {
+      if (!verifiedPhoneRaw) return [];
+      try {
+        const { data, error } = await supabase
+          .from('orders')
+          .select('receiver_phone, created_at')
+          .or(`customer_phone.eq.${verifiedPhoneRaw},sender_phone.eq.${verifiedPhoneRaw}`)
+          .not('receiver_phone', 'is', null)
+          .order('created_at', { ascending: false })
+          .limit(50);
+        if (error) throw error;
+        const seen = new Set<string>();
+        const list: string[] = [];
+        (data || []).forEach((r: any) => {
+          const num = (r.receiver_phone || '').toString().replace(/\D/g, '');
+          const norm = num.startsWith('252') ? num.substring(3) : num;
+          if (norm && !seen.has(norm)) {
+            seen.add(norm);
+            list.push(norm);
+          }
+        });
+        try { localStorage.setItem('recent_receiver_numbers', JSON.stringify(list)); } catch {}
+        return list.slice(0, 10);
+      } catch (e) {
+        try {
+          const cached = localStorage.getItem('recent_receiver_numbers');
+          return cached ? JSON.parse(cached).slice(0, 10) : [];
+        } catch { return []; }
+      }
+    },
+    enabled: !!verifiedPhoneRaw,
+    staleTime: 60_000,
+    initialData: () => {
+      try {
+        const cached = localStorage.getItem('recent_receiver_numbers');
+        return cached ? JSON.parse(cached).slice(0, 10) : [];
+      } catch { return []; }
+    },
+  });
 
   const getProviderFromPrefix = useCallback((phoneNumber: string) => {
     const prefix = phoneNumber.substring(0, 2);
@@ -781,6 +832,7 @@ return <div className="min-h-screen bg-[#efefef] pb-24">
                   placeholder={isADSL ? '1XXXXXX' : (receiverProviderPrefix ? `${receiverProviderPrefix}XXXXXXX` : 'XXXXXXXXX')}
                   value={receiverNumber} 
                   onChange={handleReceiverNumberChange} 
+                  onFocus={() => setShowReceiverSuggestions(true)}
                   maxLength={isADSL ? 7 : 9} 
                   className={`flex-1 focus:border-[#0099ff] focus:ring-[#0099ff] ${receiverNumberError ? 'border-red-500' : ''}`}
                 />
@@ -790,6 +842,51 @@ return <div className="min-h-screen bg-[#efefef] pb-24">
               )}
               {isADSL && (
                 <p className="text-xs text-muted-foreground">ADSL: 7 lambar bilaabanaya 1-9, tusaale: 1234567 ama 9876543</p>
+              )}
+              {!isADSL && showReceiverSuggestions && recentReceiverNumbers.length > 0 && (
+                <div className="mt-2 space-y-1.5 max-h-56 overflow-y-auto rounded-lg border border-border bg-background p-2">
+                  <div className="flex items-center justify-between px-1">
+                    <p className="text-[11px] font-semibold text-muted-foreground uppercase">
+                      Lambarrada aad horay u shubtay
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setShowReceiverSuggestions(false)}
+                      className="text-[11px] text-muted-foreground hover:text-foreground"
+                    >
+                      Xir
+                    </button>
+                  </div>
+                  {recentReceiverNumbers.map((num) => {
+                    const prov = getProviderFromPrefix(num);
+                    const brandClass = getBrandBackgroundClass(prov.name);
+                    const textColorClass = brandClass.replace('bg-', 'text-');
+                    return (
+                      <button
+                        type="button"
+                        key={num}
+                        onClick={() => {
+                          setReceiverNumber(num);
+                          setReceiverNumberError('');
+                          setShowReceiverSuggestions(false);
+                        }}
+                        className="w-full flex items-center justify-between gap-2 rounded-md border border-border bg-muted/40 hover:bg-muted px-3 py-2 transition-colors"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          {prov.logo ? (
+                            <img src={prov.logo} alt={prov.name} className="w-7 h-7 rounded-full object-contain bg-white" />
+                          ) : (
+                            <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[10px] font-bold">
+                              {prov.name.charAt(0)}
+                            </div>
+                          )}
+                          <span className={`font-bold text-sm ${textColorClass}`}>{num}</span>
+                        </div>
+                        <span className="text-[10px] text-muted-foreground">{prov.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               )}
             </div>
             
