@@ -127,7 +127,7 @@ export const DailyOrdersCustomView = ({ isSo }: { isSo: boolean }) => {
   useRealtimeRefresh(['orders'], loadOrders, 800, { notify: true, lang: isSo ? 'so' : 'en' });
 
   const filtered = orders.filter(o => {
-    if (statusFilter === 'pending') return o.delivery_status === 'pending' && (o.status === 'paid' || o.status === 'completed');
+    if (statusFilter === 'pending') return o.delivery_status === 'pending' && o.status === 'completed';
     if (statusFilter === 'delivered') return o.delivery_status === 'delivered';
     if (statusFilter === 'failed') return o.delivery_status === 'failed';
     if (statusFilter === 'cancelled') return o.status === 'cancelled';
@@ -135,9 +135,9 @@ export const DailyOrdersCustomView = ({ isSo }: { isSo: boolean }) => {
   }).filter(o => !searchQuery || o.receiver_phone?.includes(searchQuery) || o.customer_phone?.includes(searchQuery) || o.package_name?.toLowerCase().includes(searchQuery.toLowerCase()));
 
   const deliveredCount = orders.filter(o => o.delivery_status === 'delivered').length;
-  const pendingCount = orders.filter(o => o.delivery_status === 'pending' && (o.status === 'paid' || o.status === 'completed')).length;
+  const pendingCount = orders.filter(o => o.delivery_status === 'pending' && o.status === 'completed').length;
   const failedCount = orders.filter(o => o.delivery_status === 'failed').length;
-  const totalRevenue = orders.filter(o => o.status === 'paid' || o.status === 'completed').reduce((s, o) => s + Number(o.selling_price || 0), 0);
+  const totalRevenue = orders.filter(o => o.status === 'completed').reduce((s, o) => s + Number(o.selling_price || 0), 0);
   const navigateDate = (dir: number) => { const d = new Date(selectedDate); d.setDate(d.getDate() + dir); setSelectedDate(d.toISOString().split('T')[0]); };
   const isToday = selectedDate === new Date().toISOString().split('T')[0];
 
@@ -191,9 +191,9 @@ export const OrdersListView = ({ isSo, type }: { isSo: boolean; type: string }) 
       provider:providers_config(id, display_name, provider_name)
     `).order('created_at', { ascending: false }).limit(200);
     switch (type) {
-      case 'sales': query = query.gte('created_at', today.toISOString()).in('status', ['paid', 'completed']); break;
+      case 'sales': query = query.gte('created_at', today.toISOString()).eq('status', 'completed'); break;
       case 'failed': query = query.eq('delivery_status', 'failed'); break;
-      case 'pending': query = query.eq('delivery_status', 'pending').in('status', ['paid', 'completed']); break;
+      case 'pending': query = query.eq('delivery_status', 'pending').eq('status', 'completed'); break;
       case 'delivered': query = query.eq('delivery_status', 'delivered'); break;
     }
     const { data } = await query;
