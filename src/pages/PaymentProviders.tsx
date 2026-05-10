@@ -832,6 +832,7 @@ return <div className="min-h-screen bg-[#efefef] pb-24">
                   placeholder={isADSL ? '1XXXXXX' : (receiverProviderPrefix ? `${receiverProviderPrefix}XXXXXXX` : 'XXXXXXXXX')}
                   value={receiverNumber} 
                   onChange={handleReceiverNumberChange} 
+                  onFocus={() => setShowReceiverSuggestions(true)}
                   maxLength={isADSL ? 7 : 9} 
                   className={`flex-1 focus:border-[#0099ff] focus:ring-[#0099ff] ${receiverNumberError ? 'border-red-500' : ''}`}
                 />
@@ -841,6 +842,51 @@ return <div className="min-h-screen bg-[#efefef] pb-24">
               )}
               {isADSL && (
                 <p className="text-xs text-muted-foreground">ADSL: 7 lambar bilaabanaya 1-9, tusaale: 1234567 ama 9876543</p>
+              )}
+              {!isADSL && showReceiverSuggestions && recentReceiverNumbers.length > 0 && (
+                <div className="mt-2 space-y-1.5 max-h-56 overflow-y-auto rounded-lg border border-border bg-background p-2">
+                  <div className="flex items-center justify-between px-1">
+                    <p className="text-[11px] font-semibold text-muted-foreground uppercase">
+                      Lambarrada aad horay u shubtay
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setShowReceiverSuggestions(false)}
+                      className="text-[11px] text-muted-foreground hover:text-foreground"
+                    >
+                      Xir
+                    </button>
+                  </div>
+                  {recentReceiverNumbers.map((num) => {
+                    const prov = getProviderFromPrefix(num);
+                    const brandClass = getBrandBackgroundClass(prov.name);
+                    const textColorClass = brandClass.replace('bg-', 'text-');
+                    return (
+                      <button
+                        type="button"
+                        key={num}
+                        onClick={() => {
+                          setReceiverNumber(num);
+                          setReceiverNumberError('');
+                          setShowReceiverSuggestions(false);
+                        }}
+                        className="w-full flex items-center justify-between gap-2 rounded-md border border-border bg-muted/40 hover:bg-muted px-3 py-2 transition-colors"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          {prov.logo ? (
+                            <img src={prov.logo} alt={prov.name} className="w-7 h-7 rounded-full object-contain bg-white" />
+                          ) : (
+                            <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[10px] font-bold">
+                              {prov.name.charAt(0)}
+                            </div>
+                          )}
+                          <span className={`font-bold text-sm ${textColorClass}`}>{num}</span>
+                        </div>
+                        <span className="text-[10px] text-muted-foreground">{prov.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               )}
             </div>
             
