@@ -471,7 +471,7 @@ const SmsLogsViewer = () => {
                   }}
                 />
                 <span className={`text-lg font-bold ${getProviderTextColor(getProviderFromSender(selectedSenderCode))} truncate`}>
-                  {selectedSenderCode}
+                {getCodeLabel(selectedSenderCode)}
                 </span>
                 {getProviderFromSender(selectedSenderCode) && (
                   <Badge variant="secondary" className="text-[10px]">
