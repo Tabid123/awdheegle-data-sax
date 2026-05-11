@@ -89,6 +89,36 @@ const formatTimeAgo = (dateStr: string | null) => {
   return `${days}d ago`;
 };
 
+// Parse the post-transaction balance from an SMS body. Supports both
+// "haraagagu waa $141.333" (Hormuud/Jeeb) and "Haraagaagu waa:  73.05" (Somtel).
+const parseBalanceFromSms = (body: string | null): number | null => {
+  if (!body) return null;
+  const m = body.match(/haraag\w*\s*waa[:\s]*\$?\s*([\d]+(?:\.[\d]+)?)/i);
+  if (!m) return null;
+  const v = parseFloat(m[1]);
+  return Number.isFinite(v) ? v : null;
+};
+
+// Build the freshest balance per (device_id, sim_slot, balance_type)
+// from recent sms_logs rows. This is used to override sim_balances when
+// the SMS has a more recent reading or when sim_balances is missing.
+const buildLatestSmsBalances = (
+  rows: Array<{ device_id: string | null; sim_slot: number | null; tx_type: string | null; sms_body: string | null; created_at: string | null }>
+): Record<string, { balance: number; created_at: string }> => {
+  const out: Record<string, { balance: number; created_at: string }> = {};
+  for (const r of rows) {
+    if (!r.device_id || !r.sim_slot || !r.tx_type) continue;
+    const bal = parseBalanceFromSms(r.sms_body);
+    if (bal == null) continue;
+    const key = `${r.device_id}|${r.sim_slot}|${r.tx_type}`;
+    const existing = out[key];
+    if (!existing || (r.created_at && r.created_at > existing.created_at)) {
+      out[key] = { balance: bal, created_at: r.created_at || '' };
+    }
+  }
+  return out;
+};
+
 const SimpleAdminDashboard = () => {
   const navigate = useNavigate();
   const { language, setLanguage } = useLanguage();
@@ -188,7 +218,9 @@ const SimpleAdminDashboard = () => {
         unmatchedQuery = unmatchedQuery.gte('created_at', periodStartISO);
       }
 
-      const [ordersRes, devicesRes, balancesRes, providersRes, deliveryRes, analyticsRes, unmatchedRes] = await Promise.all([
+      // Look back 2 days of SMS to recover the latest reported balance per SIM.
+      const smsLookbackISO = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
+      const [ordersRes, devicesRes, balancesRes, providersRes, deliveryRes, analyticsRes, unmatchedRes, smsRes] = await Promise.all([
         supabase.from('orders').select('id, status, delivery_status, selling_price, cost_price, created_at, provider_id'),
         supabase.from('android_devices').select('id, device_id, device_name, provider_name, sim1_provider, sim2_provider, sim_number, sim2_number, last_ping_at, is_active, battery_level, is_charging').eq('is_active', true),
         supabase.from('sim_balances').select('device_id, sim_slot, balance, balance_type, last_updated'),
@@ -196,6 +228,11 @@ const SimpleAdminDashboard = () => {
         supabase.from('delivery_queue').select('android_device_id, status, created_at, order_id').gte('created_at', useCustomDate ? customStartISO : todayISO),
         supabase.rpc('get_admin_analytics_summary'),
         unmatchedQuery,
+        supabase.from('sms_logs')
+          .select('device_id, sim_slot, tx_type, sms_body, created_at')
+          .gte('created_at', smsLookbackISO)
+          .order('created_at', { ascending: false })
+          .limit(2000),
       ]);
 
       const providerRates = providersRes.data || [];
@@ -266,6 +303,28 @@ const SimpleAdminDashboard = () => {
 
       const balanceData = balancesRes.data || [];
       const deliveryData = deliveryRes.data || [];
+      // Override stale sim_balances rows with the freshest balance parsed
+      // straight from sms_logs (which always carries the correct device_id).
+      const latestSmsBalances = buildLatestSmsBalances(smsRes.data || []);
+      const lookupBalance = (
+        deviceUuid: string,
+        simSlot: number,
+        balanceType: string
+      ): { balance: number; ts: string | null } => {
+        const dbRow = balanceData.find(
+          (b: any) => b.device_id === deviceUuid && b.sim_slot === simSlot && b.balance_type === balanceType
+        );
+        const smsRow = latestSmsBalances[`${deviceUuid}|${simSlot}|${balanceType}`];
+        const dbTs = dbRow?.last_updated || null;
+        const smsTs = smsRow?.created_at || null;
+        // Prefer the most recent reading
+        if (smsRow && (!dbTs || (smsTs && smsTs > dbTs))) {
+          return { balance: Number(smsRow.balance) || 0, ts: smsTs };
+        }
+        if (dbRow) return { balance: Number(dbRow.balance) || 0, ts: dbTs };
+        if (smsRow) return { balance: Number(smsRow.balance) || 0, ts: smsTs };
+        return { balance: 0, ts: null };
+      };
       const findProviderLogo = (provName: string) => {
         const match = providerRates.find(p => p.provider_name?.toLowerCase() === provName.toLowerCase());
         return match?.provider_logo || null;
@@ -296,27 +355,27 @@ const SimpleAdminDashboard = () => {
         const sims: SimInfo[] = [];
         const sim1Provider = d.sim1_provider || d.provider_name || '';
         const sim1Wallet = getWalletConfig(sim1Provider);
-        const sim1Evc = deviceBalances.find(b => b.sim_slot === 1 && b.balance_type === 'evc_plus');
-        const sim1Ev = deviceBalances.find(b => b.sim_slot === 1 && b.balance_type === 'evoucher');
-        const sim1WalletBal = deviceBalances.find(b => b.sim_slot === 1 && b.balance_type === sim1Wallet.type);
+        const sim1Evc = lookupBalance(d.id, 1, 'evc_plus');
+        const sim1Ev = lookupBalance(d.id, 1, 'evoucher');
+        const sim1WalletBal = lookupBalance(d.id, 1, sim1Wallet.type);
         sims.push({
           sim_slot: 1, sim_number: d.sim_number || '', provider_name: sim1Provider,
           provider_logo: findProviderLogo(sim1Provider),
-          evc_balance: sim1Evc?.balance || 0, evoucher_balance: sim1Ev?.balance || 0,
-          wallet_balance: sim1WalletBal?.balance || 0,
+          evc_balance: sim1Evc.balance, evoucher_balance: sim1Ev.balance,
+          wallet_balance: sim1WalletBal.balance,
           wallet_label: sim1Wallet.label,
           evoucher_rate: findProviderRate(sim1Provider),
         });
         if (d.sim2_number && d.sim2_provider) {
           const sim2Wallet = getWalletConfig(d.sim2_provider);
-          const sim2Evc = deviceBalances.find(b => b.sim_slot === 2 && b.balance_type === 'evc_plus');
-          const sim2Ev = deviceBalances.find(b => b.sim_slot === 2 && b.balance_type === 'evoucher');
-          const sim2WalletBal = deviceBalances.find(b => b.sim_slot === 2 && b.balance_type === sim2Wallet.type);
+          const sim2Evc = lookupBalance(d.id, 2, 'evc_plus');
+          const sim2Ev = lookupBalance(d.id, 2, 'evoucher');
+          const sim2WalletBal = lookupBalance(d.id, 2, sim2Wallet.type);
           sims.push({
             sim_slot: 2, sim_number: d.sim2_number, provider_name: d.sim2_provider,
             provider_logo: findProviderLogo(d.sim2_provider),
-            evc_balance: sim2Evc?.balance || 0, evoucher_balance: sim2Ev?.balance || 0,
-            wallet_balance: sim2WalletBal?.balance || 0,
+            evc_balance: sim2Evc.balance, evoucher_balance: sim2Ev.balance,
+            wallet_balance: sim2WalletBal.balance,
             wallet_label: sim2Wallet.label,
             evoucher_rate: findProviderRate(d.sim2_provider),
           });
