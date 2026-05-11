@@ -447,18 +447,18 @@ const SmsLogsViewer = () => {
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
                 <Checkbox
-                  checked={filteredLogs.length > 0 && filteredLogs.every(l => selectedIds.has(`${l.source}::${l.id}`))}
+                  checked={mergedFilteredLogs.length > 0 && mergedFilteredLogs.every(l => l.mergedKeys.every(k => selectedIds.has(k)))}
                   onCheckedChange={(v) => {
                     if (v) {
                       setSelectedIds(prev => {
                         const next = new Set(prev);
-                        filteredLogs.forEach(l => next.add(`${l.source}::${l.id}`));
+                        mergedFilteredLogs.forEach(l => l.mergedKeys.forEach(k => next.add(k)));
                         return next;
                       });
                     } else {
                       setSelectedIds(prev => {
                         const next = new Set(prev);
-                        filteredLogs.forEach(l => next.delete(`${l.source}::${l.id}`));
+                        mergedFilteredLogs.forEach(l => l.mergedKeys.forEach(k => next.delete(k)));
                         return next;
                       });
                     }
@@ -472,7 +472,7 @@ const SmsLogsViewer = () => {
                     {getProviderFromSender(selectedSenderCode)}
                   </Badge>
                 )}
-                <Badge variant="outline" className="text-[10px]">{filteredLogs.length} SMS</Badge>
+                <Badge variant="outline" className="text-[10px]">{mergedFilteredLogs.length} SMS</Badge>
               </div>
               {selectedIds.size > 0 && (
                 <Button
@@ -489,16 +489,24 @@ const SmsLogsViewer = () => {
             </div>
           </div>
 
-          {filteredLogs.map(log => {
-            const key = `${log.source}::${log.id}`;
-            const isSelected = selectedIds.has(key);
+          {mergedFilteredLogs.map(log => {
+            const key = log.mergedKeys[0];
+            const isSelected = log.mergedKeys.every(k => selectedIds.has(k));
             return (
             <Card key={key} className={`overflow-hidden ${isSelected ? 'ring-2 ring-primary' : ''}`}>
               <CardContent className="p-3">
                 <div className="flex items-start gap-2">
                   <Checkbox
                     checked={isSelected}
-                    onCheckedChange={() => toggleSelect(key)}
+                    onCheckedChange={() => {
+                      setSelectedIds(prev => {
+                        const next = new Set(prev);
+                        const allSelected = log.mergedKeys.every(k => next.has(k));
+                        if (allSelected) log.mergedKeys.forEach(k => next.delete(k));
+                        else log.mergedKeys.forEach(k => next.add(k));
+                        return next;
+                      });
+                    }}
                     className="mt-1"
                   />
                   <div className="flex-1 min-w-0">
