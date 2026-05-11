@@ -89,6 +89,36 @@ const formatTimeAgo = (dateStr: string | null) => {
   return `${days}d ago`;
 };
 
+// Parse the post-transaction balance from an SMS body. Supports both
+// "haraagagu waa $141.333" (Hormuud/Jeeb) and "Haraagaagu waa:  73.05" (Somtel).
+const parseBalanceFromSms = (body: string | null): number | null => {
+  if (!body) return null;
+  const m = body.match(/haraag\w*\s*waa[:\s]*\$?\s*([\d]+(?:\.[\d]+)?)/i);
+  if (!m) return null;
+  const v = parseFloat(m[1]);
+  return Number.isFinite(v) ? v : null;
+};
+
+// Build the freshest balance per (device_id, sim_slot, balance_type)
+// from recent sms_logs rows. This is used to override sim_balances when
+// the SMS has a more recent reading or when sim_balances is missing.
+const buildLatestSmsBalances = (
+  rows: Array<{ device_id: string | null; sim_slot: number | null; tx_type: string | null; sms_body: string | null; created_at: string | null }>
+): Record<string, { balance: number; created_at: string }> => {
+  const out: Record<string, { balance: number; created_at: string }> = {};
+  for (const r of rows) {
+    if (!r.device_id || !r.sim_slot || !r.tx_type) continue;
+    const bal = parseBalanceFromSms(r.sms_body);
+    if (bal == null) continue;
+    const key = `${r.device_id}|${r.sim_slot}|${r.tx_type}`;
+    const existing = out[key];
+    if (!existing || (r.created_at && r.created_at > existing.created_at)) {
+      out[key] = { balance: bal, created_at: r.created_at || '' };
+    }
+  }
+  return out;
+};
+
 const SimpleAdminDashboard = () => {
   const navigate = useNavigate();
   const { language, setLanguage } = useLanguage();
