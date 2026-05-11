@@ -355,27 +355,27 @@ const SimpleAdminDashboard = () => {
         const sims: SimInfo[] = [];
         const sim1Provider = d.sim1_provider || d.provider_name || '';
         const sim1Wallet = getWalletConfig(sim1Provider);
-        const sim1Evc = deviceBalances.find(b => b.sim_slot === 1 && b.balance_type === 'evc_plus');
-        const sim1Ev = deviceBalances.find(b => b.sim_slot === 1 && b.balance_type === 'evoucher');
-        const sim1WalletBal = deviceBalances.find(b => b.sim_slot === 1 && b.balance_type === sim1Wallet.type);
+        const sim1Evc = lookupBalance(d.id, 1, 'evc_plus');
+        const sim1Ev = lookupBalance(d.id, 1, 'evoucher');
+        const sim1WalletBal = lookupBalance(d.id, 1, sim1Wallet.type);
         sims.push({
           sim_slot: 1, sim_number: d.sim_number || '', provider_name: sim1Provider,
           provider_logo: findProviderLogo(sim1Provider),
-          evc_balance: sim1Evc?.balance || 0, evoucher_balance: sim1Ev?.balance || 0,
-          wallet_balance: sim1WalletBal?.balance || 0,
+          evc_balance: sim1Evc.balance, evoucher_balance: sim1Ev.balance,
+          wallet_balance: sim1WalletBal.balance,
           wallet_label: sim1Wallet.label,
           evoucher_rate: findProviderRate(sim1Provider),
         });
         if (d.sim2_number && d.sim2_provider) {
           const sim2Wallet = getWalletConfig(d.sim2_provider);
-          const sim2Evc = deviceBalances.find(b => b.sim_slot === 2 && b.balance_type === 'evc_plus');
-          const sim2Ev = deviceBalances.find(b => b.sim_slot === 2 && b.balance_type === 'evoucher');
-          const sim2WalletBal = deviceBalances.find(b => b.sim_slot === 2 && b.balance_type === sim2Wallet.type);
+          const sim2Evc = lookupBalance(d.id, 2, 'evc_plus');
+          const sim2Ev = lookupBalance(d.id, 2, 'evoucher');
+          const sim2WalletBal = lookupBalance(d.id, 2, sim2Wallet.type);
           sims.push({
             sim_slot: 2, sim_number: d.sim2_number, provider_name: d.sim2_provider,
             provider_logo: findProviderLogo(d.sim2_provider),
-            evc_balance: sim2Evc?.balance || 0, evoucher_balance: sim2Ev?.balance || 0,
-            wallet_balance: sim2WalletBal?.balance || 0,
+            evc_balance: sim2Evc.balance, evoucher_balance: sim2Ev.balance,
+            wallet_balance: sim2WalletBal.balance,
             wallet_label: sim2Wallet.label,
             evoucher_rate: findProviderRate(d.sim2_provider),
           });
