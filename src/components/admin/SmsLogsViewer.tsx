@@ -87,6 +87,12 @@ const getProviderTextColor = (provider: string | null): string => {
   }
 };
 
+const getCodeLabel = (code: string): string => {
+  const c = (code || '').toLowerCase().trim();
+  if (c === '252888' || c === 'edahab' || c === 'reseller') return 'e-Dahab';
+  return code;
+};
+
 const SmsLogsViewer = () => {
   const [logs, setLogs] = useState<SmsLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -413,7 +419,7 @@ const SmsLogsViewer = () => {
                 onClick={() => setSelectedSenderCode(code)}
               >
                 <div className={`rounded-t-lg bg-gradient-to-r ${getProviderColor(provider)} px-4 py-3 flex items-center justify-between`}>
-                  <span className={`text-2xl font-extrabold ${getProviderTextColor(provider)}`}>{code}</span>
+                  <span className={`text-2xl font-extrabold ${getProviderTextColor(provider)}`}>{getCodeLabel(code)}</span>
                   <div className="flex items-center gap-2">
                     <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{count} SMS</Badge>
                     {totalAmount > 0 && (
@@ -465,7 +471,7 @@ const SmsLogsViewer = () => {
                   }}
                 />
                 <span className={`text-lg font-bold ${getProviderTextColor(getProviderFromSender(selectedSenderCode))} truncate`}>
-                  {selectedSenderCode}
+                {getCodeLabel(selectedSenderCode)}
                 </span>
                 {getProviderFromSender(selectedSenderCode) && (
                   <Badge variant="secondary" className="text-[10px]">
