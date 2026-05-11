@@ -291,6 +291,51 @@ const SmsLogsViewer = () => {
 
   const filteredLogs = selectedSenderCode ? (senderGroups2[selectedSenderCode] || []) : [];
 
+  // ✅ Merge multi-part SMS that arrived as separate records from the same
+  // sender+device within a short window (eDahab often splits long messages
+  // into 2 PDUs which Android delivers as separate broadcasts).
+  const MERGE_WINDOW_MS = 90 * 1000;
+  type MergedLog = SmsLog & { mergedKeys: string[] };
+  const mergeAdjacentParts = (items: SmsLog[]): MergedLog[] => {
+    // Sort ascending by time so we can walk in order, then reverse at the end
+    const asc = [...items].sort(
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    );
+    const out: MergedLog[] = [];
+    for (const log of asc) {
+      const last = out[out.length - 1];
+      const key = `${log.source}::${log.id}`;
+      const sameSender =
+        last &&
+        (last.sms_sender || '').toLowerCase().trim() ===
+          (log.sms_sender || '').toLowerCase().trim() &&
+        (last.device_id || '') === (log.device_id || '');
+      const within =
+        last &&
+        Math.abs(
+          new Date(log.created_at).getTime() - new Date(last.created_at).getTime()
+        ) <= MERGE_WINDOW_MS;
+      if (last && sameSender && within) {
+        last.sms_body = `${last.sms_body || ''} ${log.sms_body || ''}`.trim();
+        if (log.amount != null) last.amount = (last.amount || 0) + (log.amount || 0);
+        if (!last.tx_id && log.tx_id) last.tx_id = log.tx_id;
+        if (!last.counterpart_phone && log.counterpart_phone) last.counterpart_phone = log.counterpart_phone;
+        // keep the most recent timestamp as displayed time
+        if (new Date(log.created_at).getTime() > new Date(last.created_at).getTime()) {
+          last.created_at = log.created_at;
+          last.received_at = log.received_at;
+        }
+        last.mergedKeys.push(key);
+      } else {
+        out.push({ ...log, mergedKeys: [key] });
+      }
+    }
+    return out.sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+  };
+  const mergedFilteredLogs: MergedLog[] = mergeAdjacentParts(filteredLogs);
+
   return (
     <div className="space-y-3">
       <div className="relative">
@@ -402,18 +447,18 @@ const SmsLogsViewer = () => {
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
                 <Checkbox
-                  checked={filteredLogs.length > 0 && filteredLogs.every(l => selectedIds.has(`${l.source}::${l.id}`))}
+                  checked={mergedFilteredLogs.length > 0 && mergedFilteredLogs.every(l => l.mergedKeys.every(k => selectedIds.has(k)))}
                   onCheckedChange={(v) => {
                     if (v) {
                       setSelectedIds(prev => {
                         const next = new Set(prev);
-                        filteredLogs.forEach(l => next.add(`${l.source}::${l.id}`));
+                        mergedFilteredLogs.forEach(l => l.mergedKeys.forEach(k => next.add(k)));
                         return next;
                       });
                     } else {
                       setSelectedIds(prev => {
                         const next = new Set(prev);
-                        filteredLogs.forEach(l => next.delete(`${l.source}::${l.id}`));
+                        mergedFilteredLogs.forEach(l => l.mergedKeys.forEach(k => next.delete(k)));
                         return next;
                       });
                     }
@@ -427,7 +472,7 @@ const SmsLogsViewer = () => {
                     {getProviderFromSender(selectedSenderCode)}
                   </Badge>
                 )}
-                <Badge variant="outline" className="text-[10px]">{filteredLogs.length} SMS</Badge>
+                <Badge variant="outline" className="text-[10px]">{mergedFilteredLogs.length} SMS</Badge>
               </div>
               {selectedIds.size > 0 && (
                 <Button
@@ -444,16 +489,24 @@ const SmsLogsViewer = () => {
             </div>
           </div>
 
-          {filteredLogs.map(log => {
-            const key = `${log.source}::${log.id}`;
-            const isSelected = selectedIds.has(key);
+          {mergedFilteredLogs.map(log => {
+            const key = log.mergedKeys[0];
+            const isSelected = log.mergedKeys.every(k => selectedIds.has(k));
             return (
             <Card key={key} className={`overflow-hidden ${isSelected ? 'ring-2 ring-primary' : ''}`}>
               <CardContent className="p-3">
                 <div className="flex items-start gap-2">
                   <Checkbox
                     checked={isSelected}
-                    onCheckedChange={() => toggleSelect(key)}
+                    onCheckedChange={() => {
+                      setSelectedIds(prev => {
+                        const next = new Set(prev);
+                        const allSelected = log.mergedKeys.every(k => next.has(k));
+                        if (allSelected) log.mergedKeys.forEach(k => next.delete(k));
+                        else log.mergedKeys.forEach(k => next.add(k));
+                        return next;
+                      });
+                    }}
                     className="mt-1"
                   />
                   <div className="flex-1 min-w-0">
