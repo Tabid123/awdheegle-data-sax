@@ -218,7 +218,9 @@ const SimpleAdminDashboard = () => {
         unmatchedQuery = unmatchedQuery.gte('created_at', periodStartISO);
       }
 
-      const [ordersRes, devicesRes, balancesRes, providersRes, deliveryRes, analyticsRes, unmatchedRes] = await Promise.all([
+      // Look back 2 days of SMS to recover the latest reported balance per SIM.
+      const smsLookbackISO = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
+      const [ordersRes, devicesRes, balancesRes, providersRes, deliveryRes, analyticsRes, unmatchedRes, smsRes] = await Promise.all([
         supabase.from('orders').select('id, status, delivery_status, selling_price, cost_price, created_at, provider_id'),
         supabase.from('android_devices').select('id, device_id, device_name, provider_name, sim1_provider, sim2_provider, sim_number, sim2_number, last_ping_at, is_active, battery_level, is_charging').eq('is_active', true),
         supabase.from('sim_balances').select('device_id, sim_slot, balance, balance_type, last_updated'),
@@ -226,6 +228,11 @@ const SimpleAdminDashboard = () => {
         supabase.from('delivery_queue').select('android_device_id, status, created_at, order_id').gte('created_at', useCustomDate ? customStartISO : todayISO),
         supabase.rpc('get_admin_analytics_summary'),
         unmatchedQuery,
+        supabase.from('sms_logs')
+          .select('device_id, sim_slot, tx_type, sms_body, created_at')
+          .gte('created_at', smsLookbackISO)
+          .order('created_at', { ascending: false })
+          .limit(2000),
       ]);
 
       const providerRates = providersRes.data || [];
@@ -296,6 +303,28 @@ const SimpleAdminDashboard = () => {
 
       const balanceData = balancesRes.data || [];
       const deliveryData = deliveryRes.data || [];
+      // Override stale sim_balances rows with the freshest balance parsed
+      // straight from sms_logs (which always carries the correct device_id).
+      const latestSmsBalances = buildLatestSmsBalances(smsRes.data || []);
+      const lookupBalance = (
+        deviceUuid: string,
+        simSlot: number,
+        balanceType: string
+      ): { balance: number; ts: string | null } => {
+        const dbRow = balanceData.find(
+          (b: any) => b.device_id === deviceUuid && b.sim_slot === simSlot && b.balance_type === balanceType
+        );
+        const smsRow = latestSmsBalances[`${deviceUuid}|${simSlot}|${balanceType}`];
+        const dbTs = dbRow?.last_updated || null;
+        const smsTs = smsRow?.created_at || null;
+        // Prefer the most recent reading
+        if (smsRow && (!dbTs || (smsTs && smsTs > dbTs))) {
+          return { balance: Number(smsRow.balance) || 0, ts: smsTs };
+        }
+        if (dbRow) return { balance: Number(dbRow.balance) || 0, ts: dbTs };
+        if (smsRow) return { balance: Number(smsRow.balance) || 0, ts: smsTs };
+        return { balance: 0, ts: null };
+      };
       const findProviderLogo = (provName: string) => {
         const match = providerRates.find(p => p.provider_name?.toLowerCase() === provName.toLowerCase());
         return match?.provider_logo || null;
