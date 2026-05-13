@@ -172,6 +172,7 @@ export function BulkSmsManager() {
       const { data: campaign, error: campErr } = await supabase
         .from('bulk_sms_campaigns')
         .insert({
+          campaign_name: `Campaign ${new Date().toLocaleString()}`,
           message: message.trim(),
           target_type: targetType === 'manual' ? 'manual' : targetType,
           device_id: selectedDevice,
