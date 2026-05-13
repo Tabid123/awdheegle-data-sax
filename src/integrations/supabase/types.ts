@@ -483,38 +483,94 @@ export type Database = {
           completed_at: string | null
           created_at: string
           created_by: string | null
+          device_id: string | null
           failed_count: number
           id: string
           message: string
           recipient_count: number
           sent_count: number
+          sim_slot: number | null
           status: string
+          target_type: string | null
+          total_recipients: number | null
         }
         Insert: {
           campaign_name: string
           completed_at?: string | null
           created_at?: string
           created_by?: string | null
+          device_id?: string | null
           failed_count?: number
           id?: string
           message: string
           recipient_count?: number
           sent_count?: number
+          sim_slot?: number | null
           status?: string
+          target_type?: string | null
+          total_recipients?: number | null
         }
         Update: {
           campaign_name?: string
           completed_at?: string | null
           created_at?: string
           created_by?: string | null
+          device_id?: string | null
           failed_count?: number
           id?: string
           message?: string
           recipient_count?: number
           sent_count?: number
+          sim_slot?: number | null
           status?: string
+          target_type?: string | null
+          total_recipients?: number | null
         }
         Relationships: []
+      }
+      bulk_sms_queue: {
+        Row: {
+          campaign_id: string | null
+          created_at: string
+          device_id: string | null
+          error: string | null
+          id: string
+          phone_number: string
+          sent_at: string | null
+          sim_slot: number | null
+          status: string
+        }
+        Insert: {
+          campaign_id?: string | null
+          created_at?: string
+          device_id?: string | null
+          error?: string | null
+          id?: string
+          phone_number: string
+          sent_at?: string | null
+          sim_slot?: number | null
+          status?: string
+        }
+        Update: {
+          campaign_id?: string | null
+          created_at?: string
+          device_id?: string | null
+          error?: string | null
+          id?: string
+          phone_number?: string
+          sent_at?: string | null
+          sim_slot?: number | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bulk_sms_queue_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "bulk_sms_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       company_finances: {
         Row: {
