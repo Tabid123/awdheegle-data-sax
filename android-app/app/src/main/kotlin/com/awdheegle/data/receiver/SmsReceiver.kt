@@ -3,6 +3,7 @@ package com.awdheegle.data.receiver
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.PowerManager
 import android.provider.Telephony
@@ -58,11 +59,19 @@ class SmsReceiver : BroadcastReceiver() {
                 val grouped = messages.groupBy { it.originatingAddress ?: "" }
 
                 for ((senderPhone, parts) in grouped) {
-                    val messageBody = parts.joinToString(separator = "") { it.messageBody ?: "" }
+                    val intentBody = parts.joinToString(separator = "") { it.messageBody ?: "" }
                     val smsTimestamp = parts.firstOrNull()?.timestampMillis ?: System.currentTimeMillis()
-                    
+
                     Log.d(TAG, "SMS received from: $senderPhone")
-                    Log.d(TAG, "SMS body (${parts.size} part(s)): $messageBody")
+                    Log.d(TAG, "SMS body from intent (${parts.size} part(s)): $intentBody")
+
+                    // ✅ Multi-part fix: parts may arrive in SEPARATE broadcasts (esp. eDahab).
+                    // The Telephony provider reassembles them into a single inbox row, so
+                    // re-read the latest inbox SMS from this sender and prefer the longer body.
+                    val messageBody = readFullSmsFromInbox(context, senderPhone, intentBody, smsTimestamp)
+                    if (messageBody != intentBody) {
+                        Log.d(TAG, "📚 Inbox returned fuller body (${messageBody.length} vs ${intentBody.length} chars)")
+                    }
                     
                     // Get which SIM received this SMS
                     val simSlot = getSimSlot(context, intent)
@@ -192,6 +201,56 @@ class SmsReceiver : BroadcastReceiver() {
         } catch (e: Exception) {
             Log.e(TAG, "Error getting SIM slot: ${e.message}")
             0
+        }
+    }
+
+    /**
+     * Re-read the latest SMS from this sender from the system inbox.
+     * The Telephony provider reassembles multi-part SMS into a single row,
+     * so this recovers the FULL eDahab body when individual parts arrive
+     * in separate broadcasts. Returns the longer of (intent body, inbox body).
+     */
+    private fun readFullSmsFromInbox(
+        context: Context,
+        sender: String,
+        intentBody: String,
+        smsTimestamp: Long
+    ): String {
+        if (sender.isBlank()) return intentBody
+
+        // Small wait so Telephony provider has time to persist + reassemble.
+        // Each part may arrive in its own broadcast within ~1s; 1500ms is safe.
+        try { Thread.sleep(1500) } catch (_: InterruptedException) {}
+
+        return try {
+            val uri = Uri.parse("content://sms/inbox")
+            val projection = arrayOf("body", "date", "address")
+            // Look at SMS persisted within the last 30s from this sender
+            val sinceMs = (smsTimestamp - 30_000L).coerceAtLeast(0L)
+            val selection = "address = ? AND date >= ?"
+            val args = arrayOf(sender, sinceMs.toString())
+            val cursor = context.contentResolver.query(
+                uri, projection, selection, args, "date DESC LIMIT 5"
+            ) ?: return intentBody
+
+            cursor.use {
+                var best = intentBody
+                val bodyIdx = it.getColumnIndex("body")
+                while (it.moveToNext() && bodyIdx >= 0) {
+                    val b = it.getString(bodyIdx) ?: continue
+                    // Prefer the longest body that still contains a fragment of what we got
+                    if (b.length > best.length) {
+                        best = b
+                    }
+                }
+                best
+            }
+        } catch (e: SecurityException) {
+            Log.w(TAG, "Cannot read SMS inbox (missing READ_SMS permission): ${e.message}")
+            intentBody
+        } catch (e: Exception) {
+            Log.w(TAG, "Inbox lookup failed, using intent body: ${e.message}")
+            intentBody
         }
     }
     
