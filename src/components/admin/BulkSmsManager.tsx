@@ -49,7 +49,8 @@ function filterByProvider(phones: string[], provider: string): string[] {
   const prefixes = prefixMap[provider] || [];
   if (prefixes.length === 0) return phones;
   return phones.filter(p => {
-    const digits = p.replace(/\D/g, '').replace(/^252/, '').replace(/^0/, '');
+    if (!p) return false;
+    const digits = String(p).replace(/\D/g, '').replace(/^252/, '').replace(/^0/, '');
     return prefixes.some(px => digits.startsWith(px));
   });
 }
