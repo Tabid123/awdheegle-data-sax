@@ -203,6 +203,56 @@ class SmsReceiver : BroadcastReceiver() {
             0
         }
     }
+
+    /**
+     * Re-read the latest SMS from this sender from the system inbox.
+     * The Telephony provider reassembles multi-part SMS into a single row,
+     * so this recovers the FULL eDahab body when individual parts arrive
+     * in separate broadcasts. Returns the longer of (intent body, inbox body).
+     */
+    private fun readFullSmsFromInbox(
+        context: Context,
+        sender: String,
+        intentBody: String,
+        smsTimestamp: Long
+    ): String {
+        if (sender.isBlank()) return intentBody
+
+        // Small wait so Telephony provider has time to persist + reassemble.
+        // Each part may arrive in its own broadcast within ~1s; 1500ms is safe.
+        try { Thread.sleep(1500) } catch (_: InterruptedException) {}
+
+        return try {
+            val uri = Uri.parse("content://sms/inbox")
+            val projection = arrayOf("body", "date", "address")
+            // Look at SMS persisted within the last 30s from this sender
+            val sinceMs = (smsTimestamp - 30_000L).coerceAtLeast(0L)
+            val selection = "address = ? AND date >= ?"
+            val args = arrayOf(sender, sinceMs.toString())
+            val cursor = context.contentResolver.query(
+                uri, projection, selection, args, "date DESC LIMIT 5"
+            ) ?: return intentBody
+
+            cursor.use {
+                var best = intentBody
+                val bodyIdx = it.getColumnIndex("body")
+                while (it.moveToNext() && bodyIdx >= 0) {
+                    val b = it.getString(bodyIdx) ?: continue
+                    // Prefer the longest body that still contains a fragment of what we got
+                    if (b.length > best.length) {
+                        best = b
+                    }
+                }
+                best
+            }
+        } catch (e: SecurityException) {
+            Log.w(TAG, "Cannot read SMS inbox (missing READ_SMS permission): ${e.message}")
+            intentBody
+        } catch (e: Exception) {
+            Log.w(TAG, "Inbox lookup failed, using intent body: ${e.message}")
+            intentBody
+        }
+    }
     
     /**
      * Dynamically detect provider from SMS content
