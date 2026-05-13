@@ -353,6 +353,16 @@ class SmsReceiver : BroadcastReceiver() {
         // Regex captures: optional +, optional 252, optional 0, then 9 digits
         // This handles: 252685837139, +252685837139, 0685837139, 685837139
         val phoneCapture = """(\+?252\d{9}|0\d{9}|\d{9})"""
+
+        // Pattern 0 (eDahab): "0.18 Dollar Ayaad Ka Heshay <NAME>.Code-ka:NA. Lambarka :626844312 ..."
+        // In eDahab, "ka heshay" is followed by the SENDER NAME (not phone).
+        // The actual sender phone comes after "Lambarka :".
+        val lambarkaPattern = """lambarka\s*[:\s]*$phoneCapture""".toRegex(RegexOption.IGNORE_CASE)
+        lambarkaPattern.find(body)?.let {
+            val sender = normalizeSomaliPhone(it.groupValues[1])
+            Log.d(TAG, "✅ Extracted sender from eDahab 'Lambarka :' pattern: $sender")
+            return sender
+        }
         
         // Pattern 1: "ka heshay 252685837139" or "ka heshay 0617195659" or "ka heshay 617195659"
         val kaHeshayPattern = """ka\s+heshay\s*[:\s]*$phoneCapture""".toRegex(RegexOption.IGNORE_CASE)
