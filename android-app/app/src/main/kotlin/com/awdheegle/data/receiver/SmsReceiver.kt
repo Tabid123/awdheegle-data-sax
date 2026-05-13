@@ -3,6 +3,7 @@ package com.awdheegle.data.receiver
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.PowerManager
 import android.provider.Telephony
@@ -58,11 +59,19 @@ class SmsReceiver : BroadcastReceiver() {
                 val grouped = messages.groupBy { it.originatingAddress ?: "" }
 
                 for ((senderPhone, parts) in grouped) {
-                    val messageBody = parts.joinToString(separator = "") { it.messageBody ?: "" }
+                    val intentBody = parts.joinToString(separator = "") { it.messageBody ?: "" }
                     val smsTimestamp = parts.firstOrNull()?.timestampMillis ?: System.currentTimeMillis()
-                    
+
                     Log.d(TAG, "SMS received from: $senderPhone")
-                    Log.d(TAG, "SMS body (${parts.size} part(s)): $messageBody")
+                    Log.d(TAG, "SMS body from intent (${parts.size} part(s)): $intentBody")
+
+                    // ✅ Multi-part fix: parts may arrive in SEPARATE broadcasts (esp. eDahab).
+                    // The Telephony provider reassembles them into a single inbox row, so
+                    // re-read the latest inbox SMS from this sender and prefer the longer body.
+                    val messageBody = readFullSmsFromInbox(context, senderPhone, intentBody, smsTimestamp)
+                    if (messageBody != intentBody) {
+                        Log.d(TAG, "📚 Inbox returned fuller body (${messageBody.length} vs ${intentBody.length} chars)")
+                    }
                     
                     // Get which SIM received this SMS
                     val simSlot = getSimSlot(context, intent)
