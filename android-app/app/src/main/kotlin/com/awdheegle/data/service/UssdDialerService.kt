@@ -581,7 +581,7 @@ class UssdDialerService : Service() {
                     try {
                         val message = task.message ?: apiClient.getBulkSmsCampaignMessage(task.campaignId)
                         if (message == null) {
-                            apiClient.updateBulkSmsStatus(task.id, task.campaignId, "failed", "Campaign message not found")
+                            apiClient.updateBulkSmsStatus(task.id, task.campaignId, deviceId, "failed", "Campaign message not found")
                             continue
                         }
                         
@@ -617,7 +617,7 @@ class UssdDialerService : Service() {
                         }
                         
                         android.util.Log.d("UssdDialer", "✅ Bulk SMS sent to $formattedPhone from SIM${simSlotIndex + 1}")
-                        apiClient.updateBulkSmsStatus(task.id, task.campaignId, "sent", null)
+                        apiClient.updateBulkSmsStatus(task.id, task.campaignId, deviceId, "sent", null)
                         
                         // 2-3s delay between sends to avoid carrier throttling
                         val throttleDelay = 2000L + (Random().nextDouble() * 1000).toLong()
@@ -625,7 +625,7 @@ class UssdDialerService : Service() {
                         
                     } catch (e: Exception) {
                         android.util.Log.e("UssdDialer", "❌ Bulk SMS send error: ${e.message}")
-                        apiClient.updateBulkSmsStatus(task.id, task.campaignId, "failed", e.message)
+                        apiClient.updateBulkSmsStatus(task.id, task.campaignId, deviceId, "failed", e.message)
                     }
                 }
             }

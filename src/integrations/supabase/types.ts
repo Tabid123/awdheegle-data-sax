@@ -2245,6 +2245,15 @@ export type Database = {
         Args: { p_queue_id: string }
         Returns: boolean
       }
+      mark_bulk_sms_status: {
+        Args: {
+          p_device_id: string
+          p_error_message?: string
+          p_queue_id: string
+          p_status: string
+        }
+        Returns: boolean
+      }
       mark_delivery_dispatched: {
         Args: { p_device_id: string; p_queue_id: string }
         Returns: boolean
