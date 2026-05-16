@@ -5,7 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, AlertTriangle, UserX, Package, HelpCircle } from 'lucide-react';
+import { Loader2, AlertTriangle, UserX, Package, HelpCircle, Send, UserPlus } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
 
 /**
  * Normalize Somali phone to canonical 9-digit local format
@@ -118,6 +121,87 @@ function getUnmatchedReason(payment: any): { icon: React.ReactNode; title: strin
 const UnmatchedPayments = () => {
   const [unmatchedPayments, setUnmatchedPayments] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [resendingId, setResendingId] = useState<string | null>(null);
+  const [registerPayment, setRegisterPayment] = useState<any | null>(null);
+  const [providers, setProviders] = useState<any[]>([]);
+  const [regForm, setRegForm] = useState({ receiver_phone: '', provider_id: '' });
+  const [savingReg, setSavingReg] = useState(false);
+
+  useEffect(() => {
+    supabase.from('providers_config').select('id, display_name, provider_name').order('sort_order')
+      .then(({ data }) => setProviders(data || []));
+  }, []);
+
+  const handleResend = async (payment: any) => {
+    if (!confirm('Dib u dir lacagtan?')) return;
+    setResendingId(payment.id);
+    try {
+      const { error } = await supabase.functions.invoke('process-payment-receipt', {
+        body: {
+          sender_phone: payment.sender_phone,
+          receiver_sim: payment.receiver_sim,
+          amount: Number(payment.amount),
+          sms_body: payment.sms_body || '',
+          tx_id: payment.tx_id || undefined,
+        },
+      });
+      if (error) throw error;
+      toast.success('Waa la dib u diray');
+    } catch (e: any) {
+      toast.error('Khalad: ' + (e?.message || 'failed'));
+    } finally {
+      setResendingId(null);
+    }
+  };
+
+  const openRegister = (payment: any) => {
+    setRegisterPayment(payment);
+    setRegForm({ receiver_phone: '', provider_id: '' });
+  };
+
+  const submitRegister = async () => {
+    if (!registerPayment) return;
+    if (!regForm.receiver_phone) { toast.error('Buuxi lambarka qaataha'); return; }
+    setSavingReg(true);
+    try {
+      const { error } = await supabase.from('offline_registrations').insert({
+        sender_phone: registerPayment.sender_phone,
+        receiver_phone: regForm.receiver_phone,
+        provider_id: regForm.provider_id || null,
+      });
+      if (error) throw error;
+      toast.success('Waa la diiwaangeliyay');
+      setRegisterPayment(null);
+    } catch (e: any) {
+      toast.error('Khalad: ' + (e?.message || 'failed'));
+    } finally {
+      setSavingReg(false);
+    }
+  };
+
+  const ActionButtons = ({ payment, vertical = false }: { payment: any; vertical?: boolean }) => (
+    <div className={vertical ? 'grid grid-cols-2 gap-2 pt-1' : 'flex gap-2'}>
+      <Button
+        size="sm"
+        variant="outline"
+        className="text-xs gap-1"
+        disabled={resendingId === payment.id}
+        onClick={() => handleResend(payment)}
+      >
+        <Send className="h-3.5 w-3.5" />
+        {resendingId === payment.id ? '...' : 'Dib u dir'}
+      </Button>
+      <Button
+        size="sm"
+        variant="default"
+        className="text-xs gap-1"
+        onClick={() => openRegister(payment)}
+      >
+        <UserPlus className="h-3.5 w-3.5" />
+        Diiwaangeli
+      </Button>
+    </div>
+  );
 
   useEffect(() => {
     // Initial fetch - one time only
@@ -215,7 +299,7 @@ const UnmatchedPayments = () => {
                         <p className="text-[10px] text-muted-foreground">{reason.detail}</p>
                       </div>
                     </div>
-                    <Button size="sm" variant="outline" className="w-full text-xs">Manual Match</Button>
+                    <ActionButtons payment={payment} vertical />
                   </div>
                 );
               })}
@@ -251,7 +335,7 @@ const UnmatchedPayments = () => {
                           </div>
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{new Date(payment.created_at).toLocaleString()}</TableCell>
-                        <TableCell><Button size="sm" variant="outline">Manual Match</Button></TableCell>
+                        <TableCell><ActionButtons payment={payment} /></TableCell>
                       </TableRow>
                     );
                   })}
@@ -265,6 +349,47 @@ const UnmatchedPayments = () => {
           </div>
         )}
       </CardContent>
+      <Dialog open={!!registerPayment} onOpenChange={(o) => !o && setRegisterPayment(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Diiwaangeli Macmiil Cusub</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs text-muted-foreground">Lambarka Diraha (Sender)</label>
+              <Input value={registerPayment?.sender_phone || ''} readOnly className="font-mono" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Lambarka Qaataha (Receiver)</label>
+              <Input
+                value={regForm.receiver_phone}
+                onChange={(e) => setRegForm((p) => ({ ...p, receiver_phone: e.target.value }))}
+                placeholder="61XXXXXXX"
+                className="font-mono"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Shirkadda (Provider)</label>
+              <select
+                value={regForm.provider_id}
+                onChange={(e) => setRegForm((p) => ({ ...p, provider_id: e.target.value }))}
+                className="w-full px-3 py-2 rounded-md border bg-background text-sm"
+              >
+                <option value="">-- Dooro Shirkad --</option>
+                {providers.map((p) => (
+                  <option key={p.id} value={p.id}>{p.display_name || p.provider_name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRegisterPayment(null)}>Jooji</Button>
+            <Button onClick={submitRegister} disabled={savingReg}>
+              {savingReg ? 'Kaydinaya...' : 'Diiwaangeli'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };
