@@ -464,6 +464,45 @@ serve(async (req) => {
       );
     }
 
+    // Route: Mark USSD as dispatched (Android calls this immediately after dialing)
+    // Once dispatched, the row will NEVER be auto-retried — only verified.
+    if (req.method === 'POST' && path === 'dispatch') {
+      const { queueId, deviceId } = await req.json();
+      if (!queueId) {
+        return new Response(
+          JSON.stringify({ error: 'queueId required' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      // Resolve hardware deviceId → device UUID (optional, audit only)
+      let deviceUuid: string | null = null;
+      if (deviceId) {
+        const { data: dev } = await supabase
+          .from('android_devices')
+          .select('id')
+          .eq('device_id', deviceId)
+          .is('archived_at', null)
+          .maybeSingle();
+        deviceUuid = dev?.id ?? null;
+      }
+      const { data: ok, error: rpcErr } = await supabase.rpc('mark_delivery_dispatched', {
+        p_queue_id: queueId,
+        p_device_id: deviceUuid,
+      });
+      if (rpcErr) {
+        console.error('mark_delivery_dispatched error:', rpcErr);
+        return new Response(
+          JSON.stringify({ success: false, error: rpcErr.message }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      console.log(`📤 Dispatched marked for queue ${queueId} (device=${deviceUuid})`);
+      return new Response(
+        JSON.stringify({ success: true, dispatched: ok === true }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Route: Update delivery status (Android app reports back)
     if (req.method === 'POST' && path === 'status') {
       const { queueId, status, errorMessage, providerResponse } = await req.json();
@@ -473,7 +512,7 @@ serve(async (req) => {
       // Idempotency: if this queue already finalized, ignore further updates
       const { data: existingQueue, error: existingQueueErr } = await supabase
         .from('delivery_queue')
-        .select('id, status, order_id')
+        .select('id, status, order_id, dispatched_at')
         .eq('id', queueId)
         .maybeSingle();
       if (existingQueueErr) {
@@ -485,7 +524,7 @@ serve(async (req) => {
           { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      if (['completed', 'failed'].includes(existingQueue.status as string)) {
+      if (['completed', 'failed', 'verification_required'].includes(existingQueue.status as string)) {
         return new Response(
           JSON.stringify({ success: true, message: 'Already finalized' }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -548,6 +587,19 @@ serve(async (req) => {
       let normalizedStatus = 'failed';
       let isAutoRetry = false;
 
+      // 🛡️ DISPATCH GUARD: once USSD has been dispatched, ambiguous failures
+      // (timeout, connection problem, invalid MMI, no response) MUST NOT auto-retry —
+      // provider may have already delivered. Send to verification queue instead.
+      const wasDispatched = !!(existingQueue as any).dispatched_at;
+      const ambiguousMarkers = [
+        'timeout', 'time out', 'no response', 'connection problem', 'connection',
+        'invalid mmi', 'mmi', 'unknown', 'service error', 'try again',
+        'temporarily', 'unavailable', 'not available', 'network'
+      ];
+      const isAmbiguous = (text.length === 0)
+        || ambiguousMarkers.some(k => text.includes(k))
+        || status === 'timeout';
+
       if (providerIndicatesFailure && !providerIndicatesSuccess) {
         // Check for Somtel-specific "horey" + "furtay" keywords → 60s cooldown, MAX 10 attempts
         const isSomtelRetry = text.includes('horey') && text.includes('furtay');
@@ -561,6 +613,9 @@ serve(async (req) => {
             normalizedStatus = 'failed';
             console.log(`❌ Somtel: max retries (10) exceeded for queue ${queueId}`);
           }
+        } else if (wasDispatched && isAmbiguous) {
+          normalizedStatus = 'verification_required';
+          console.log(`🛡️ Dispatch guard: queue ${queueId} already dispatched + ambiguous failure → verification_required (no retry)`);
         } else if (currentAttempts < 2) {
           normalizedStatus = 'pending'; // requeue
           isAutoRetry = true;
@@ -596,12 +651,24 @@ serve(async (req) => {
         if (priorIndicatesSuccess) {
           normalizedStatus = 'completed';
           console.log(`🛡️ Prior-success guard: queue ${queueId} already had success markers - marking completed (no retry)`);
+        } else if (wasDispatched) {
+          normalizedStatus = 'verification_required';
+          console.log(`🛡️ Dispatch guard: queue ${queueId} dispatched but ambiguous status="${status}" → verification_required`);
         } else {
           normalizedStatus = currentAttempts < 2 ? 'pending' : 'failed';
           isAutoRetry = currentAttempts < 2;
         }
       } else if (status === 'failed') {
-        normalizedStatus = 'failed';
+        // Pure dial-side failure (e.g. SIM locked) BEFORE dispatch → safe to retry once
+        if (!wasDispatched && currentAttempts < 2) {
+          normalizedStatus = 'pending';
+          isAutoRetry = true;
+        } else if (wasDispatched) {
+          normalizedStatus = 'verification_required';
+          console.log(`🛡️ Dispatch guard: queue ${queueId} dispatched + status=failed → verification_required`);
+        } else {
+          normalizedStatus = 'failed';
+        }
       }
 
       // Prepare update data
@@ -658,6 +725,10 @@ serve(async (req) => {
           orderUpdate.delivery_status = 'delivered';
           orderUpdate.delivered_at = new Date().toISOString();
           orderUpdate.delivery_notes = providerResponse || 'Package activated successfully';
+        } else if (finalDeliveryStatus === 'verification_required') {
+          // Do NOT mark order as failed — provider may have delivered.
+          orderUpdate.delivery_status = 'verification_required';
+          orderUpdate.delivery_notes = (`Needs manual verification: USSD dispatched but response was ambiguous. ${providerResponse || errorMessage || ''}`).slice(0, 500);
         } else if (finalDeliveryStatus === 'failed') {
           orderUpdate.status = 'failed';
           orderUpdate.delivery_status = 'failed';
@@ -771,7 +842,7 @@ serve(async (req) => {
         const now = Date.now();
         const { data: processingRows, error: procErr } = await supabase
           .from('delivery_queue')
-          .select('id, order_id, last_attempt_at, created_at, attempts')
+          .select('id, order_id, last_attempt_at, created_at, attempts, dispatched_at')
           .eq('status', 'processing')
           .eq('android_device_id', deviceId);
 
@@ -784,8 +855,31 @@ serve(async (req) => {
             const age = Math.max(now - last, now - created);
             if (age > timeoutMs) {
               const currentAttempts = ((row.attempts as number | null) ?? 0);
-              
-              if (currentAttempts < 3) {
+              const wasDispatched = !!(row as any).dispatched_at;
+
+              if (wasDispatched) {
+                // 🛡️ USSD already sent — never auto-requeue. Send for verification.
+                console.log(`🛡️ Stuck dispatched delivery queueId=${row.id} → verification_required (no retry)`);
+                const { data: updated, error: updErr } = await supabase
+                  .from('delivery_queue')
+                  .update({
+                    status: 'verification_required',
+                    error_message: 'Stuck after dispatch: USSD sent but no callback. Manual verification required.',
+                    last_attempt_at: new Date().toISOString(),
+                  })
+                  .eq('id', row.id as string)
+                  .select()
+                  .single();
+                if (!updErr && updated) {
+                  await supabase
+                    .from('orders')
+                    .update({
+                      delivery_status: 'verification_required',
+                      delivery_notes: 'USSD dispatched but no callback. Verify customer received bundle before re-sending.',
+                    })
+                    .eq('id', updated.order_id as string);
+                }
+              } else if (currentAttempts < 3) {
                 // Re-queue for retry (release device claim so any device can pick it up)
                 console.log(`🔄 Re-queuing stuck delivery queueId=${row.id} (attempt ${currentAttempts + 1}/3, age=${age}ms)`);
                 await supabase
