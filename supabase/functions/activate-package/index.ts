@@ -473,7 +473,7 @@ serve(async (req) => {
       // Idempotency: if this queue already finalized, ignore further updates
       const { data: existingQueue, error: existingQueueErr } = await supabase
         .from('delivery_queue')
-        .select('id, status, order_id')
+        .select('id, status, order_id, dispatched_at')
         .eq('id', queueId)
         .maybeSingle();
       if (existingQueueErr) {
@@ -485,7 +485,7 @@ serve(async (req) => {
           { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      if (['completed', 'failed'].includes(existingQueue.status as string)) {
+      if (['completed', 'failed', 'verification_required'].includes(existingQueue.status as string)) {
         return new Response(
           JSON.stringify({ success: true, message: 'Already finalized' }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

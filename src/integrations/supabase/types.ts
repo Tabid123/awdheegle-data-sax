@@ -789,6 +789,8 @@ export type Database = {
           created_at: string
           delay_seconds: number
           delivery_count: number | null
+          dispatch_device_id: string | null
+          dispatched_at: string | null
           error_message: string | null
           execution_order: number
           id: string
@@ -805,6 +807,7 @@ export type Database = {
           status: string
           ussd_code: string | null
           ussd_command: string | null
+          ussd_dispatched: boolean
         }
         Insert: {
           android_device_id?: string | null
@@ -815,6 +818,8 @@ export type Database = {
           created_at?: string
           delay_seconds?: number
           delivery_count?: number | null
+          dispatch_device_id?: string | null
+          dispatched_at?: string | null
           error_message?: string | null
           execution_order?: number
           id?: string
@@ -831,6 +836,7 @@ export type Database = {
           status?: string
           ussd_code?: string | null
           ussd_command?: string | null
+          ussd_dispatched?: boolean
         }
         Update: {
           android_device_id?: string | null
@@ -841,6 +847,8 @@ export type Database = {
           created_at?: string
           delay_seconds?: number
           delivery_count?: number | null
+          dispatch_device_id?: string | null
+          dispatched_at?: string | null
           error_message?: string | null
           execution_order?: number
           id?: string
@@ -857,6 +865,7 @@ export type Database = {
           status?: string
           ussd_code?: string | null
           ussd_command?: string | null
+          ussd_dispatched?: boolean
         }
         Relationships: [
           {
@@ -2042,6 +2051,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      auto_recover_stuck_deliveries: {
+        Args: { p_timeout_minutes?: number }
+        Returns: Json
+      }
       claim_next_delivery: {
         Args: { p_device_id: string; p_providers?: string[] }
         Returns: {
@@ -2205,6 +2218,10 @@ export type Database = {
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_phone_blocked: { Args: { p_phone: string }; Returns: boolean }
+      mark_delivery_dispatched: {
+        Args: { p_device_id: string; p_queue_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "super_admin" | "admin" | "moderator" | "user"
