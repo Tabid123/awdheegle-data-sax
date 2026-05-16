@@ -531,6 +531,7 @@ export type Database = {
       bulk_sms_queue: {
         Row: {
           campaign_id: string | null
+          claimed_at: string | null
           created_at: string
           device_id: string | null
           error: string | null
@@ -543,6 +544,7 @@ export type Database = {
         }
         Insert: {
           campaign_id?: string | null
+          claimed_at?: string | null
           created_at?: string
           device_id?: string | null
           error?: string | null
@@ -555,6 +557,7 @@ export type Database = {
         }
         Update: {
           campaign_id?: string | null
+          claimed_at?: string | null
           created_at?: string
           device_id?: string | null
           error?: string | null
