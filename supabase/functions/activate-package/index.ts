@@ -548,6 +548,19 @@ serve(async (req) => {
       let normalizedStatus = 'failed';
       let isAutoRetry = false;
 
+      // 🛡️ DISPATCH GUARD: once USSD has been dispatched, ambiguous failures
+      // (timeout, connection problem, invalid MMI, no response) MUST NOT auto-retry —
+      // provider may have already delivered. Send to verification queue instead.
+      const wasDispatched = !!(existingQueue as any).dispatched_at;
+      const ambiguousMarkers = [
+        'timeout', 'time out', 'no response', 'connection problem', 'connection',
+        'invalid mmi', 'mmi', 'unknown', 'service error', 'try again',
+        'temporarily', 'unavailable', 'not available', 'network'
+      ];
+      const isAmbiguous = (text.length === 0)
+        || ambiguousMarkers.some(k => text.includes(k))
+        || status === 'timeout';
+
       if (providerIndicatesFailure && !providerIndicatesSuccess) {
         // Check for Somtel-specific "horey" + "furtay" keywords → 60s cooldown, MAX 10 attempts
         const isSomtelRetry = text.includes('horey') && text.includes('furtay');
@@ -561,6 +574,9 @@ serve(async (req) => {
             normalizedStatus = 'failed';
             console.log(`❌ Somtel: max retries (10) exceeded for queue ${queueId}`);
           }
+        } else if (wasDispatched && isAmbiguous) {
+          normalizedStatus = 'verification_required';
+          console.log(`🛡️ Dispatch guard: queue ${queueId} already dispatched + ambiguous failure → verification_required (no retry)`);
         } else if (currentAttempts < 2) {
           normalizedStatus = 'pending'; // requeue
           isAutoRetry = true;
