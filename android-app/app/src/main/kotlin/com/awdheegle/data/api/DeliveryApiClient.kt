@@ -411,28 +411,34 @@ class DeliveryApiClient {
     suspend fun updateBulkSmsStatus(
         queueId: String,
         campaignId: String,
+        deviceId: String,
         status: String,
         errorMessage: String?
     ): Boolean = withContext(Dispatchers.IO) {
         try {
-            // 1. Update queue item
-            val queueJson = JSONObject().apply {
-                put("status", status)
-                if (status == "sent") put("sent_at", java.time.Instant.now().toString())
-                if (errorMessage != null) put("error_message", errorMessage)
+            val statusJson = JSONObject().apply {
+                put("p_queue_id", queueId)
+                put("p_device_id", deviceId)
+                put("p_status", status)
+                if (errorMessage != null) put("p_error_message", errorMessage)
             }
             
-            val queueRequest = Request.Builder()
-                .url("$supabaseRestUrl/bulk_sms_queue?id=eq.$queueId")
+            val statusRequest = Request.Builder()
+                .url("$supabaseRestUrl/rpc/mark_bulk_sms_status")
                 .addHeader("apikey", anonKey)
                 .addHeader("Authorization", "Bearer $anonKey")
-                .addHeader("Prefer", "return=minimal")
-                .patch(queueJson.toString().toRequestBody(JSON_MEDIA_TYPE))
+                .post(statusJson.toString().toRequestBody(JSON_MEDIA_TYPE))
                 .build()
             
-            sharedHttpClient.newCall(queueRequest).execute().use { /* fire */ }
+            sharedHttpClient.newCall(statusRequest).execute().use { response ->
+                if (!response.isSuccessful) {
+                    val errorBody = response.body?.string()
+                    println("❌ Bulk SMS status RPC failed: ${response.code} - $errorBody")
+                    return@withContext false
+                }
+            }
             
-            // 2. Increment campaign counter via RPC
+            // Campaign counters are maintained by database triggers; kept for backwards compatibility.
             val counterField = if (status == "sent") "sent_count" else "failed_count"
             val rpcJson = JSONObject().apply {
                 put("p_campaign_id", campaignId)
