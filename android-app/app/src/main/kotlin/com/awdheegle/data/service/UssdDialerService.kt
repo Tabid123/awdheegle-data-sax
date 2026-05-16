@@ -579,7 +579,7 @@ class UssdDialerService : Service() {
                 
                 for (task in tasks) {
                     try {
-                        val message = apiClient.getBulkSmsCampaignMessage(task.campaignId)
+                        val message = task.message ?: apiClient.getBulkSmsCampaignMessage(task.campaignId)
                         if (message == null) {
                             apiClient.updateBulkSmsStatus(task.id, task.campaignId, "failed", "Campaign message not found")
                             continue
