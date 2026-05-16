@@ -554,6 +554,87 @@ const UnmatchedPayments = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <Dialog open={!!resendPayment} onOpenChange={(o) => !o && setResendPayment(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Send className="h-4 w-4" /> Dib u Dir Dalabka (Unmatched)
+            </DialogTitle>
+            {resendPayment && (
+              <p className="text-xs text-muted-foreground">
+                Sender: <span className="font-mono">{resendPayment.sender_phone}</span>
+                {' • '}Lacag: <span className="font-semibold">${resendPayment.amount}</span>
+                {resendPayment.receiver_sim && <> {' • '}SIM: {resendPayment.receiver_sim}</>}
+              </p>
+            )}
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs font-medium">Provider / Shirkadda</label>
+              <select
+                value={resendProviderId}
+                onChange={(e) => setResendProviderId(e.target.value)}
+                className="w-full mt-1 px-3 py-2 rounded-md border bg-background text-sm"
+              >
+                <option value="">Dooro provider</option>
+                {providers.map((p) => (
+                  <option key={p.id} value={p.id}>{p.display_name || p.provider_name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-medium">
+                Category <span className="text-muted-foreground">(ikhtiyaari)</span>
+              </label>
+              <select
+                value={resendCategoryId}
+                onChange={(e) => setResendCategoryId(e.target.value)}
+                disabled={!resendProviderId}
+                className="w-full mt-1 px-3 py-2 rounded-md border bg-background text-sm disabled:opacity-50"
+              >
+                <option value="">Dhammaan</option>
+                {resendCategories.map((c) => (
+                  <option key={c.id} value={c.id}>{c.category_name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-medium">Package</label>
+              <select
+                value={resendPackageId}
+                onChange={(e) => setResendPackageId(e.target.value)}
+                disabled={!resendProviderId || resendPackages.length === 0}
+                className="w-full mt-1 px-3 py-2 rounded-md border bg-background text-sm disabled:opacity-50"
+              >
+                <option value="">Dooro package</option>
+                {resendPackages.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.package_name}{p.data_amount ? ` - ${p.data_amount}` : ''} (${p.price})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-medium">Numberka Qaataha</label>
+              <Input
+                value={resendReceiver}
+                onChange={(e) => setResendReceiver(e.target.value)}
+                placeholder="61XXXXXXX"
+                className="font-mono mt-1"
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="outline" onClick={() => setResendPayment(null)} className="flex-1">
+              Ka noqo
+            </Button>
+            <Button onClick={submitResend} disabled={savingResend} className="flex-1 gap-1">
+              <Send className="h-3.5 w-3.5" />
+              {savingResend ? 'Diraya...' : 'Dib u Dir'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };
