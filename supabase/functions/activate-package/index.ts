@@ -466,6 +466,49 @@ serve(async (req) => {
 
     // Route: Update delivery status (Android app reports back)
     if (req.method === 'POST' && path === 'status') {
+      // (handled below)
+    }
+
+    // Route: Mark USSD as dispatched (Android calls this immediately after dialing)
+    // Once dispatched, the row will NEVER be auto-retried — only verified.
+    if (req.method === 'POST' && path === 'dispatch') {
+      const { queueId, deviceId } = await req.json();
+      if (!queueId) {
+        return new Response(
+          JSON.stringify({ error: 'queueId required' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      // Resolve hardware deviceId → device UUID (optional, audit only)
+      let deviceUuid: string | null = null;
+      if (deviceId) {
+        const { data: dev } = await supabase
+          .from('android_devices')
+          .select('id')
+          .eq('device_id', deviceId)
+          .is('archived_at', null)
+          .maybeSingle();
+        deviceUuid = dev?.id ?? null;
+      }
+      const { data: ok, error: rpcErr } = await supabase.rpc('mark_delivery_dispatched', {
+        p_queue_id: queueId,
+        p_device_id: deviceUuid,
+      });
+      if (rpcErr) {
+        console.error('mark_delivery_dispatched error:', rpcErr);
+        return new Response(
+          JSON.stringify({ success: false, error: rpcErr.message }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      console.log(`📤 Dispatched marked for queue ${queueId} (device=${deviceUuid})`);
+      return new Response(
+        JSON.stringify({ success: true, dispatched: ok === true }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (req.method === 'POST' && path === 'status') {
       const { queueId, status, errorMessage, providerResponse } = await req.json();
 
       console.log('Updating delivery status:', { queueId, status, errorMessage });
