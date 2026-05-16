@@ -10,7 +10,9 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, Send, MessageSquare, Smartphone, Users, Radio } from 'lucide-react';
+import { Loader2, Send, MessageSquare, Smartphone, Users, Radio, RefreshCw, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { format } from 'date-fns';
 
@@ -70,6 +72,61 @@ export function BulkSmsManager() {
   // All unique phones for count display
   const [allPhones, setAllPhones] = useState<string[]>([]);
   const [phonesLoading, setPhonesLoading] = useState(true);
+
+  // Drawer state
+  const [openCampaign, setOpenCampaign] = useState<Campaign | null>(null);
+  const [queueItems, setQueueItems] = useState<any[]>([]);
+  const [queueLoading, setQueueLoading] = useState(false);
+  const [retrying, setRetrying] = useState(false);
+
+  const loadQueueItems = useCallback(async (campaignId: string) => {
+    setQueueLoading(true);
+    const { data } = await supabase
+      .from('bulk_sms_queue')
+      .select('id, phone_number, status, error, error_message, sent_at, sim_slot, created_at')
+      .eq('campaign_id', campaignId)
+      .order('created_at', { ascending: true })
+      .limit(1000);
+    setQueueItems(data || []);
+    setQueueLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (!openCampaign) return;
+    loadQueueItems(openCampaign.id);
+    const ch = supabase
+      .channel(`bulk-queue-${openCampaign.id}`)
+      .on('postgres_changes', {
+        event: '*', schema: 'public', table: 'bulk_sms_queue',
+        filter: `campaign_id=eq.${openCampaign.id}`,
+      }, () => loadQueueItems(openCampaign.id))
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [openCampaign, loadQueueItems]);
+
+  const handleRetryFailed = async () => {
+    if (!openCampaign) return;
+    setRetrying(true);
+    try {
+      const { data, error } = await supabase.rpc('retry_bulk_sms_campaign', { p_campaign_id: openCampaign.id });
+      if (error) throw error;
+      const reset = (data as any)?.reset ?? 0;
+      toast({ title: language === 'so' ? 'Dib-u-dirid' : 'Retry', description: `${reset} ${language === 'so' ? 'fariin la dib u qoray' : 'messages requeued'}` });
+      loadQueueItems(openCampaign.id);
+      loadCampaigns();
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    }
+    setRetrying(false);
+  };
+
+  const queueStats = React.useMemo(() => {
+    const sent = queueItems.filter(q => q.status === 'sent').length;
+    const failed = queueItems.filter(q => q.status === 'failed').length;
+    const pending = queueItems.filter(q => q.status === 'pending' || q.status === 'sending').length;
+    const errors = Array.from(new Set(queueItems.map(q => q.error_message || q.error).filter(Boolean)));
+    return { sent, failed, pending, errors };
+  }, [queueItems]);
 
   const loadDevices = useCallback(async () => {
     const { data } = await supabase
