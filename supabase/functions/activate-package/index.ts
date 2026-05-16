@@ -464,11 +464,6 @@ serve(async (req) => {
       );
     }
 
-    // Route: Update delivery status (Android app reports back)
-    if (req.method === 'POST' && path === 'status') {
-      // (handled below)
-    }
-
     // Route: Mark USSD as dispatched (Android calls this immediately after dialing)
     // Once dispatched, the row will NEVER be auto-retried — only verified.
     if (req.method === 'POST' && path === 'dispatch') {
@@ -508,6 +503,7 @@ serve(async (req) => {
       );
     }
 
+    // Route: Update delivery status (Android app reports back)
     if (req.method === 'POST' && path === 'status') {
       const { queueId, status, errorMessage, providerResponse } = await req.json();
 
