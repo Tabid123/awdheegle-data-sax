@@ -1243,6 +1243,16 @@ class UssdDialerService : Service() {
                 .putString(UssdAccessibilityService.KEY_ACTIVE_QUEUE_ID, order.id)
                 .apply()
 
+            // 🛡️ ONE-SEND LOCK: tell server we are about to dispatch this USSD.
+            // After this call, the server will not auto-retry on ambiguous failures
+            // (timeout / Connection problem / invalid MMI). Prevents double-delivery.
+            try {
+                val marked = apiClient.markDeliveryDispatched(order.id, deviceId)
+                android.util.Log.d("UssdDialer", "📤 markDeliveryDispatched(${order.id}) = $marked")
+            } catch (e: Exception) {
+                android.util.Log.w("UssdDialer", "⚠️ markDeliveryDispatched failed (continuing): ${e.message}")
+            }
+
             val success = dialUssdCode(order.ussdCode, order.receiverPhone, order.packageCode, orderProvider, order.simSlot)
             
             if (success) {
