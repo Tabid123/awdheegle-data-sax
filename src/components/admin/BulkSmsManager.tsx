@@ -397,7 +397,11 @@ export function BulkSmsManager() {
                     ? Math.round(((c.sent_count + c.failed_count) / c.total_recipients) * 100)
                     : 0;
                   return (
-                    <div key={c.id} className="rounded-lg border bg-card p-3 space-y-2">
+                    <button
+                      key={c.id}
+                      onClick={() => setOpenCampaign(c)}
+                      className="w-full text-left rounded-lg border bg-card p-3 space-y-2 hover:bg-accent/40 active:bg-accent transition"
+                    >
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
                           <p className="text-xs text-muted-foreground">
@@ -430,7 +434,7 @@ export function BulkSmsManager() {
                           />
                         </div>
                       )}
-                    </div>
+                    </button>
                   );
                 })}
               </div>
@@ -449,7 +453,7 @@ export function BulkSmsManager() {
                   </TableHeader>
                   <TableBody>
                     {campaigns.map((c) => (
-                      <TableRow key={c.id}>
+                      <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setOpenCampaign(c)}>
                         <TableCell>{format(new Date(c.created_at), 'MMM dd HH:mm')}</TableCell>
                         <TableCell className="max-w-[200px] truncate">{c.message}</TableCell>
                         <TableCell><Badge variant="outline">{c.target_type}</Badge></TableCell>
@@ -482,6 +486,100 @@ export function BulkSmsManager() {
           )}
         </CardContent>
       </Card>
+
+      {/* Campaign detail drawer */}
+      <Sheet open={!!openCampaign} onOpenChange={(o) => !o && setOpenCampaign(null)}>
+        <SheetContent side="right" className="w-full sm:max-w-md p-0 flex flex-col">
+          {openCampaign && (
+            <>
+              <SheetHeader className="p-4 border-b">
+                <SheetTitle className="flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4" />
+                  {language === 'so' ? 'Faahfaahinta Campaign' : 'Campaign details'}
+                </SheetTitle>
+                <SheetDescription className="text-xs">
+                  {format(new Date(openCampaign.created_at), 'PPp')}
+                </SheetDescription>
+              </SheetHeader>
+
+              <div className="p-4 space-y-3 border-b">
+                <p className="text-sm whitespace-pre-wrap break-words bg-muted/40 rounded p-2">{openCampaign.message}</p>
+                <div className="grid grid-cols-4 gap-2 text-center">
+                  <div className="rounded border p-2">
+                    <Users className="h-3 w-3 mx-auto text-muted-foreground" />
+                    <div className="text-sm font-bold">{openCampaign.total_recipients}</div>
+                    <div className="text-[10px] text-muted-foreground">{language === 'so' ? 'Wadar' : 'Total'}</div>
+                  </div>
+                  <div className="rounded border p-2">
+                    <CheckCircle2 className="h-3 w-3 mx-auto text-green-500" />
+                    <div className="text-sm font-bold text-green-600">{queueStats.sent}</div>
+                    <div className="text-[10px] text-muted-foreground">{language === 'so' ? 'La diray' : 'Sent'}</div>
+                  </div>
+                  <div className="rounded border p-2">
+                    <Clock className="h-3 w-3 mx-auto text-amber-500" />
+                    <div className="text-sm font-bold text-amber-600">{queueStats.pending}</div>
+                    <div className="text-[10px] text-muted-foreground">{language === 'so' ? 'Sugaya' : 'Pending'}</div>
+                  </div>
+                  <div className="rounded border p-2">
+                    <XCircle className="h-3 w-3 mx-auto text-destructive" />
+                    <div className="text-sm font-bold text-destructive">{queueStats.failed}</div>
+                    <div className="text-[10px] text-muted-foreground">{language === 'so' ? 'Khalad' : 'Failed'}</div>
+                  </div>
+                </div>
+
+                {queueStats.errors.length > 0 && (
+                  <div className="rounded border border-destructive/30 bg-destructive/5 p-2 space-y-1">
+                    <p className="text-[11px] font-semibold text-destructive">
+                      {language === 'so' ? 'Sababta khaladka' : 'Failure reason'}
+                    </p>
+                    {queueStats.errors.slice(0, 3).map((e, i) => (
+                      <p key={i} className="text-[11px] text-destructive/90 break-words">• {e}</p>
+                    ))}
+                  </div>
+                )}
+
+                {queueStats.failed > 0 && (
+                  <Button
+                    onClick={handleRetryFailed}
+                    disabled={retrying}
+                    className="w-full"
+                    variant="default"
+                  >
+                    {retrying ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1" />}
+                    {language === 'so'
+                      ? `Dib u dir ${queueStats.failed} fariin`
+                      : `Retry ${queueStats.failed} failed`}
+                  </Button>
+                )}
+              </div>
+
+              <ScrollArea className="flex-1">
+                <div className="p-2 space-y-1">
+                  {queueLoading ? (
+                    <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin" /></div>
+                  ) : queueItems.length === 0 ? (
+                    <p className="text-center text-xs text-muted-foreground py-6">
+                      {language === 'so' ? 'Wax qiimo ah lama helin' : 'No queue items found'}
+                    </p>
+                  ) : (
+                    queueItems.map((q) => (
+                      <div key={q.id} className="flex items-center justify-between gap-2 text-xs border rounded px-2 py-1.5">
+                        <span className="font-mono truncate">{q.phone_number}</span>
+                        <Badge
+                          variant={q.status === 'sent' ? 'default' : q.status === 'failed' ? 'destructive' : 'outline'}
+                          className="text-[10px] shrink-0"
+                        >
+                          {q.status}
+                        </Badge>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </ScrollArea>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
