@@ -2225,6 +2225,10 @@ export type Database = {
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_phone_blocked: { Args: { p_phone: string }; Returns: boolean }
+      mark_bulk_sms_claimed_on_read: {
+        Args: { p_queue_id: string }
+        Returns: boolean
+      }
       mark_delivery_dispatched: {
         Args: { p_device_id: string; p_queue_id: string }
         Returns: boolean
