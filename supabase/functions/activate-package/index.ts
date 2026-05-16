@@ -686,6 +686,10 @@ serve(async (req) => {
           orderUpdate.delivery_status = 'delivered';
           orderUpdate.delivered_at = new Date().toISOString();
           orderUpdate.delivery_notes = providerResponse || 'Package activated successfully';
+        } else if (finalDeliveryStatus === 'verification_required') {
+          // Do NOT mark order as failed — provider may have delivered.
+          orderUpdate.delivery_status = 'verification_required';
+          orderUpdate.delivery_notes = (`Needs manual verification: USSD dispatched but response was ambiguous. ${providerResponse || errorMessage || ''}`).slice(0, 500);
         } else if (finalDeliveryStatus === 'failed') {
           orderUpdate.status = 'failed';
           orderUpdate.delivery_status = 'failed';
