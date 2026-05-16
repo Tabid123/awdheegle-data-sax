@@ -2058,6 +2058,19 @@ export type Database = {
         Args: { p_timeout_minutes?: number }
         Returns: Json
       }
+      claim_next_bulk_sms: {
+        Args: { p_device_id?: string; p_sim_slot?: number }
+        Returns: {
+          campaign_id: string
+          created_at: string
+          device_id: string
+          id: string
+          message: string
+          phone_number: string
+          sim_slot: number
+          status: string
+        }[]
+      }
       claim_next_delivery: {
         Args: { p_device_id: string; p_providers?: string[] }
         Returns: {
