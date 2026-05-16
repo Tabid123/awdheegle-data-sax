@@ -842,7 +842,7 @@ serve(async (req) => {
         const now = Date.now();
         const { data: processingRows, error: procErr } = await supabase
           .from('delivery_queue')
-          .select('id, order_id, last_attempt_at, created_at, attempts')
+          .select('id, order_id, last_attempt_at, created_at, attempts, dispatched_at')
           .eq('status', 'processing')
           .eq('android_device_id', deviceId);
 
@@ -855,8 +855,31 @@ serve(async (req) => {
             const age = Math.max(now - last, now - created);
             if (age > timeoutMs) {
               const currentAttempts = ((row.attempts as number | null) ?? 0);
-              
-              if (currentAttempts < 3) {
+              const wasDispatched = !!(row as any).dispatched_at;
+
+              if (wasDispatched) {
+                // 🛡️ USSD already sent — never auto-requeue. Send for verification.
+                console.log(`🛡️ Stuck dispatched delivery queueId=${row.id} → verification_required (no retry)`);
+                const { data: updated, error: updErr } = await supabase
+                  .from('delivery_queue')
+                  .update({
+                    status: 'verification_required',
+                    error_message: 'Stuck after dispatch: USSD sent but no callback. Manual verification required.',
+                    last_attempt_at: new Date().toISOString(),
+                  })
+                  .eq('id', row.id as string)
+                  .select()
+                  .single();
+                if (!updErr && updated) {
+                  await supabase
+                    .from('orders')
+                    .update({
+                      delivery_status: 'verification_required',
+                      delivery_notes: 'USSD dispatched but no callback. Verify customer received bundle before re-sending.',
+                    })
+                    .eq('id', updated.order_id as string);
+                }
+              } else if (currentAttempts < 3) {
                 // Re-queue for retry (release device claim so any device can pick it up)
                 console.log(`🔄 Re-queuing stuck delivery queueId=${row.id} (attempt ${currentAttempts + 1}/3, age=${age}ms)`);
                 await supabase
