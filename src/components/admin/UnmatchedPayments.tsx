@@ -121,36 +121,201 @@ function getUnmatchedReason(payment: any): { icon: React.ReactNode; title: strin
 const UnmatchedPayments = () => {
   const [unmatchedPayments, setUnmatchedPayments] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [resendingId, setResendingId] = useState<string | null>(null);
   const [registerPayment, setRegisterPayment] = useState<any | null>(null);
   const [providers, setProviders] = useState<any[]>([]);
   const [regForm, setRegForm] = useState({ receiver_phone: '', provider_id: '' });
   const [savingReg, setSavingReg] = useState(false);
+
+  // Resend dialog state
+  const [resendPayment, setResendPayment] = useState<any | null>(null);
+  const [resendProviderId, setResendProviderId] = useState('');
+  const [resendCategoryId, setResendCategoryId] = useState('');
+  const [resendPackageId, setResendPackageId] = useState('');
+  const [resendReceiver, setResendReceiver] = useState('');
+  const [resendCategories, setResendCategories] = useState<any[]>([]);
+  const [resendPackages, setResendPackages] = useState<any[]>([]);
+  const [savingResend, setSavingResend] = useState(false);
 
   useEffect(() => {
     supabase.from('providers_config').select('id, display_name, provider_name').order('sort_order')
       .then(({ data }) => setProviders(data || []));
   }, []);
 
-  const handleResend = async (payment: any) => {
-    if (!confirm('Dib u dir lacagtan?')) return;
-    setResendingId(payment.id);
+  const openResend = (payment: any) => {
+    setResendPayment(payment);
+    setResendProviderId('');
+    setResendCategoryId('');
+    setResendPackageId('');
+    setResendCategories([]);
+    setResendPackages([]);
+    // Prefill receiver with sender phone (last 9 digits)
+    setResendReceiver(normalizeSomaliPhone(payment.sender_phone || ''));
+  };
+
+  // Load categories + packages when provider changes
+  useEffect(() => {
+    if (!resendProviderId) {
+      setResendCategories([]);
+      setResendPackages([]);
+      return;
+    }
+    supabase
+      .from('package_categories')
+      .select('id, category_name')
+      .eq('provider_id', resendProviderId)
+      .eq('is_active', true)
+      .order('sort_order')
+      .then(({ data }) => setResendCategories(data || []));
+    setResendCategoryId('');
+  }, [resendProviderId]);
+
+  useEffect(() => {
+    if (!resendProviderId) return;
+    let q = supabase
+      .from('data_packages_config')
+      .select('id, package_name, data_amount, price, cost_price, ussd_template, category_id, provider_id')
+      .eq('provider_id', resendProviderId)
+      .eq('is_active', true)
+      .order('sort_order');
+    if (resendCategoryId) q = q.eq('category_id', resendCategoryId);
+    q.then(({ data }) => setResendPackages(data || []));
+    setResendPackageId('');
+  }, [resendProviderId, resendCategoryId]);
+
+  const submitResend = async () => {
+    if (!resendPayment) return;
+    if (!resendProviderId) { toast.error('Dooro provider'); return; }
+    if (!resendPackageId) { toast.error('Dooro package'); return; }
+    if (!resendReceiver || resendReceiver.replace(/\D/g, '').length < 7) {
+      toast.error('Buuxi numberka qaataha'); return;
+    }
+    setSavingResend(true);
     try {
-      const { error } = await supabase.functions.invoke('process-payment-receipt', {
-        body: {
-          sender_phone: payment.sender_phone,
-          receiver_sim: payment.receiver_sim,
-          amount: Number(payment.amount),
-          sms_body: payment.sms_body || '',
-          tx_id: payment.tx_id || undefined,
-        },
+      const pkg = resendPackages.find((p) => p.id === resendPackageId);
+      if (!pkg) throw new Error('Package not found');
+      const provider = providers.find((p) => p.id === resendProviderId);
+      const providerSlug = (provider?.provider_name || '').toLowerCase().trim();
+
+      // Build USSD: try delivery_instructions then package template
+      const normalizePhone = (s: string) => {
+        let p = s.replace(/\D/g, '');
+        if (p.startsWith('252')) p = p.slice(3);
+        if (p.startsWith('0')) p = p.slice(1);
+        return p;
+      };
+      const formatAmount = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(2));
+      const sanitize = (c: string) => c.replace(/\s+/g, '').replace(/##+/g, '#');
+      const renderTpl = (tpl: string, simPwd: string) =>
+        sanitize(
+          tpl
+            .replace(/\{receiver_phone\}|\{phone\}|\{number\}|\{receiver\}/g, normalizePhone(resendReceiver))
+            .replace(/\{cost_price\}|\{amount\}|\{price\}/g, formatAmount(Number(pkg.cost_price ?? pkg.price ?? 0)))
+            .replace(/\{sim_password\}/g, simPwd || '5516')
+            .replace(/\{package_code\}/g, '')
+        );
+
+      let ussd: string | null = null;
+      // package-specific instruction
+      const { data: instrPkg } = await supabase
+        .from('delivery_instructions')
+        .select('code_template, sim_password')
+        .eq('provider_id', resendProviderId)
+        .eq('package_id', pkg.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (instrPkg?.code_template) ussd = renderTpl(instrPkg.code_template, instrPkg.sim_password || '5516');
+      if (!ussd && pkg.category_id) {
+        const { data: instrCat } = await supabase
+          .from('delivery_instructions')
+          .select('code_template, sim_password')
+          .eq('provider_id', resendProviderId)
+          .eq('category_id', pkg.category_id)
+          .is('package_id', null)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (instrCat?.code_template) ussd = renderTpl(instrCat.code_template, instrCat.sim_password || '5516');
+      }
+      if (!ussd) {
+        const { data: instrProv } = await supabase
+          .from('delivery_instructions')
+          .select('code_template, sim_password')
+          .eq('provider_id', resendProviderId)
+          .is('category_id', null)
+          .is('package_id', null)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (instrProv?.code_template) ussd = renderTpl(instrProv.code_template, instrProv.sim_password || '5516');
+      }
+      if (!ussd && pkg.ussd_template) ussd = renderTpl(pkg.ussd_template, '5516');
+      if (!ussd) throw new Error('USSD template lama helin package-kaan');
+
+      const receiverFormatted = (() => {
+        let p = resendReceiver.replace(/\D/g, '');
+        if (!p.startsWith('252')) p = '252' + p;
+        return p;
+      })();
+
+      // Pick sim slot matching provider
+      const { data: devices } = await supabase
+        .from('android_devices')
+        .select('sim1_provider, sim2_provider')
+        .eq('is_active', true)
+        .is('archived_at', null);
+      let simSlot = 1;
+      for (const d of devices || []) {
+        const p1 = (d.sim1_provider || '').toLowerCase();
+        const p2 = (d.sim2_provider || '').toLowerCase();
+        if (p1 && (p1.includes(providerSlug) || providerSlug.includes(p1))) { simSlot = 1; break; }
+        if (p2 && (p2.includes(providerSlug) || providerSlug.includes(p2))) { simSlot = 2; break; }
+      }
+
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          amount: Number(resendPayment.amount),
+          receiver_phone: receiverFormatted,
+          sender_phone: resendPayment.sender_phone,
+          package_id: pkg.id,
+          provider_id: resendProviderId,
+          payment_status: 'matched',
+          status: 'processing',
+          is_manual: true,
+          is_offline: false,
+          delivery_notes: 'Dib u dir (Unmatched manual)',
+        })
+        .select('id')
+        .single();
+      if (orderError) throw orderError;
+
+      const { error: queueError } = await supabase.from('delivery_queue').insert({
+        order_id: order.id,
+        package_id: pkg.id,
+        execution_order: 1,
+        delay_seconds: 0,
+        status: 'pending',
+        ussd_command: ussd,
+        ussd_code: ussd,
+        provider_name: providerSlug,
+        receiver_phone: resendReceiver,
+        sim_slot: simSlot,
       });
-      if (error) throw error;
-      toast.success('Waa la dib u diray');
+      if (queueError) throw queueError;
+
+      // Mark payment receipt matched
+      await supabase
+        .from('payment_receipts')
+        .update({ status: 'matched', matched_order_id: order.id })
+        .eq('id', resendPayment.id);
+
+      toast.success('Dalabka waa la diray');
+      setResendPayment(null);
     } catch (e: any) {
       toast.error('Khalad: ' + (e?.message || 'failed'));
     } finally {
-      setResendingId(null);
+      setSavingResend(false);
     }
   };
 
@@ -185,11 +350,10 @@ const UnmatchedPayments = () => {
         size="sm"
         variant="outline"
         className="text-xs gap-1"
-        disabled={resendingId === payment.id}
-        onClick={() => handleResend(payment)}
+        onClick={() => openResend(payment)}
       >
         <Send className="h-3.5 w-3.5" />
-        {resendingId === payment.id ? '...' : 'Dib u dir'}
+        Dib u dir
       </Button>
       <Button
         size="sm"
@@ -386,6 +550,87 @@ const UnmatchedPayments = () => {
             <Button variant="outline" onClick={() => setRegisterPayment(null)}>Jooji</Button>
             <Button onClick={submitRegister} disabled={savingReg}>
               {savingReg ? 'Kaydinaya...' : 'Diiwaangeli'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!resendPayment} onOpenChange={(o) => !o && setResendPayment(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Send className="h-4 w-4" /> Dib u Dir Dalabka (Unmatched)
+            </DialogTitle>
+            {resendPayment && (
+              <p className="text-xs text-muted-foreground">
+                Sender: <span className="font-mono">{resendPayment.sender_phone}</span>
+                {' • '}Lacag: <span className="font-semibold">${resendPayment.amount}</span>
+                {resendPayment.receiver_sim && <> {' • '}SIM: {resendPayment.receiver_sim}</>}
+              </p>
+            )}
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs font-medium">Provider / Shirkadda</label>
+              <select
+                value={resendProviderId}
+                onChange={(e) => setResendProviderId(e.target.value)}
+                className="w-full mt-1 px-3 py-2 rounded-md border bg-background text-sm"
+              >
+                <option value="">Dooro provider</option>
+                {providers.map((p) => (
+                  <option key={p.id} value={p.id}>{p.display_name || p.provider_name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-medium">
+                Category <span className="text-muted-foreground">(ikhtiyaari)</span>
+              </label>
+              <select
+                value={resendCategoryId}
+                onChange={(e) => setResendCategoryId(e.target.value)}
+                disabled={!resendProviderId}
+                className="w-full mt-1 px-3 py-2 rounded-md border bg-background text-sm disabled:opacity-50"
+              >
+                <option value="">Dhammaan</option>
+                {resendCategories.map((c) => (
+                  <option key={c.id} value={c.id}>{c.category_name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-medium">Package</label>
+              <select
+                value={resendPackageId}
+                onChange={(e) => setResendPackageId(e.target.value)}
+                disabled={!resendProviderId || resendPackages.length === 0}
+                className="w-full mt-1 px-3 py-2 rounded-md border bg-background text-sm disabled:opacity-50"
+              >
+                <option value="">Dooro package</option>
+                {resendPackages.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.package_name}{p.data_amount ? ` - ${p.data_amount}` : ''} (${p.price})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-medium">Numberka Qaataha</label>
+              <Input
+                value={resendReceiver}
+                onChange={(e) => setResendReceiver(e.target.value)}
+                placeholder="61XXXXXXX"
+                className="font-mono mt-1"
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="outline" onClick={() => setResendPayment(null)} className="flex-1">
+              Ka noqo
+            </Button>
+            <Button onClick={submitResend} disabled={savingResend} className="flex-1 gap-1">
+              <Send className="h-3.5 w-3.5" />
+              {savingResend ? 'Diraya...' : 'Dib u Dir'}
             </Button>
           </DialogFooter>
         </DialogContent>
