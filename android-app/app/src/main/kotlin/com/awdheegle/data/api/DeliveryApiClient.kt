@@ -139,6 +139,31 @@ class DeliveryApiClient {
             throw Exception("Failed to update status: ${e.message}")
         }
     }
+
+    /**
+     * Mark a delivery as dispatched (USSD has been sent to the network).
+     * After this call, the server will NEVER auto-retry the order — even if
+     * the response is "timeout" / "Connection problem" / "invalid MMI".
+     * Idempotent: safe to call more than once.
+     */
+    suspend fun markDeliveryDispatched(queueId: String, deviceId: String): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val json = JSONObject().apply {
+                put("queueId", queueId)
+                put("deviceId", deviceId)
+            }
+            val request = Request.Builder()
+                .url("$baseUrl/activate-package/dispatch")
+                .post(json.toString().toRequestBody(JSON_MEDIA_TYPE))
+                .build()
+            sharedHttpClient.newCall(request).execute().use { response ->
+                return@withContext response.isSuccessful
+            }
+        } catch (e: Exception) {
+            println("❌ markDeliveryDispatched error: ${e.message}")
+            return@withContext false
+        }
+    }
     
     suspend fun devicePing(
         deviceId: String,
