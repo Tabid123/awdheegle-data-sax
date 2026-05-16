@@ -339,16 +339,21 @@ class DeliveryApiClient {
         val id: String,
         val campaignId: String,
         val phoneNumber: String,
-        val simSlot: Int?
+        val simSlot: Int?,
+        val message: String? = null
     )
     
     suspend fun getPendingBulkSms(deviceId: String): List<BulkSmsTask> = withContext(Dispatchers.IO) {
         try {
+            val rpcJson = JSONObject().apply {
+                put("p_device_id", deviceId)
+            }
+
             val request = Request.Builder()
-                .url("$supabaseRestUrl/bulk_sms_queue?device_id=eq.$deviceId&status=eq.pending&limit=10&order=created_at.asc")
+                .url("$supabaseRestUrl/rpc/claim_next_bulk_sms")
                 .addHeader("apikey", anonKey)
                 .addHeader("Authorization", "Bearer $anonKey")
-                .get()
+                .post(rpcJson.toString().toRequestBody(JSON_MEDIA_TYPE))
                 .build()
             
             sharedHttpClient.newCall(request).execute().use { response ->
@@ -362,11 +367,14 @@ class DeliveryApiClient {
                             id = obj.getString("id"),
                             campaignId = obj.getString("campaign_id"),
                             phoneNumber = obj.getString("phone_number"),
-                            simSlot = if (obj.isNull("sim_slot")) null else obj.getInt("sim_slot")
+                            simSlot = if (obj.isNull("sim_slot")) null else obj.getInt("sim_slot"),
+                            message = if (obj.isNull("message")) null else obj.getString("message")
                         ))
                     }
                     return@withContext tasks
                 }
+                val errorBody = response.body?.string()
+                println("❌ Bulk SMS claim failed: ${response.code} - $errorBody")
                 return@withContext emptyList()
             }
         } catch (e: Exception) {
