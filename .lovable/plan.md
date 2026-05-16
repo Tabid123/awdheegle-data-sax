@@ -1,48 +1,69 @@
-## Hadafka
+# Plan: Joojin Double-Delivery ee USSD
 
-Sameey nidaam admin uu ku xidhi karo lambar gaar ah xirmo gaar ah. Markii lambarkaas uu lacag soo dirsado, xirmadaas ayaa loo diraa — ma ka tegayo qiime-ka guud (selling_price match).
+Dhibaatada: marka USSD response uu yahay timeout / "Connection problem" / "Invalid MMI" / no-response, nidaamku wuxuu u qaataa `failed` oo auto-retry sameeyaa, halka provider-ku dhab ahaantii xirmada horey u diray. Natiijada: hal dalab laba jeer ayaa loo shubaa (sida screenshot Jeeb).
 
-## Xaaladda Hadda
+Xalka guud: marka USSD mar la dial-gareeyo, **mar dambe lama dirayo** ilaa admin uu hubiyo. Server-ku wuxuu noqonayaa final authority on "dispatched" state.
 
-- Edge function `process-payment-receipt` mar hore wuu eegi karaa table la yidhaahdo `auto_topup_phone_mappings` (lines 873-942 ee `index.ts`).
-- Logic-ku waa: hadduu sender-ka lambarkiisu ku jiro mapping → ku xidh xirmadaas si toos ah; haddii kale → ku xulo qiimaha guud.
-- Laakiin **table-kaas weli ma jiro** database-ka, UI-na ma jiro lagu maamulo.
+---
 
-## Qorshe
+## 1. Database migration (delivery_queue + RPCs)
 
-### 1. Database — table cusub `auto_topup_phone_mappings`
+Ku dar safe-dispatch columns iyo index:
+- `dispatched_at timestamptz` — waqtiga USSD la diray
+- `ussd_dispatched boolean default false`
+- `dispatch_device_id uuid` — aaladda diray (audit)
+- Index `(order_id, status)` haddii aysan jirin
 
-Goobaha:
-- `id` uuid PK
-- `phone_number` text (sender-ka loo xidhayo, normalized)
-- `package_id` uuid → `auto_topup_packages.id`
-- `custom_amount` text nullable (qiime/qiimooyin gaar ah comma-separated; haddii NULL la isticmaalo `selling_price` xirmada)
-- `label` text nullable
-- `is_active` boolean default true
-- `created_at`, `updated_at`
+Wax ka beddel `claim_next_delivery(...)`:
+- Marna ha soo celin row leh `dispatched_at IS NOT NULL` xitaa haddii `processing` stuck yahay. Row noocaas ah waa la geynayaa `verification_required`, ma noqonayo `pending`.
 
-RLS: Admins manage (ALL, `is_admin(auth.uid())`), Public read (si edge function-ku u akhriyo) — la mid ah `auto_topup_packages`.
+Wax ka beddel `auto_recover_stuck_deliveries()` (haddii jirta):
+- Stuck `processing` + `dispatched_at NOT NULL` → `verification_required` (admin review), ma `pending` lama dhigayo.
+- Stuck `processing` + `dispatched_at NULL` → safe inuu noqdo `pending` (USSD weligii lama dirin).
 
-Index: `(phone_number, is_active)`.
+Ku dar `mark_delivery_dispatched(queue_id, device_id)` RPC:
+- Atomic UPDATE oo dhiga `ussd_dispatched=true, dispatched_at=now(), dispatch_device_id=...` haddii `dispatched_at IS NULL`. Soo celiya boolean.
 
-### 2. UI Admin — tab cusub `AutoTopUpView.tsx`
+## 2. Edge function: `activate-package`
 
-Tab cusub oo la dhigayo dhinaca packages-ka kor: **"Lambar → Xirmo"** (Phone Mappings).
+- Ku dar route `/dispatch` (ama beddel `/status`) oo Android uu ugu sheego "USSD diray".
+- Status-handling rules:
+  - Success keywords (`completed`, `delivered`, provider OK) → `completed` (sida hadda).
+  - Ambiguous statuses (`timeout`, `connection problem`, `invalid MMI`, `no response`, empty) + `dispatched_at NOT NULL` → `verification_required`. **Never** `pending`.
+  - Cad oo aan dirin (SIM locked, no permission, dial error ka hor) + `dispatched_at IS NULL` → `pending` retry waa OK.
+- Idempotent: status update dambe ee row hore u final ah waa la aqbalayaa, retry cusub lama abuurayo.
 
-Waxa uu user-ku qaban karo:
-- Geli lambar (sender phone) + label
-- Dooro xirmo (`auto_topup_packages` liiska, lagu kala saari karo provider/topup-number)
-- Dooro qiime gaar ah (ikhtiyaari, comma-separated tusaale `0.50, 1.00`); haddii la dhaafo, `selling_price` xirmada ayaa la isticmaalaa
-- Beddel/Tirtir/Toggle active
+## 3. Android app
 
-Liis ka muuqdaa: lambarka, label, xirmada (magac + provider), qiimaha la rabo, xaalada.
+`DeliveryApiClient.kt`:
+- Ku dar `markDeliveryDispatched(queueId, deviceId)` → wuxuu wacayaa RPC ama `/dispatch` endpoint.
 
-### 3. Sidee u shaqayso (warar)
+`UssdDialerService.kt`:
+- Isla marka `telephonyManager.sendUssdRequest(...)` la billaabay (ama isla marka call la sameeyay), wac `markDeliveryDispatched(queueId)` hal mar.
+- Hay single-flight lock-ka jira, laakiin server-ka ayaa hadda final authority.
+- Haddii network go'o kahor confirmation, retry the dispatch mark (idempotent), laakiin USSD mar dambe ha la dirin.
 
-Lambar 615123456 → la xidho xirmada "24 Saac Hormuud" oo qiimo $0.50.
-Markii 615123456 lacag $0.50 dirsado → si toos ah loo diro xirmada 24 Saac, iyada oo aan la eegin xirmooyin kale oo $0.50 leh.
+## 4. Status / UI
 
-### Faylasha la beddelayo
+- `verification_required` waa state cusub (ama isticmaal `delivery_status='needs_verification'` haddii enum-ka adag yahay).
+- Admin dashboard: dar filter/badge cusub ee dalabyada hubinta loo baahan yahay — admin wuxuu calaamadin karaa `completed` ama `failed` gacanta.
 
-- `supabase/migrations/<new>.sql` — table cusub + RLS + index
-- `src/components/admin/simple/AutoTopUpView.tsx` — tab cusub iyo CRUD UI
+---
+
+## Natiijada la sugayo
+
+- Hal USSD dial per order, xitaa haddii response uu ambiguous yahay.
+- Ambiguous → manual verification queue, ma resend.
+- Double-delivery sida Jeeb screenshot-ka waa la joojinayaa.
+
+---
+
+## Technical files affected
+
+- `supabase/migrations/<new>.sql` — columns, index, `claim_next_delivery`, `auto_recover_stuck_deliveries`, `mark_delivery_dispatched`.
+- `supabase/functions/activate-package/index.ts` — `/dispatch` route + retry rule changes.
+- `android-app/app/src/main/kotlin/com/awdheegle/data/api/DeliveryApiClient.kt` — `markDeliveryDispatched()`.
+- `android-app/app/src/main/kotlin/com/awdheegle/data/service/UssdDialerService.kt` — call mark before/at dial.
+- (Optional) admin UI: `src/components/admin/DeliveryTracker.tsx` ama `TransactionsDashboard.tsx` — filter/badge `verification_required`.
+
+Ma fulinaa plan-kan?
