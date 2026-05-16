@@ -194,7 +194,14 @@ export function BulkSmsManager() {
           sim_slot: parseInt(selectedSim),
           status: 'pending',
         }));
-        await supabase.from('bulk_sms_queue').insert(batch);
+        const { error: queueErr } = await supabase.from('bulk_sms_queue').insert(batch);
+        if (queueErr) {
+          await supabase
+            .from('bulk_sms_campaigns')
+            .update({ status: 'failed' })
+            .eq('id', campaign.id);
+          throw queueErr;
+        }
       }
 
       const device = devices.find(d => d.device_id === selectedDevice);
@@ -319,52 +326,102 @@ export function BulkSmsManager() {
         <CardHeader>
           <CardTitle>{language === 'so' ? 'Taariikhda Campaigns' : 'Campaign History'}</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-2 sm:px-6">
           {loading ? (
             <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div>
           ) : campaigns.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">No campaigns yet</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{language === 'so' ? 'Taariikhda' : 'Date'}</TableHead>
-                  <TableHead>{language === 'so' ? 'Fariinta' : 'Message'}</TableHead>
-                  <TableHead>Target</TableHead>
-                  <TableHead>Progress</TableHead>
-                  <TableHead>{language === 'so' ? 'Xaaladda' : 'Status'}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {campaigns.map((c) => (
-                  <TableRow key={c.id}>
-                    <TableCell>{format(new Date(c.created_at), 'MMM dd HH:mm')}</TableCell>
-                    <TableCell className="max-w-[200px] truncate">{c.message}</TableCell>
-                    <TableCell><Badge variant="outline">{c.target_type}</Badge></TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1.5">
-                        {c.status === 'sending' && <Radio className="h-3 w-3 text-green-500 animate-pulse" />}
-                        <span className="font-mono text-sm">{c.sent_count}/{c.total_recipients}</span>
-                        {c.failed_count > 0 && <span className="text-destructive text-xs">({c.failed_count} ❌)</span>}
+            <>
+              {/* Mobile: card list */}
+              <div className="space-y-2 md:hidden">
+                {campaigns.map((c) => {
+                  const pct = c.total_recipients > 0
+                    ? Math.round(((c.sent_count + c.failed_count) / c.total_recipients) * 100)
+                    : 0;
+                  return (
+                    <div key={c.id} className="rounded-lg border bg-card p-3 space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs text-muted-foreground">
+                            {format(new Date(c.created_at), 'MMM dd HH:mm')}
+                          </p>
+                          <p className="text-sm line-clamp-2 break-words">{c.message}</p>
+                        </div>
+                        <Badge
+                          variant={c.status === 'completed' ? 'default' : c.status === 'sending' ? 'secondary' : 'outline'}
+                          className="shrink-0"
+                        >
+                          {c.status}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center justify-between gap-2 text-xs">
+                        <Badge variant="outline" className="text-[10px]">{c.target_type}</Badge>
+                        <div className="flex items-center gap-1.5">
+                          {c.status === 'sending' && <Radio className="h-3 w-3 text-green-500 animate-pulse" />}
+                          <span className="font-mono">{c.sent_count}/{c.total_recipients}</span>
+                          {c.failed_count > 0 && (
+                            <span className="text-destructive">({c.failed_count} ❌)</span>
+                          )}
+                        </div>
                       </div>
                       {c.status === 'sending' && c.total_recipients > 0 && (
-                        <div className="w-full bg-muted rounded-full h-1.5 mt-1">
-                          <div 
-                            className="bg-primary h-1.5 rounded-full transition-all duration-500" 
-                            style={{ width: `${Math.round(((c.sent_count + c.failed_count) / c.total_recipients) * 100)}%` }}
+                        <div className="w-full bg-muted rounded-full h-1.5">
+                          <div
+                            className="bg-primary h-1.5 rounded-full transition-all duration-500"
+                            style={{ width: `${pct}%` }}
                           />
                         </div>
                       )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={c.status === 'completed' ? 'default' : c.status === 'sending' ? 'secondary' : 'outline'}>
-                        {c.status}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Desktop: table */}
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{language === 'so' ? 'Taariikhda' : 'Date'}</TableHead>
+                      <TableHead>{language === 'so' ? 'Fariinta' : 'Message'}</TableHead>
+                      <TableHead>Target</TableHead>
+                      <TableHead>Progress</TableHead>
+                      <TableHead>{language === 'so' ? 'Xaaladda' : 'Status'}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {campaigns.map((c) => (
+                      <TableRow key={c.id}>
+                        <TableCell>{format(new Date(c.created_at), 'MMM dd HH:mm')}</TableCell>
+                        <TableCell className="max-w-[200px] truncate">{c.message}</TableCell>
+                        <TableCell><Badge variant="outline">{c.target_type}</Badge></TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1.5">
+                            {c.status === 'sending' && <Radio className="h-3 w-3 text-green-500 animate-pulse" />}
+                            <span className="font-mono text-sm">{c.sent_count}/{c.total_recipients}</span>
+                            {c.failed_count > 0 && <span className="text-destructive text-xs">({c.failed_count} ❌)</span>}
+                          </div>
+                          {c.status === 'sending' && c.total_recipients > 0 && (
+                            <div className="w-full bg-muted rounded-full h-1.5 mt-1">
+                              <div
+                                className="bg-primary h-1.5 rounded-full transition-all duration-500"
+                                style={{ width: `${Math.round(((c.sent_count + c.failed_count) / c.total_recipients) * 100)}%` }}
+                              />
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={c.status === 'completed' ? 'default' : c.status === 'sending' ? 'secondary' : 'outline'}>
+                            {c.status}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
