@@ -534,6 +534,7 @@ export type Database = {
           created_at: string
           device_id: string | null
           error: string | null
+          error_message: string | null
           id: string
           phone_number: string
           sent_at: string | null
@@ -545,6 +546,7 @@ export type Database = {
           created_at?: string
           device_id?: string | null
           error?: string | null
+          error_message?: string | null
           id?: string
           phone_number: string
           sent_at?: string | null
@@ -556,6 +558,7 @@ export type Database = {
           created_at?: string
           device_id?: string | null
           error?: string | null
+          error_message?: string | null
           id?: string
           phone_number?: string
           sent_at?: string | null
@@ -2216,11 +2219,19 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_bulk_sms_counter: {
+        Args: { p_campaign_id: string; p_field: string }
+        Returns: undefined
+      }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_phone_blocked: { Args: { p_phone: string }; Returns: boolean }
       mark_delivery_dispatched: {
         Args: { p_device_id: string; p_queue_id: string }
         Returns: boolean
+      }
+      retry_bulk_sms_campaign: {
+        Args: { p_campaign_id: string }
+        Returns: Json
       }
     }
     Enums: {
