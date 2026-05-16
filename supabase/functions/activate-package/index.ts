@@ -612,12 +612,24 @@ serve(async (req) => {
         if (priorIndicatesSuccess) {
           normalizedStatus = 'completed';
           console.log(`🛡️ Prior-success guard: queue ${queueId} already had success markers - marking completed (no retry)`);
+        } else if (wasDispatched) {
+          normalizedStatus = 'verification_required';
+          console.log(`🛡️ Dispatch guard: queue ${queueId} dispatched but ambiguous status="${status}" → verification_required`);
         } else {
           normalizedStatus = currentAttempts < 2 ? 'pending' : 'failed';
           isAutoRetry = currentAttempts < 2;
         }
       } else if (status === 'failed') {
-        normalizedStatus = 'failed';
+        // Pure dial-side failure (e.g. SIM locked) BEFORE dispatch → safe to retry once
+        if (!wasDispatched && currentAttempts < 2) {
+          normalizedStatus = 'pending';
+          isAutoRetry = true;
+        } else if (wasDispatched) {
+          normalizedStatus = 'verification_required';
+          console.log(`🛡️ Dispatch guard: queue ${queueId} dispatched + status=failed → verification_required`);
+        } else {
+          normalizedStatus = 'failed';
+        }
       }
 
       // Prepare update data
