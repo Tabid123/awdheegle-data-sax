@@ -836,15 +836,24 @@ serve(async (req) => {
       }
 
       // Sweep stuck 'processing' deliveries for this device (timeout 5min)
-      // Re-queue as 'pending' so they get retried when device is back online
+      // IMPORTANT: delivery_queue.android_device_id stores the device UUID, while
+      // Android sends Settings.Secure.ANDROID_ID. Resolve UUID first so dispatched
+      // rows do not stay stuck in "processing" forever.
       try {
         const timeoutMs = 300000; // 5 minutes
         const now = Date.now();
+        const { data: sweepDevice } = await supabase
+          .from('android_devices')
+          .select('id')
+          .eq('device_id', deviceId)
+          .is('archived_at', null)
+          .maybeSingle();
+        const sweepDeviceUuid = sweepDevice?.id ?? deviceId;
         const { data: processingRows, error: procErr } = await supabase
           .from('delivery_queue')
           .select('id, order_id, last_attempt_at, created_at, attempts, dispatched_at')
           .eq('status', 'processing')
-          .eq('android_device_id', deviceId);
+          .eq('android_device_id', sweepDeviceUuid);
 
         if (procErr) {
           console.warn('Processing fetch error:', procErr);
