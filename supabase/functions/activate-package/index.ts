@@ -1155,26 +1155,44 @@ serve(async (req) => {
       try {
         const timeoutMs = 300000;
         const now = Date.now();
+        const { data: sweepDevice } = await supabase
+          .from('android_devices')
+          .select('id')
+          .eq('device_id', deviceId)
+          .is('archived_at', null)
+          .maybeSingle();
+        const sweepDeviceUuid = sweepDevice?.id ?? deviceId;
         const { data: processingRows } = await supabase
           .from('delivery_queue')
-          .select('id, order_id, last_attempt_at, created_at, attempts')
+          .select('id, order_id, last_attempt_at, created_at, attempts, dispatched_at')
           .eq('status', 'processing')
-          .eq('android_device_id', deviceId);
+          .eq('android_device_id', sweepDeviceUuid);
 
         for (const row of processingRows ?? []) {
           const last = row.last_attempt_at ? new Date(row.last_attempt_at as string).getTime() : 0;
           const created = row.created_at ? new Date(row.created_at as string).getTime() : 0;
           const age = Math.max(now - last, now - created);
           if (age > timeoutMs) {
-            const newAttempts = ((row.attempts as number | null) ?? 0) + 1;
+            const wasDispatched = !!(row as any).dispatched_at;
             const { data: updated } = await supabase
               .from('delivery_queue')
-              .update({ status: 'timeout', error_message: 'Device timeout', last_attempt_at: new Date().toISOString(), attempts: newAttempts })
+              .update({
+                status: wasDispatched ? 'verification_required' : 'timeout',
+                error_message: wasDispatched
+                  ? 'USSD sent but no callback was received. Manual verification required.'
+                  : 'Device timeout',
+                last_attempt_at: new Date().toISOString(),
+              })
               .eq('id', row.id as string)
               .select()
               .single();
             if (updated) {
-              await supabase.from('orders').update({ delivery_status: 'timeout', delivery_notes: 'Device timeout: verify customer received bundle.' }).eq('id', updated.order_id as string);
+              await supabase.from('orders').update({
+                delivery_status: wasDispatched ? 'verification_required' : 'timeout',
+                delivery_notes: wasDispatched
+                  ? 'USSD dispatched but no callback. Verify customer received bundle before re-sending.'
+                  : 'Device timeout: verify customer received bundle.',
+              }).eq('id', updated.order_id as string);
             }
           }
         }
