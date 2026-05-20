@@ -203,7 +203,8 @@ const UnmatchedPayments = () => {
         if (p.startsWith('0')) p = p.slice(1);
         return p;
       };
-      const formatAmount = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(2));
+      const formatAmount = (n: number) =>
+        Number.isInteger(n) ? String(n) : n.toFixed(2).replace('.', '*');
       const sanitize = (c: string) => c.replace(/\s+/g, '').replace(/##+/g, '#');
       const renderTpl = (tpl: string, simPwd: string) =>
         sanitize(
