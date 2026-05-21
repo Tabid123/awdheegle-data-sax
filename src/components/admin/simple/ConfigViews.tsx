@@ -714,7 +714,7 @@ export const BannersCustomView = ({ isSo }: { isSo: boolean }) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [newBanner, setNewBanner] = useState({ image_url: '', title: '' });
+  const [newBanner, setNewBanner] = useState<{ image_url: string; title: string; sort_order: number; rotation_interval: number | null }>({ image_url: '', title: '', sort_order: 1, rotation_interval: 4 });
 
   const loadBanners = useCallback(async () => {
     const { data } = await supabase.from('banners_config').select('*').order('sort_order');
@@ -740,7 +740,12 @@ export const BannersCustomView = ({ isSo }: { isSo: boolean }) => {
 
   const saveBanner = async () => {
     if (!newBanner.image_url) { toast.error('Fill image URL'); return; }
-    const payload = { image_url: newBanner.image_url, title: newBanner.title || null };
+    const payload: any = {
+      image_url: newBanner.image_url,
+      title: newBanner.title || null,
+      sort_order: Number(newBanner.sort_order) || 0,
+      rotation_interval: newBanner.rotation_interval ?? null,
+    };
     if (editingId) {
       const { error } = await supabase.from('banners_config').update(payload).eq('id', editingId);
       if (error) { toast.error('Error: ' + error.message); return; }
@@ -752,13 +757,13 @@ export const BannersCustomView = ({ isSo }: { isSo: boolean }) => {
       setBanners(prev => [data, ...prev]);
       toast.success('Added');
     }
-    setNewBanner({ image_url: '', title: '' });
+    setNewBanner({ image_url: '', title: '', sort_order: 1, rotation_interval: 4 });
     setShowAdd(false); setEditingId(null);
   };
 
   const startEditBanner = (item: any) => {
     setEditingId(item.id);
-    setNewBanner({ image_url: item.image_url || '', title: item.title || '' });
+    setNewBanner({ image_url: item.image_url || '', title: item.title || '', sort_order: item.sort_order ?? 1, rotation_interval: item.rotation_interval ?? 4 });
     setShowAdd(true); setExpandedId(null);
   };
 
@@ -768,7 +773,7 @@ export const BannersCustomView = ({ isSo }: { isSo: boolean }) => {
         { label: 'Total', value: banners.length, icon: Image, color: 'bg-rose-500' },
         { label: 'Active', value: banners.filter(b => b.is_active).length, icon: CheckCircle, color: 'bg-green-500' },
       ]} />
-      <button onClick={() => { setShowAdd(!showAdd); setEditingId(null); setNewBanner({ banner_image: '', alt_text: '' }); }}
+      <button onClick={() => { setShowAdd(!showAdd); setEditingId(null); setNewBanner({ image_url: '', title: '', sort_order: 1, rotation_interval: 4 }); }}
         className="w-full py-2.5 bg-gradient-to-r from-rose-500 to-rose-600 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-1.5 active:scale-[0.98]">
         <Plus className="w-4 h-4" /> {isSo ? 'Banner Cusub' : 'Add New Banner'}
       </button>
@@ -777,6 +782,16 @@ export const BannersCustomView = ({ isSo }: { isSo: boolean }) => {
           <div className="text-xs font-bold text-gray-600 dark:text-gray-300">{editingId ? '✏️ Edit Banner' : '➕ New Banner'}</div>
           <ImageUploader value={newBanner.image_url} onChange={url => setNewBanner(p => ({...p, image_url: url}))} bucket="banners" label={isSo ? 'Sawirka Banner' : 'Banner Image'} />
           <input value={newBanner.title} onChange={e => setNewBanner(p => ({...p, title: e.target.value}))} placeholder="Title (optional)" className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none" />
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-[10px] font-semibold text-gray-600 dark:text-gray-300">{isSo ? 'Tartib' : 'Order'}</label>
+              <input type="number" min={0} value={newBanner.sort_order} onChange={e => setNewBanner(p => ({...p, sort_order: parseInt(e.target.value) || 0}))} className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none" />
+            </div>
+            <div>
+              <label className="text-[10px] font-semibold text-gray-600 dark:text-gray-300">{isSo ? 'Waqti is-badal (sec)' : 'Rotation (sec)'}</label>
+              <input type="number" min={1} value={newBanner.rotation_interval ?? ''} onChange={e => setNewBanner(p => ({...p, rotation_interval: e.target.value ? parseInt(e.target.value) : null}))} placeholder="4" className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none" />
+            </div>
+          </div>
           <div className="flex gap-2">
             <button onClick={saveBanner} className="flex-1 py-2 bg-green-500 text-white rounded-lg text-sm font-medium">{editingId ? '💾 Save' : '➕ Add'}</button>
             {editingId && <button onClick={() => { setEditingId(null); setShowAdd(false); }} className="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg text-sm font-medium">Cancel</button>}

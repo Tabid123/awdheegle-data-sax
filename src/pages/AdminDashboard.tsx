@@ -802,7 +802,7 @@ const AdminDashboard = () => {
         supabase.from('providers_config').select('*').order('provider_name'),
         supabase.from('data_packages_config').select('*').order('selling_price'),
         supabase.from('payment_providers_config').select('*').order('provider_name'),
-        supabase.from('banners_config').select('*').order('display_order'),
+        supabase.from('banners_config').select('*, banner_image:image_url, display_order:sort_order').order('sort_order'),
         supabase.from('package_categories').select('*').order('display_order'),
         supabase.from('featured_packages').select('*').order('display_order'),
         supabase.from('orders').select('id,customer_phone,sender_phone,package_name,selling_price,status,delivery_status,created_at,updated_at,provider_id,package_id,data_amount,receiver_phone,payment_number,is_manual,payment_provider_id,payment_source,delivered_at,delivery_notes,invoice_url').order('created_at', { ascending: false }),
@@ -1812,13 +1812,13 @@ const AdminDashboard = () => {
     }
 
     const { data: insertedBanner, error } = await supabase.from('banners_config').insert([{
-      banner_image: mediaUrl,
+      image_url: mediaUrl,
       alt_text: newBanner.alt_text,
-      display_order: newBanner.display_order,
+      sort_order: newBanner.display_order,
       media_type: detectedMediaType,
       video_duration: videoDuration,
       rotation_interval: newBanner.rotation_interval,
-    }]).select();
+    } as any]).select('*, banner_image:image_url, display_order:sort_order');
 
     if (error) {
       toast({

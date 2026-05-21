@@ -420,9 +420,11 @@ export type Database = {
           is_active: boolean
           link_url: string | null
           media_type: string
+          rotation_interval: number | null
           sort_order: number
           title: string | null
           updated_at: string
+          video_duration: number | null
         }
         Insert: {
           alt_text?: string | null
@@ -432,9 +434,11 @@ export type Database = {
           is_active?: boolean
           link_url?: string | null
           media_type?: string
+          rotation_interval?: number | null
           sort_order?: number
           title?: string | null
           updated_at?: string
+          video_duration?: number | null
         }
         Update: {
           alt_text?: string | null
@@ -444,9 +448,11 @@ export type Database = {
           is_active?: boolean
           link_url?: string | null
           media_type?: string
+          rotation_interval?: number | null
           sort_order?: number
           title?: string | null
           updated_at?: string
+          video_duration?: number | null
         }
         Relationships: []
       }
