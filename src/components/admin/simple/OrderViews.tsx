@@ -13,7 +13,6 @@ import {
 import { ArrowLeft } from 'lucide-react';
 import { Send } from 'lucide-react';
 import { ResendDialog } from '@/components/admin/ResendDialog';
-import { useState as useStateReact } from 'react';
 
 // ========== ORDER ACCORDION ITEM ==========
 const OrderAccordionItem = ({ item, idx, expandedId, setExpandedId, isSo, actions }: {
@@ -79,7 +78,7 @@ const OrderAccordionItem = ({ item, idx, expandedId, setExpandedId, isSo, action
           ]}
           actions={
             <>
-              <ActionBtn onClick={() => setResendOpen(true)} icon={Send} label={isSo ? 'Dib u Dir' : 'Resend'} variant="primary" />
+              <ActionBtn onClick={() => setResendOpen(true)} icon={Send} label={isSo ? 'Dib u Dir' : 'Resend'} variant="default" />
               {isRetryable && <ActionBtn onClick={() => actions.retryDelivery(item.id)} icon={RotateCcw} label={isSo ? 'Dib u Dir' : 'Retry'} variant="warning" />}
               {isMarkable && <ActionBtn onClick={() => actions.markDelivered(item.id)} icon={CheckCircle} label={isSo ? 'Dhamee' : 'Deliver'} variant="success" />}
               {isCancellable && <ActionBtn onClick={() => actions.cancelOrder(item.id)} icon={XCircle} label={isSo ? 'Kansal' : 'Cancel'} variant="danger" />}
