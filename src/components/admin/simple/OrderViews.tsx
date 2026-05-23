@@ -11,6 +11,8 @@ import {
   Package, DollarSign, CheckCircle, XCircle, Clock, Calendar, Phone, Hash, User, CreditCard, RotateCcw, ChevronDown, Code,
 } from './shared';
 import { ArrowLeft } from 'lucide-react';
+import { Send } from 'lucide-react';
+import { ResendDialog } from '@/components/admin/ResendDialog';
 
 // ========== ORDER ACCORDION ITEM ==========
 const OrderAccordionItem = ({ item, idx, expandedId, setExpandedId, isSo, actions }: {
@@ -22,6 +24,7 @@ const OrderAccordionItem = ({ item, idx, expandedId, setExpandedId, isSo, action
   const isCancellable = item.status !== 'cancelled' && item.delivery_status !== 'delivered';
   const isRetryable = item.delivery_status === 'failed';
   const isMarkable = item.delivery_status === 'pending';
+  const [resendOpen, setResendOpen] = useState(false);
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-purple-100/50 dark:border-purple-900/20 overflow-hidden">
@@ -75,6 +78,7 @@ const OrderAccordionItem = ({ item, idx, expandedId, setExpandedId, isSo, action
           ]}
           actions={
             <>
+              <ActionBtn onClick={() => setResendOpen(true)} icon={Send} label={isSo ? 'Dib u Dir' : 'Resend'} variant="default" />
               {isRetryable && <ActionBtn onClick={() => actions.retryDelivery(item.id)} icon={RotateCcw} label={isSo ? 'Dib u Dir' : 'Retry'} variant="warning" />}
               {isMarkable && <ActionBtn onClick={() => actions.markDelivered(item.id)} icon={CheckCircle} label={isSo ? 'Dhamee' : 'Deliver'} variant="success" />}
               {isCancellable && <ActionBtn onClick={() => actions.cancelOrder(item.id)} icon={XCircle} label={isSo ? 'Kansal' : 'Cancel'} variant="danger" />}
@@ -82,6 +86,14 @@ const OrderAccordionItem = ({ item, idx, expandedId, setExpandedId, isSo, action
           }
         />
       )}
+      <ResendDialog
+        open={resendOpen}
+        onOpenChange={setResendOpen}
+        defaultSender={item.sender_phone || item.customer_phone}
+        defaultAmount={Number(item.selling_price ?? item.amount) || 0}
+        defaultReceiver={item.receiver_phone}
+        defaultProviderId={item.provider_id}
+      />
     </div>
   );
 };
