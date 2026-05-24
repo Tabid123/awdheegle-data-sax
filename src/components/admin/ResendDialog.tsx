@@ -101,7 +101,6 @@ export const ResendDialog: React.FC<ResendDialogProps> = ({
       toast.error('Buuxi numberka qaataha'); return;
     }
     let scheduledAtIso: string | null = null;
-    let delaySeconds = 0;
     if (scheduleEnabled) {
       if (!scheduleAt) { toast.error('Dooro waqtiga jadwalka'); return; }
       const dt = new Date(scheduleAt);
@@ -109,7 +108,6 @@ export const ResendDialog: React.FC<ResendDialogProps> = ({
       const diffMs = dt.getTime() - Date.now();
       if (diffMs < 0) { toast.error('Waqtiga waa inuu mustaqbalka ahaadaa'); return; }
       scheduledAtIso = dt.toISOString();
-      delaySeconds = Math.floor(diffMs / 1000);
     }
     setSaving(true);
     try {
@@ -216,8 +214,8 @@ export const ResendDialog: React.FC<ResendDialogProps> = ({
         order_id: order.id,
         package_id: pkg.id,
         execution_order: 1,
-        delay_seconds: delaySeconds,
-        status: 'pending',
+        delay_seconds: 0,
+        status: scheduleEnabled ? 'scheduled' : 'pending',
         ussd_command: ussd,
         ussd_code: ussd,
         provider_name: providerSlug,
