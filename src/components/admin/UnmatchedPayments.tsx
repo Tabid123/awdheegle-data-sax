@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, AlertTriangle, UserX, Package, HelpCircle, Send, UserPlus } from 'lucide-react';
+import { Loader2, AlertTriangle, UserX, Package, HelpCircle, Send, UserPlus, Trash2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -144,6 +144,18 @@ const UnmatchedPayments = () => {
     setRegForm({ receiver_phone: '', provider_id: '' });
   };
 
+  const deletePayment = async (payment: any) => {
+    if (!confirm(`Ma hubtaa inaad tirtirayso lacagta ${payment.sender_phone} ($${payment.amount})?`)) return;
+    try {
+      const { error } = await supabase.from('payment_receipts').delete().eq('id', payment.id);
+      if (error) throw error;
+      setUnmatchedPayments(prev => prev.filter(p => p.id !== payment.id));
+      toast.success('Waa la tirtiray');
+    } catch (e: any) {
+      toast.error('Khalad: ' + (e?.message || 'failed'));
+    }
+  };
+
   const submitRegister = async () => {
     if (!registerPayment) return;
     if (!regForm.receiver_phone) { toast.error('Buuxi lambarka qaataha'); return; }
@@ -165,7 +177,7 @@ const UnmatchedPayments = () => {
   };
 
   const ActionButtons = ({ payment, vertical = false }: { payment: any; vertical?: boolean }) => (
-    <div className={vertical ? 'grid grid-cols-2 gap-2 pt-1' : 'flex gap-2'}>
+    <div className={vertical ? 'grid grid-cols-3 gap-2 pt-1' : 'flex gap-2'}>
       <Button
         size="sm"
         variant="outline"
@@ -183,6 +195,15 @@ const UnmatchedPayments = () => {
       >
         <UserPlus className="h-3.5 w-3.5" />
         Diiwaangeli
+      </Button>
+      <Button
+        size="sm"
+        variant="destructive"
+        className="text-xs gap-1"
+        onClick={() => deletePayment(payment)}
+      >
+        <Trash2 className="h-3.5 w-3.5" />
+        Tirtir
       </Button>
     </div>
   );
