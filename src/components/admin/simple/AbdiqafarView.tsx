@@ -67,17 +67,24 @@ export const AbdiqafarView = ({ isSo }: { isSo: boolean }) => {
   const [retryDialog, setRetryDialog] = useState<{ id: string; receiver: string } | null>(null);
   const [retryPhone, setRetryPhone] = useState('');
   const [retrySaving, setRetrySaving] = useState(false);
+  const todayStr = () => {
+    const d = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  };
+  const [fromDate, setFromDate] = useState<string>(todayStr());
+  const [toDate, setToDate] = useState<string>(todayStr());
 
   const loadOrders = useCallback(async () => {
     setLoading(true);
     try {
-      // Get today's orders with delivery queue info
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      // Get orders within selected date range
+      const start = new Date(fromDate + 'T00:00:00');
+      const end = new Date(toDate + 'T23:59:59.999');
 
       const [ordersRes, deliveryRes, providersRes, devicesRes] = await Promise.all([
-        supabase.from('orders').select('*').gte('created_at', today.toISOString()).order('created_at', { ascending: false }).limit(200),
-        supabase.from('delivery_queue').select('order_id, ussd_code, provider_response, sim_slot, android_device_id, status').gte('created_at', today.toISOString()),
+        supabase.from('orders').select('*').gte('created_at', start.toISOString()).lte('created_at', end.toISOString()).order('created_at', { ascending: false }).limit(500),
+        supabase.from('delivery_queue').select('order_id, ussd_code, provider_response, sim_slot, android_device_id, status').gte('created_at', start.toISOString()).lte('created_at', end.toISOString()),
         supabase.from('providers_config').select('id, provider_name, evoucher_rate'),
         supabase.from('android_devices').select('device_id, device_name, sim_number, sim2_number'),
       ]);
@@ -108,7 +115,7 @@ export const AbdiqafarView = ({ isSo }: { isSo: boolean }) => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fromDate, toDate]);
 
   useEffect(() => { loadOrders(); }, [loadOrders]);
   useRealtimeRefresh(['orders', 'delivery_queue'], loadOrders, 800, { notify: true, lang: isSo ? 'so' : 'en' });
@@ -179,6 +186,32 @@ export const AbdiqafarView = ({ isSo }: { isSo: boolean }) => {
 
   return (
     <div className="space-y-3">
+      {/* Date range */}
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 mb-1 block">
+            {isSo ? 'Laga bilaabo' : 'From'}
+          </label>
+          <input
+            type="date"
+            value={fromDate}
+            onChange={e => setFromDate(e.target.value)}
+            className="w-full px-2 py-1.5 rounded-lg bg-white dark:bg-gray-800 border text-xs outline-none"
+          />
+        </div>
+        <div>
+          <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 mb-1 block">
+            {isSo ? 'Ilaa' : 'To'}
+          </label>
+          <input
+            type="date"
+            value={toDate}
+            onChange={e => setToDate(e.target.value)}
+            className="w-full px-2 py-1.5 rounded-lg bg-white dark:bg-gray-800 border text-xs outline-none"
+          />
+        </div>
+      </div>
+
       {/* Summary */}
       <div className="grid grid-cols-4 gap-2">
         <button onClick={() => setFilter('all')} className={`p-2 rounded-lg text-center text-[10px] font-bold border ${filter === 'all' ? 'bg-blue-500 text-white border-blue-500' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700'}`}>
