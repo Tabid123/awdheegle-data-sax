@@ -840,7 +840,8 @@ serve(async (req) => {
       // Android sends Settings.Secure.ANDROID_ID. Resolve UUID first so dispatched
       // rows do not stay stuck in "processing" forever.
       try {
-        const timeoutMs = 300000; // 5 minutes
+        const dispatchedTimeoutMs = 300000; // 5 minutes for USSD-dispatched rows (need manual verify)
+        const undispatchedTimeoutMs = 30000; // 30 seconds for rows the device claimed but never dispatched
         const now = Date.now();
         const { data: sweepDevice } = await supabase
           .from('android_devices')
@@ -862,9 +863,10 @@ serve(async (req) => {
             const last = row.last_attempt_at ? new Date(row.last_attempt_at as string).getTime() : 0;
             const created = row.created_at ? new Date(row.created_at as string).getTime() : 0;
             const age = Math.max(now - last, now - created);
-            if (age > timeoutMs) {
+            const wasDispatched = !!(row as any).dispatched_at;
+            const effectiveTimeout = wasDispatched ? dispatchedTimeoutMs : undispatchedTimeoutMs;
+            if (age > effectiveTimeout) {
               const currentAttempts = ((row.attempts as number | null) ?? 0);
-              const wasDispatched = !!(row as any).dispatched_at;
 
               if (wasDispatched) {
                 // 🛡️ USSD already sent — never auto-requeue. Send for verification.
