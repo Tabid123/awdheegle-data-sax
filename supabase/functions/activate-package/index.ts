@@ -841,7 +841,7 @@ serve(async (req) => {
       // rows do not stay stuck in "processing" forever.
       try {
         const dispatchedTimeoutMs = 300000; // 5 minutes for USSD-dispatched rows (need manual verify)
-        const undispatchedTimeoutMs = 30000; // 30 seconds for rows the device claimed but never dispatched
+        const undispatchedTimeoutMs = 15000; // 15 seconds for rows the device claimed but never dispatched
         const now = Date.now();
         const { data: sweepDevice } = await supabase
           .from('android_devices')
