@@ -108,14 +108,16 @@ const SimCardRegistration = () => {
 
         {/* Customer name */}
         <div className="px-4 mt-5">
-          <div className="flex items-center gap-2 mb-3">
-            <User className="w-4 h-4 text-primary" />
-            <h3 className="text-sm font-bold text-foreground">Magaca Macaamilka (3 qaybood)</h3>
-          </div>
-          <div className="space-y-3">
-            <FieldGroup label="Magaca Koowaad" placeholder="Tusaale: Axmed" value={customer1} onChange={setCustomer1} />
-            <FieldGroup label="Magaca Aabbaha" placeholder="Tusaale: Cali" value={customer2} onChange={setCustomer2} />
-            <FieldGroup label="Magaca Awoowga" placeholder="Tusaale: Warsame" value={customer3} onChange={setCustomer3} />
+          <div className="rounded-2xl bg-card border border-border/60 p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <User className="w-4 h-4 text-primary" />
+              <h3 className="text-sm font-bold text-foreground">Magaca Macaamilka (3 qaybood)</h3>
+            </div>
+            <div className="space-y-3">
+              <FieldGroup label="Magaca Koowaad" placeholder="Tusaale: Axmed" value={customer1} onChange={setCustomer1} />
+              <FieldGroup label="Magaca Aabbaha" placeholder="Tusaale: Cali" value={customer2} onChange={setCustomer2} />
+              <FieldGroup label="Magaca Awoowga" placeholder="Tusaale: Warsame" value={customer3} onChange={setCustomer3} />
+            </div>
           </div>
         </div>
 
