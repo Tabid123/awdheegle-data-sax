@@ -38,23 +38,14 @@ const SimCardRegistration = () => {
       return;
     }
 
-    setSubmitting(true);
-    const msg = encodeURIComponent(
-      `*Dalab SIM Card Cusub*\n\n` +
-      `Nooca: ${sim.type || '-'}\n` +
-      `Shirkadda: ${sim.provider || '-'}\n` +
-      `Lambarka SIM: ${sim.number || '-'}\n` +
-      `Qiimaha: ${sim.price || '-'}\n\n` +
-      `*Magaca Macaamilka:*\n${customer1} ${customer2} ${customer3}\n\n` +
-      `*Magaca Hooyada:*\n${mother1} ${mother2} ${mother3}\n\n` +
-      `*Lambarka Damiinka:*\n${guarantor}`
-    );
-    window.open(`https://wa.me/252615555495?text=${msg}`, '_blank');
-    setTimeout(() => {
-      setSubmitting(false);
-      toast({ title: 'Guul', description: 'Dalabkaaga waa la diray. Waan kula soo xiriiri doonaa.' });
-      navigate('/sim-cards');
-    }, 600);
+    navigate('/sim-cards/confirm', {
+      state: {
+        sim,
+        customer: { first: customer1.trim(), father: customer2.trim(), grandfather: customer3.trim() },
+        mother: { first: mother1.trim(), father: mother2.trim(), grandfather: mother3.trim() },
+        guarantor: guarantor.trim(),
+      },
+    });
   };
 
   return (
