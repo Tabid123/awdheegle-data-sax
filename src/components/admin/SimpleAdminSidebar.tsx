@@ -88,6 +88,12 @@ const menuGroups: MenuItem[] = [
     ],
   },
   {
+    label: 'SIM Cards', labelSo: 'SIM Cards', icon: CreditCard,
+    children: [
+      { label: 'SIM Cards', labelSo: 'SIM Cards', icon: CreditCard, path: '/simple-admin/sim-cards' },
+    ],
+  },
+  {
     label: 'Settings', labelSo: 'Settings', icon: Settings,
     children: [
       { label: 'Payment Settings', labelSo: 'Payment', icon: CreditCard, path: '/simple-admin/payment-settings' },
