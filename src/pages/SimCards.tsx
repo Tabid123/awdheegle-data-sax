@@ -190,7 +190,19 @@ const SimCards = () => {
 
         {/* SIM cards list */}
         <div className="px-4 mt-3 space-y-3">
-          {simList.map((sim) => {
+          {loading && (
+            <>
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="rounded-2xl bg-card border border-border/60 p-3.5 h-24 animate-pulse" />
+              ))}
+            </>
+          )}
+          {!loading && simList.length === 0 && (
+            <div className="rounded-2xl bg-card border border-border/60 p-6 text-center text-sm text-muted-foreground">
+              Wax SIM card ah oo diyaar ah hadda ma jiraan.
+            </div>
+          )}
+          {!loading && simList.map((sim) => {
             const hasFree = sim.providers.some((p) => p.free);
             const onlyOne = sim.providers.length === 1;
 
