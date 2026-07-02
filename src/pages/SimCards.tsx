@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Search, CreditCard, Star, Info } from 'lucide-react';
 import { BottomNavigation } from '@/components/BottomNavigation';
+import { supabase } from '@/integrations/supabase/client';
 
 type SimType = 'PREPAID' | 'GOLD NUMBER' | 'STANDARD' | 'VIP';
 
@@ -20,7 +21,7 @@ interface SimCard {
   providers: ProviderOption[]; // primary + bundled free providers
 }
 
-const SIM_CARDS: SimCard[] = [
+const FALLBACK_SIMS: SimCard[] = [
   {
     id: '1',
     type: 'PREPAID',
@@ -83,6 +84,34 @@ const typeBadgeClass = (type: SimType) => {
 const SimCards = () => {
   const navigate = useNavigate();
   const [selectedProvider, setSelectedProvider] = React.useState<Record<string, number>>({});
+  const [simList, setSimList] = React.useState<SimCard[]>(FALLBACK_SIMS);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from('sim_cards_catalog')
+        .select('id, sim_type, number, features, popular, providers, sort_order')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true });
+      if (cancelled) return;
+      if (!error && data && data.length > 0) {
+        setSimList(
+          data.map((r: any) => ({
+            id: r.id,
+            type: (r.sim_type || 'STANDARD') as SimType,
+            number: r.number,
+            features: r.features || '',
+            popular: !!r.popular,
+            providers: Array.isArray(r.providers) ? r.providers : [],
+          })),
+        );
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleBuy = (sim: SimCard) => {
     const idx = selectedProvider[sim.id] ?? 0;
@@ -143,13 +172,13 @@ const SimCards = () => {
         <div className="px-4 mt-5 flex items-center justify-between">
           <h3 className="text-xs font-bold tracking-widest text-muted-foreground">AVAILABLE SIM CARDS</h3>
           <span className="text-xs font-semibold text-primary bg-primary/10 px-3 py-1 rounded-full">
-            {SIM_CARDS.length} Found
+            {simList.length} Found
           </span>
         </div>
 
         {/* SIM cards list */}
         <div className="px-4 mt-3 space-y-3">
-          {SIM_CARDS.map((sim) => {
+          {simList.map((sim) => {
             const hasFree = sim.providers.some((p) => p.free);
             const onlyOne = sim.providers.length === 1;
 
