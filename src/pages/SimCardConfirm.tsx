@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Pencil, CreditCard, User, ShieldCheck, Send, Info, Check, CreditCard as CardIcon, Smartphone, Banknote, CheckCircle2, PartyPopper } from 'lucide-react';
+import { ArrowLeft, Pencil, CreditCard, User, ShieldCheck, Send, Info, Check, CreditCard as CardIcon, Smartphone, Banknote, CheckCircle2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { PaymentLoadingOverlay } from '@/components/PaymentLoadingOverlay';
