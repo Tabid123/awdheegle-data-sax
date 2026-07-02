@@ -394,27 +394,39 @@ export function SimCardsManager() {
               </div>
               <div className="space-y-2">
                 {form.providers.map((p, i) => (
-                  <div key={i} className="flex items-center gap-2 p-2 border rounded-lg">
-                    <Select value={p.provider} onValueChange={(v) => updateProviderRow(i, { provider: v })}>
-                      <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {DEFAULT_PROVIDERS.map((x) => <SelectItem key={x} value={x}>{x}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    <Input
-                      className="flex-1"
-                      value={p.price}
-                      onChange={(e) => updateProviderRow(i, { price: e.target.value, free: e.target.value.toLowerCase() === 'free' })}
-                      placeholder="$2.00 ama Free"
-                      disabled={p.free}
-                    />
-                    <label className="flex items-center gap-1 text-xs whitespace-nowrap">
-                      <Switch checked={p.free} onCheckedChange={(v) => updateProviderRow(i, { free: v })} />
-                      Free
-                    </label>
-                    <Button size="icon" variant="ghost" onClick={() => removeProviderRow(i)}>
-                      <X className="w-4 h-4" />
-                    </Button>
+                  <div key={i} className="p-3 border rounded-lg space-y-2 bg-muted/30">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex-1">
+                        <Label className="text-[11px] text-muted-foreground">Shirkad</Label>
+                        <Select value={p.provider} onValueChange={(v) => updateProviderRow(i, { provider: v })}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {DEFAULT_PROVIDERS.map((x) => <SelectItem key={x} value={x}>{x}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Button size="icon" variant="ghost" onClick={() => removeProviderRow(i)} className="mt-4">
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label className="text-[11px] text-muted-foreground">Qiimaha</Label>
+                        <Input
+                          value={p.free ? 'Free' : p.price}
+                          onChange={(e) => updateProviderRow(i, { price: e.target.value, free: e.target.value.toLowerCase() === 'free' })}
+                          placeholder="$2.00"
+                          disabled={p.free}
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-[11px] text-muted-foreground">Nooca</Label>
+                        <div className="flex items-center gap-2 h-10 px-3 border rounded-md bg-background">
+                          <Switch checked={p.free} onCheckedChange={(v) => updateProviderRow(i, { free: v })} />
+                          <span className="text-sm">{p.free ? 'Free' : 'Bixin'}</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
