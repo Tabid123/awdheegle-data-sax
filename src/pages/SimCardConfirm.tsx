@@ -86,7 +86,7 @@ const SimCardConfirm = () => {
   const [payProvider, setPayProvider] = useState<string>('evc');
   const [payNumber, setPayNumber] = useState('');
 
-  if (!sim || !customer || !mother || !guarantor) {
+  if (!sim || !sim.number || !customer || !mother || !guarantor) {
     // Missing data — bounce back
     navigate('/sim-cards', { replace: true });
     return null;
@@ -109,12 +109,20 @@ const SimCardConfirm = () => {
       toast({ title: 'Khalad', description: 'Fadlan geli lambar lacag-bixin sax ah', variant: 'destructive' });
       return;
     }
+    const priceNum = parsePrice(sim.price);
+    if (!priceNum || priceNum <= 0) {
+      toast({
+        title: 'Qiimo lama helin',
+        description: 'Fadlan ka noqo oo dooro SIM card leh qiime sax ah.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     setSubmitting(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
 
-      const priceNum = parsePrice(sim.price);
       const fullName = `${customer.first} ${customer.father} ${customer.grandfather}`.trim();
       const motherFull = `${mother.first} ${mother.father} ${mother.grandfather}`.trim();
 
