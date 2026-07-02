@@ -14,6 +14,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { AddManualDeliveryDialog } from '@/components/admin/AddManualDeliveryDialog';
 import { useRealtimeRefresh } from '@/hooks/useRealtimeRefresh';
 import najaxLogo from '@/assets/awdhegle-logo-new.png';
+import { ReversalAlertsHeader } from '@/components/admin/ReversalAlertsHeader';
 
 interface DashboardStats {
   todayOrderCount: number;
@@ -487,6 +488,7 @@ const SimpleAdminDashboard = () => {
                 <button onClick={toggleNotifications} className="text-white hover:bg-white/20 p-2 rounded-full" title={notificationsEnabled ? 'Mute' : 'Unmute'}>
                   {notificationsEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4 opacity-50" />}
                 </button>
+                <ReversalAlertsHeader iconClassName="h-5 w-5" />
                 <button onClick={fetchData} className="text-white hover:bg-white/20 p-2 rounded-full">
                   <RefreshCw className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
                 </button>
