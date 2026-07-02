@@ -90,14 +90,77 @@ export const AbdiqafarView = ({ isSo }: { isSo: boolean }) => {
 
       const [ordersRes, deliveryRes, providersRes, devicesRes] = await Promise.all([
         supabase.from('orders').select('*').gte('created_at', start.toISOString()).lte('created_at', end.toISOString()).order('created_at', { ascending: false }).limit(500),
-        supabase.from('delivery_queue').select('order_id, ussd_code, provider_response, sim_slot, android_device_id, status').gte('created_at', start.toISOString()).lte('created_at', end.toISOString()),
+        supabase.from('delivery_queue').select('id, order_id, ussd_code, provider_response, sim_slot, android_device_id, status, created_at, dispatched_at').gte('created_at', start.toISOString()).lte('created_at', end.toISOString()),
         supabase.from('providers_config').select('id, provider_name, evoucher_rate'),
-        supabase.from('android_devices').select('device_id, device_name, sim_number, sim2_number'),
+        supabase.from('android_devices').select('id, device_id, device_name, sim_number, sim2_number'),
       ]);
 
       const deliveries = (deliveryRes.data || []) as DeliveryQueueItem[];
       const providers = providersRes.data || [];
       const devices = devicesRes.data || [];
+
+      // ----- Match missing USSD responses against sms_logs -----
+      // Any delivery lacking provider_response gets an SMS lookup.
+      const missingDeliveries = deliveries.filter(d => !d.provider_response && d.android_device_id);
+      let smsLogs: any[] = [];
+      if (missingDeliveries.length > 0) {
+        // Map string device_id → UUID via android_devices
+        const deviceUuidByStrId: Record<string, string> = {};
+        devices.forEach((d: any) => { if (d.device_id && d.id) deviceUuidByStrId[d.device_id] = d.id; });
+        const deviceUuids = Array.from(new Set(
+          missingDeliveries.map(d => deviceUuidByStrId[d.android_device_id as string]).filter(Boolean)
+        ));
+        if (deviceUuids.length > 0) {
+          // Earliest window: 30s before earliest dispatched_at / created_at
+          const earliestTs = missingDeliveries.reduce((min, d) => {
+            const t = new Date(d.dispatched_at || d.created_at).getTime() - 30_000;
+            return t < min ? t : min;
+          }, Date.now());
+          const { data: smsRows } = await supabase
+            .from('sms_logs')
+            .select('device_id, message, created_at, direction, phone_number, amount')
+            .in('device_id', deviceUuids)
+            .gte('created_at', new Date(earliestTs).toISOString())
+            .order('created_at', { ascending: true })
+            .limit(2000);
+          smsLogs = smsRows || [];
+          // Attach best match per delivery
+          missingDeliveries.forEach(dq => {
+            const uuid = deviceUuidByStrId[dq.android_device_id as string];
+            if (!uuid) return;
+            const order = (ordersRes.data || []).find((o: any) => o.id === dq.order_id);
+            if (!order) return;
+            const dispatchTs = new Date(dq.dispatched_at || dq.created_at).getTime();
+            const winStart = dispatchTs - 30_000;
+            const winEnd = dispatchTs + 5 * 60_000;
+            const receiverDigits = String(order.receiver_phone || '').replace(/\D/g, '');
+            const receiverTail = receiverDigits.slice(-7);
+            const priceStrs = [order.selling_price, order.cost_price]
+              .filter(v => v != null)
+              .map(v => Number(v).toFixed(2));
+            let best: any = null;
+            let bestScore = 0;
+            for (const s of smsLogs) {
+              if (s.device_id !== uuid) continue;
+              const t = new Date(s.created_at).getTime();
+              if (t < winStart || t > winEnd) continue;
+              const dir = String(s.direction || '').toLowerCase();
+              if (dir === 'sms_out' || dir === 'outgoing') continue;
+              const body = String(s.message || '');
+              let score = 0;
+              if (receiverTail && body.replace(/\D/g, '').includes(receiverTail)) score += 2;
+              if (priceStrs.some(p => body.includes(p))) score += 1;
+              // Prefer closest to dispatch time as tiebreaker
+              if (score > bestScore || (score === bestScore && score > 0 && best && Math.abs(t - dispatchTs) < Math.abs(new Date(best.created_at).getTime() - dispatchTs))) {
+                if (score >= 1) { best = s; bestScore = score; }
+              }
+            }
+            if (best) {
+              dq.matchedSms = { message: best.message, created_at: best.created_at, direction: best.direction };
+            }
+          });
+        }
+      }
 
       const enriched: OrderDetail[] = (ordersRes.data || []).map(o => {
         // Get ALL delivery queue entries for this order (not just first)
