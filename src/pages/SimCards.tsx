@@ -265,7 +265,17 @@ const SimCards = () => {
                   </div>
                 </div>
               )}
-              <div className={`flex items-start gap-3 ${sim.popular ? 'pr-16' : ''}`}>
+              {(() => {
+                const primary = sim.providers.find((p) => !p.free) || sim.providers[0];
+                return (
+                  <div className={`absolute top-3 right-3 z-10 ${sim.popular ? 'mt-6' : ''}`}>
+                    <span className="text-base font-extrabold text-primary leading-none">
+                      {primary?.price}
+                    </span>
+                  </div>
+                );
+              })()}
+              <div className={`flex items-start gap-3 pr-16 ${sim.popular ? 'pr-20' : ''}`}>
                 <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center flex-shrink-0">
                   {sim.type === 'VIP' ? (
                     <Star className="w-6 h-6 text-primary fill-primary" />
