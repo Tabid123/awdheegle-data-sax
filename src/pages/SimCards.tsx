@@ -88,7 +88,7 @@ const SimCards = () => {
 
   React.useEffect(() => {
     let cancelled = false;
-    (async () => {
+    const load = async () => {
       const { data, error } = await supabase
         .from('sim_cards_catalog')
         .select('id, sim_type, number, features, popular, providers, sort_order')
@@ -107,9 +107,19 @@ const SimCards = () => {
           })),
         );
       }
-    })();
+    };
+    load();
+    const channel = supabase
+      .channel('sim_cards_catalog_public')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'sim_cards_catalog' },
+        () => load(),
+      )
+      .subscribe();
     return () => {
       cancelled = true;
+      supabase.removeChannel(channel);
     };
   }, []);
 
@@ -241,7 +251,7 @@ const SimCards = () => {
                   </div>
                 </div>
               )}
-              <div className="flex items-start gap-3">
+              <div className={`flex items-start gap-3 ${sim.popular ? 'pr-16' : ''}`}>
                 <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center flex-shrink-0">
                   {sim.type === 'VIP' ? (
                     <Star className="w-6 h-6 text-primary fill-primary" />
