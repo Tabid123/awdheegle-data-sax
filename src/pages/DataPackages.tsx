@@ -487,6 +487,8 @@ const DataPackages = () => {
             'text-primary': 'bg-primary/10',
           };
           const brandTint = brandTintMap[brandText] || 'bg-primary/10';
+          const isSomtel = providerName?.toLowerCase().includes('somtel');
+          const dataAmountTextClass = isSomtel ? 'text-foreground' : brandText;
           const isSelected = selectedPackageId === pkg.id;
           return (
             <button
@@ -508,7 +510,7 @@ const DataPackages = () => {
             >
               {/* Tinted top band with data amount */}
               <div className={`${brandTint} px-3 py-5 flex items-center justify-center`}>
-                <span className={`text-2xl font-extrabold tracking-tight ${brandText}`}>
+                <span className={`text-2xl font-extrabold tracking-tight ${dataAmountTextClass}`}>
                   {pkg.data_amount}
                 </span>
               </div>
