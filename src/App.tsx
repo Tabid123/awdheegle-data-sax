@@ -26,6 +26,7 @@ import OrderHistory from "./pages/OrderHistory";
 import Profile from "./pages/Profile";
 import Notifications from "./pages/Notifications";
 import SimCards from "./pages/SimCards";
+import SimCardRegistration from "./pages/SimCardRegistration";
 import NotFound from "./pages/NotFound";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -89,6 +90,7 @@ const AppContent = () => {
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
         <Route path="/sim-cards" element={<ProtectedRoute><SimCards /></ProtectedRoute>} />
+        <Route path="/sim-cards/register" element={<ProtectedRoute><SimCardRegistration /></ProtectedRoute>} />
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin" element={<AdminDashboard />} />
          <Route path="/simple-admin" element={<SimpleAdminDashboard />} />
