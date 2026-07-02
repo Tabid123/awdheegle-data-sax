@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Pencil, CreditCard, User, ShieldCheck, Send, Info, Check, CreditCard as CardIcon, Smartphone, Banknote, CheckCircle2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
@@ -12,11 +12,20 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 
-const PAYMENT_PROVIDERS: { id: string; name: string; Icon: React.ComponentType<{ className?: string }> }[] = [
-  { id: 'evc', name: 'EVC Plus', Icon: CardIcon },
-  { id: 'edahab', name: 'e-Dahab', Icon: Banknote },
-  { id: 'sahal', name: 'Sahal', Icon: Smartphone },
-];
+interface PayProviderRow {
+  id: string;
+  provider_name: string;
+  display_name: string;
+  logo_url: string | null;
+  prefixes: string[] | null;
+  sort_order: number;
+}
+
+const FALLBACK_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  evc: CardIcon,
+  edahab: Banknote,
+  sahal: Smartphone,
+};
 
 interface ConfirmState {
   sim?: { type?: string; provider?: string; number?: string; price?: string };
@@ -85,8 +94,23 @@ const SimCardConfirm = () => {
   const [payOpen, setPayOpen] = useState(false);
   const [successOpen, setSuccessOpen] = useState(false);
   const [orderId, setOrderId] = useState('');
-  const [payProvider, setPayProvider] = useState<string>('evc');
+  const [payProvider, setPayProvider] = useState<string>('');
   const [payNumber, setPayNumber] = useState('');
+  const [providers, setProviders] = useState<PayProviderRow[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from('payment_providers_config')
+        .select('id, provider_name, display_name, logo_url, prefixes, sort_order, is_active, enabled_for_sim_cards')
+        .eq('is_active', true)
+        .eq('enabled_for_sim_cards', true)
+        .order('sort_order', { ascending: true });
+      const rows = (data as any[] as PayProviderRow[]) || [];
+      setProviders(rows);
+      if (rows.length && !payProvider) setPayProvider(rows[0].provider_name);
+    })();
+  }, []);
 
   if (!sim || !sim.number || !customer || !mother || !guarantor) {
     // Missing data — bounce back
@@ -107,8 +131,18 @@ const SimCardConfirm = () => {
 
   const handleConfirm = async () => {
     const cleanPhone = payNumber.replace(/\D/g, '');
-    if (cleanPhone.length < 9) {
-      toast({ title: 'Khalad', description: 'Fadlan geli lambar lacag-bixin sax ah', variant: 'destructive' });
+    if (cleanPhone.length !== 9) {
+      toast({ title: 'Khalad', description: 'Lambarku waa inuu ahaadaa 9 lambar', variant: 'destructive' });
+      return;
+    }
+    const selected = providers.find((p) => p.provider_name === payProvider);
+    const prefixes = (selected?.prefixes || []).filter(Boolean);
+    if (prefixes.length && !prefixes.some((pfx) => cleanPhone.startsWith(pfx))) {
+      toast({
+        title: 'Lambar aan la aqbali karin',
+        description: `${selected?.display_name || payProvider} wuxuu aqbalaa kaliya: ${prefixes.join(', ')}`,
+        variant: 'destructive',
+      });
       return;
     }
     const priceNum = parsePrice(sim.price);
@@ -310,13 +344,14 @@ const SimCardConfirm = () => {
 
           <p className="text-[10px] font-bold tracking-widest text-muted-foreground mb-2">DOORO ADEEGGA</p>
           <div className="grid grid-cols-3 gap-2.5 mb-5">
-            {PAYMENT_PROVIDERS.map((p) => {
-              const active = payProvider === p.id;
-              const Icon = p.Icon;
+            {providers.map((p) => {
+              const active = payProvider === p.provider_name;
+              const key = (p.provider_name || '').toLowerCase();
+              const Icon = FALLBACK_ICONS[key] || CardIcon;
               return (
                 <button
                   key={p.id}
-                  onClick={() => setPayProvider(p.id)}
+                  onClick={() => setPayProvider(p.provider_name)}
                   className={`relative flex flex-col items-center justify-center gap-2 rounded-2xl border-2 py-3 px-1 transition-all ${
                     active
                       ? 'border-primary bg-primary/5'
@@ -324,14 +359,18 @@ const SimCardConfirm = () => {
                   }`}
                 >
                   <div
-                    className={`w-11 h-11 rounded-xl flex items-center justify-center ${
+                    className={`w-11 h-11 rounded-xl flex items-center justify-center overflow-hidden ${
                       active ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'
                     }`}
                   >
-                    <Icon className="w-5 h-5" />
+                    {p.logo_url ? (
+                      <img src={p.logo_url} alt={p.display_name} className="w-full h-full object-cover" />
+                    ) : (
+                      <Icon className="w-5 h-5" />
+                    )}
                   </div>
                   <span className={`text-[11px] font-bold ${active ? 'text-primary' : 'text-foreground'}`}>
-                    {p.name}
+                    {p.display_name}
                   </span>
                 </button>
               );
@@ -342,9 +381,10 @@ const SimCardConfirm = () => {
           <input
             type="tel"
             inputMode="tel"
-            placeholder="252..."
+            placeholder="61 xxx xxxx"
+            maxLength={9}
             value={payNumber}
-            onChange={(e) => setPayNumber(e.target.value)}
+            onChange={(e) => setPayNumber(e.target.value.replace(/\D/g, '').slice(0, 9))}
             className="w-full px-4 py-3.5 rounded-xl bg-muted/60 text-sm font-medium text-foreground placeholder:text-muted-foreground/70 outline-none focus:ring-2 focus:ring-primary/30 mb-5"
           />
 
