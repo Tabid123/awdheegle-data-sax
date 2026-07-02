@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Pencil, CreditCard, User, ShieldCheck, Send, Info, Check, CreditCard as CardIcon, Smartphone, Banknote, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Pencil, CreditCard, User, ShieldCheck, Send, Info, Check, CreditCard as CardIcon, Smartphone, Banknote, CheckCircle2, PartyPopper } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { PaymentLoadingOverlay } from '@/components/PaymentLoadingOverlay';
@@ -97,6 +97,35 @@ const SimCardConfirm = () => {
   const [payProvider, setPayProvider] = useState<string>('');
   const [payNumber, setPayNumber] = useState('');
   const [providers, setProviders] = useState<PayProviderRow[]>([]);
+
+  const selectedProvider = providers.find((p) => p.provider_name === payProvider);
+  const activePrefixes = (selectedProvider?.prefixes || []).filter(Boolean);
+  const prefixHint = activePrefixes.length ? activePrefixes.join(' / ') : '';
+  const placeholderPrefix = activePrefixes[0] || '61';
+
+  // Reset entered number whenever provider changes
+  useEffect(() => {
+    setPayNumber('');
+  }, [payProvider]);
+
+  const handleNumberChange = (raw: string) => {
+    const digits = raw.replace(/\D/g, '').slice(0, 9);
+    if (!digits) {
+      setPayNumber('');
+      return;
+    }
+    if (activePrefixes.length) {
+      const matches = activePrefixes.some((pfx) => {
+        const len = Math.min(pfx.length, digits.length);
+        return digits.slice(0, len) === pfx.slice(0, len);
+      });
+      if (!matches) {
+        // Reject the typed digit entirely – keep prior value
+        return;
+      }
+    }
+    setPayNumber(digits);
+  };
 
   useEffect(() => {
     (async () => {
@@ -381,12 +410,18 @@ const SimCardConfirm = () => {
           <input
             type="tel"
             inputMode="tel"
-            placeholder="61 xxx xxxx"
+            placeholder={`${placeholderPrefix} xxx xxxx`}
             maxLength={9}
             value={payNumber}
-            onChange={(e) => setPayNumber(e.target.value.replace(/\D/g, '').slice(0, 9))}
-            className="w-full px-4 py-3.5 rounded-xl bg-muted/60 text-sm font-medium text-foreground placeholder:text-muted-foreground/70 outline-none focus:ring-2 focus:ring-primary/30 mb-5"
+            onChange={(e) => handleNumberChange(e.target.value)}
+            className="w-full px-4 py-3.5 rounded-xl bg-muted/60 text-sm font-medium text-foreground placeholder:text-muted-foreground/70 outline-none focus:ring-2 focus:ring-primary/30"
           />
+          {prefixHint && (
+            <p className="text-[11px] text-muted-foreground mt-1.5 mb-4">
+              Waa inuu ku bilowdaa: <span className="font-bold text-primary">{prefixHint}</span>
+            </p>
+          )}
+          {!prefixHint && <div className="mb-5" />}
 
           <button
             onClick={handleConfirm}
@@ -420,6 +455,21 @@ const SimCardConfirm = () => {
             <DialogDescription className="text-xs text-muted-foreground mt-2 leading-relaxed">
               Mahadsanid! Dalabkaaga waa la helay. Fadlan la xiriir nagala soo xiriir WhatsApp-kan kuu muuqda, si aad u dhameystirto dalakaaga. mahadsanid.
             </DialogDescription>
+            <div className="mt-4 w-full rounded-2xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground p-4 shadow-lg">
+              <div className="flex items-center justify-center gap-1.5 mb-1.5">
+                <PartyPopper className="w-4 h-4" />
+                <p className="text-[10px] font-bold tracking-widest uppercase opacity-90">Waa la iibsaday</p>
+                <PartyPopper className="w-4 h-4" />
+              </div>
+              <p className="text-2xl font-extrabold tracking-wide">{sim.number}</p>
+              <div className="flex items-center justify-center gap-2 mt-2">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/20">
+                  {sim.type}
+                </span>
+                <span className="text-[11px] font-semibold opacity-95">{sim.provider}</span>
+                <span className="text-[11px] font-bold">• {sim.price}</span>
+              </div>
+            </div>
           </div>
           <div className="p-5 space-y-3 bg-card">
             <button
