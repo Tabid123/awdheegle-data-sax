@@ -169,12 +169,9 @@ const SimCardConfirm = () => {
       }
 
       if (data?.success) {
+        setOrderId(newOrderId);
         setPayOpen(false);
-        toast({
-          title: '✅ Lacagta si guul leh ayaa loo bixiyay',
-          description: `Transaction ID: ${data.transactionId || '—'}. Waxaad heli doontaa SMS xaqiijin ah, waanan kula soo xiriiri doonaa 24 saacadood gudahood.`,
-        });
-        navigate('/sim-cards');
+        setSuccessOpen(true);
       } else {
         const msg = data?.error || 'Lacag bixintu way fashilantay';
         const code = data?.responseCode ? ` (code ${data.responseCode})` : '';
