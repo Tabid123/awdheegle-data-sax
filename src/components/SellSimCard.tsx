@@ -21,7 +21,7 @@ const SellSimCard = () => {
                 </svg>
               </div>
               <div className="min-w-0">
-                <h3 className="text-sm sm:text-base font-bold text-foreground leading-tight">Iibso SIM Card</h3>
+                <h3 className="text-sm sm:text-base font-bold text-foreground leading-tight">Iibso SIM Card VIP</h3>
                 <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5">Dalbo SIM kaaga cusub hadda</p>
               </div>
             </div>
