@@ -202,7 +202,17 @@ export const AbdiqafarView = ({ isSo }: { isSo: boolean }) => {
   );
 
   const markDelivered = async (id: string) => {
-    await supabase.from('orders').update({ delivery_status: 'delivered', delivered_at: new Date().toISOString(), delivery_notes: 'Manually verified - Abdiqafar' }).eq('id', id);
+    const now = new Date().toISOString();
+    await supabase.from('orders').update({
+      status: 'completed',
+      delivery_status: 'delivered',
+      delivered_at: now,
+      delivery_notes: 'Manually verified - Abdiqafar',
+    }).eq('id', id);
+    await supabase.from('delivery_queue').update({
+      status: 'completed',
+      completed_at: now,
+    }).eq('order_id', id).neq('status', 'completed');
     toast.success(isSo ? 'Waa la dhameeyay' : 'Marked as delivered');
     loadOrders();
   };
@@ -396,13 +406,11 @@ export const AbdiqafarView = ({ isSo }: { isSo: boolean }) => {
                       <DetailRow label="ID" value={order.id.slice(0, 8)} />
                     </div>
 
-                    {(displayStatus === 'pending' || displayStatus === 'failed' || displayStatus === 'timeout') && (
+                    {displayStatus !== 'delivered' && (
                       <div className="px-3 py-2 border-t border-gray-100 dark:border-gray-700 flex gap-2">
-                        {displayStatus === 'pending' && (
-                          <button onClick={() => markDelivered(order.id)} className="flex items-center gap-1 px-2 py-1 bg-green-500 text-white rounded text-[10px] font-bold">
-                            <CheckCircle className="w-3 h-3" /> Dhamee
-                          </button>
-                        )}
+                        <button onClick={() => markDelivered(order.id)} className="flex items-center gap-1 px-2 py-1 bg-green-500 text-white rounded text-[10px] font-bold">
+                          <CheckCircle className="w-3 h-3" /> Dhamme
+                        </button>
                         {(displayStatus === 'failed' || displayStatus === 'timeout') && (
                           <button onClick={() => openRetryDialog(order.id)} className="flex items-center gap-1 px-2 py-1 bg-orange-500 text-white rounded text-[10px] font-bold">
                             <RotateCcw className="w-3 h-3" /> Dib u Dir
