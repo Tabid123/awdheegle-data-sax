@@ -2253,6 +2253,7 @@ export type Database = {
           ussd_command: string
         }[]
       }
+      cleanup_old_data: { Args: never; Returns: Json }
       get_active_categories: {
         Args: { p_provider_id: string }
         Returns: {
