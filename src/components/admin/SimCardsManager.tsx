@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, Plus, Trash2, Pencil, CreditCard, ShoppingBag, X } from 'lucide-react';
+import { Loader2, Plus, Trash2, Pencil, CreditCard, ShoppingBag, X, Banknote } from 'lucide-react';
 
 interface ProviderOpt {
   provider: string;
@@ -58,6 +58,88 @@ export function SimCardsManager() {
   const [form, setForm] = useState<SimRow>(emptyForm());
   const [saving, setSaving] = useState(false);
 
+  // Payment providers management
+  const [payProviders, setPayProviders] = useState<any[]>([]);
+  const [payLoading, setPayLoading] = useState(true);
+  const [payDialogOpen, setPayDialogOpen] = useState(false);
+  const [paySaving, setPaySaving] = useState(false);
+  const emptyPay = () => ({
+    id: '',
+    provider_name: '',
+    display_name: '',
+    logo_url: '',
+    prefixes: '' as string,
+    sort_order: 0,
+    is_active: true,
+    enabled_for_sim_cards: true,
+  });
+  const [payForm, setPayForm] = useState<any>(emptyPay());
+
+  const loadPay = async () => {
+    setPayLoading(true);
+    const { data } = await supabase
+      .from('payment_providers_config')
+      .select('*')
+      .order('sort_order', { ascending: true });
+    setPayProviders((data as any[]) || []);
+    setPayLoading(false);
+  };
+
+  const openPayAdd = () => {
+    setPayForm(emptyPay());
+    setPayDialogOpen(true);
+  };
+  const openPayEdit = (row: any) => {
+    setPayForm({
+      ...row,
+      logo_url: row.logo_url || '',
+      prefixes: Array.isArray(row.prefixes) ? row.prefixes.join(', ') : '',
+      enabled_for_sim_cards: row.enabled_for_sim_cards ?? true,
+    });
+    setPayDialogOpen(true);
+  };
+  const savePay = async () => {
+    if (!payForm.provider_name?.trim() || !payForm.display_name?.trim()) {
+      toast({ title: 'Buuxi magaca', variant: 'destructive' });
+      return;
+    }
+    setPaySaving(true);
+    const prefixArr = String(payForm.prefixes || '')
+      .split(/[,\s]+/)
+      .map((s: string) => s.trim())
+      .filter(Boolean);
+    const payload: any = {
+      provider_name: payForm.provider_name.trim().toLowerCase(),
+      display_name: payForm.display_name.trim(),
+      logo_url: payForm.logo_url?.trim() || null,
+      prefixes: prefixArr,
+      sort_order: Number(payForm.sort_order) || 0,
+      is_active: payForm.is_active,
+      enabled_for_sim_cards: payForm.enabled_for_sim_cards,
+    };
+    const { error } = payForm.id
+      ? await supabase.from('payment_providers_config').update(payload).eq('id', payForm.id)
+      : await supabase.from('payment_providers_config').insert(payload);
+    setPaySaving(false);
+    if (error) {
+      toast({ title: 'Cilad', description: error.message, variant: 'destructive' });
+      return;
+    }
+    toast({ title: payForm.id ? 'La cusbooneysiiyay' : 'La daray' });
+    setPayDialogOpen(false);
+    loadPay();
+  };
+  const removePay = async (id: string) => {
+    if (!confirm('Tirtir shirkadan?')) return;
+    const { error } = await supabase.from('payment_providers_config').delete().eq('id', id);
+    if (error) toast({ title: 'Cilad', description: error.message, variant: 'destructive' });
+    else { toast({ title: 'Waa la tirtiray' }); loadPay(); }
+  };
+  const togglePayActive = async (row: any) => {
+    await supabase.from('payment_providers_config').update({ is_active: !row.is_active }).eq('id', row.id);
+    loadPay();
+  };
+
   const load = async () => {
     setLoading(true);
     const { data, error } = await supabase
@@ -84,6 +166,7 @@ export function SimCardsManager() {
   useEffect(() => {
     load();
     loadOrders();
+    loadPay();
   }, []);
 
   const openAdd = () => {
@@ -192,6 +275,9 @@ export function SimCardsManager() {
           </TabsTrigger>
           <TabsTrigger value="orders">
             <ShoppingBag className="w-4 h-4 mr-1.5" /> Dalabyada ({orders.length})
+          </TabsTrigger>
+          <TabsTrigger value="payments">
+            <Banknote className="w-4 h-4 mr-1.5" /> Lacag Bixinta
           </TabsTrigger>
         </TabsList>
 
@@ -369,6 +455,86 @@ export function SimCardsManager() {
           )}
         </TabsContent>
       </Tabs>
+
+      <Dialog open={payDialogOpen} onOpenChange={setPayDialogOpen}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{payForm.id ? 'Wax ka bedel shirkad' : 'Ku dar shirkad cusub'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label>Magaca (key)</Label>
+                <Input
+                  value={payForm.provider_name}
+                  onChange={(e) => setPayForm((f: any) => ({ ...f, provider_name: e.target.value }))}
+                  placeholder="evc"
+                />
+              </div>
+              <div>
+                <Label>Magaca la muujinaayo</Label>
+                <Input
+                  value={payForm.display_name}
+                  onChange={(e) => setPayForm((f: any) => ({ ...f, display_name: e.target.value }))}
+                  placeholder="EVC Plus"
+                />
+              </div>
+            </div>
+            <div>
+              <Label>Logo URL (sawir)</Label>
+              <Input
+                value={payForm.logo_url}
+                onChange={(e) => setPayForm((f: any) => ({ ...f, logo_url: e.target.value }))}
+                placeholder="https://..."
+              />
+              {payForm.logo_url ? (
+                <img src={payForm.logo_url} alt="preview" className="w-14 h-14 rounded-lg object-cover mt-2 border" />
+              ) : null}
+            </div>
+            <div>
+              <Label>Prefixes (kala saar , tusaale: 61, 77)</Label>
+              <Input
+                value={payForm.prefixes}
+                onChange={(e) => setPayForm((f: any) => ({ ...f, prefixes: e.target.value }))}
+                placeholder="61, 77"
+              />
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Lambarka macmiilka waa in uu ku bilaabmo mid ka mid ah prefix-yadaan.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label>Kaalinta</Label>
+                <Input
+                  type="number"
+                  value={payForm.sort_order}
+                  onChange={(e) => setPayForm((f: any) => ({ ...f, sort_order: Number(e.target.value) }))}
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="flex items-center gap-2 text-sm mt-6">
+                  <Switch checked={payForm.is_active} onCheckedChange={(v) => setPayForm((f: any) => ({ ...f, is_active: v }))} />
+                  Firirsan
+                </label>
+              </div>
+            </div>
+            <label className="flex items-center gap-2 text-sm">
+              <Switch
+                checked={payForm.enabled_for_sim_cards}
+                onCheckedChange={(v) => setPayForm((f: any) => ({ ...f, enabled_for_sim_cards: v }))}
+              />
+              Ka muuji bogga SIM Cards
+            </label>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPayDialogOpen(false)}>Jooji</Button>
+            <Button onClick={savePay} disabled={paySaving}>
+              {paySaving && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
+              Kaydi
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
