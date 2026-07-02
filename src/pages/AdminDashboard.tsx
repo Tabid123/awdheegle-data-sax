@@ -44,6 +44,7 @@ const AutoTopUpSettings = React.lazy(() => import('@/components/admin/AutoTopUpS
 const AuditLogViewer = React.lazy(() => import('@/components/admin/AuditLogViewer').then(m => ({ default: m.AuditLogViewer })));
 const AdminManagement = React.lazy(() => import('@/components/admin/AdminManagement').then(m => ({ default: m.AdminManagement })));
 const FraudAlerts = React.lazy(() => import('@/components/admin/FraudAlerts').then(m => ({ default: m.FraudAlerts })));
+const SimCardsManager = React.lazy(() => import('@/components/admin/SimCardsManager').then(m => ({ default: m.SimCardsManager })));
 
 const LazyTabFallback = () => (
   <div className="flex justify-center items-center py-12">

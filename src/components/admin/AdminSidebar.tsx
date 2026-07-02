@@ -114,6 +114,14 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
+    label: "SIM Cards",
+    labelSo: "SIM Cards",
+    icon: CreditCard,
+    items: [
+      { title: "SIM Cards", titleSo: "SIM Cards", value: "sim-cards", icon: CreditCard, permission: "manage_packages" },
+    ],
+  },
+  {
     label: "Devices & Delivery",
     labelSo: "Aaladaha & Delivery",
     icon: Smartphone,
