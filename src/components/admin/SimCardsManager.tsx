@@ -22,6 +22,7 @@ interface ProviderOpt {
 
 interface SimRow {
   id: string;
+  name: string;
   sim_type: string;
   number: string;
   features: string;
@@ -37,6 +38,7 @@ const DEFAULT_PROVIDERS = ['Hormuud', 'Somtel', 'Somnet', 'Amtel', 'Somlink'];
 
 const emptyForm = (): SimRow => ({
   id: '',
+  name: '',
   sim_type: 'STANDARD',
   number: '',
   features: '',
@@ -108,6 +110,7 @@ export function SimCardsManager() {
     }
     setSaving(true);
     const payload: any = {
+      name: form.name?.trim() || null,
       sim_type: form.sim_type,
       number: form.number.trim(),
       features: form.features || '',
@@ -221,6 +224,7 @@ export function SimCardsManager() {
                           {row.popular && <Badge className="text-[10px] bg-primary">POPULAR</Badge>}
                           {!row.is_active && <Badge variant="outline" className="text-[10px]">Hidden</Badge>}
                         </div>
+                        {row.name && <p className="text-xs font-semibold text-primary">{row.name}</p>}
                         <p className="font-bold text-sm">{row.number}</p>
                         <p className="text-xs text-muted-foreground">{row.features}</p>
                       </div>
@@ -327,6 +331,14 @@ export function SimCardsManager() {
             <DialogTitle>{form.id ? 'Wax ka bedel SIM' : 'Ku dar SIM cusub'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
+            <div>
+              <Label>Magaca SIM (Label)</Label>
+              <Input
+                value={form.name || ''}
+                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                placeholder="Tusaale: VIP Diamond, Gold #1..."
+              />
+            </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label>Nooca</Label>

@@ -1892,6 +1892,7 @@ export type Database = {
           features: string | null
           id: string
           is_active: boolean
+          name: string | null
           number: string
           popular: boolean
           providers: Json
@@ -1904,6 +1905,7 @@ export type Database = {
           features?: string | null
           id?: string
           is_active?: boolean
+          name?: string | null
           number: string
           popular?: boolean
           providers?: Json
@@ -1916,6 +1918,7 @@ export type Database = {
           features?: string | null
           id?: string
           is_active?: boolean
+          name?: string | null
           number?: string
           popular?: boolean
           providers?: Json
