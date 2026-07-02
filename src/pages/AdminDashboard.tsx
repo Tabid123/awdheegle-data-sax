@@ -6015,6 +6015,10 @@ const AdminDashboard = () => {
             <FraudAlerts />
           </TabsContent>
 
+          <TabsContent value="sim-cards" className="space-y-6">
+            <SimCardsManager />
+          </TabsContent>
+
           {/* Settings Tab */}
           <TabsContent value="settings" className="space-y-6">
             <AppSettings />
