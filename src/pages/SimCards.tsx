@@ -176,9 +176,9 @@ const SimCards = () => {
         {/* Hero banner */}
         <div className="px-4 pt-2">
           <div className="rounded-2xl bg-primary text-primary-foreground p-5 shadow-elegant">
-            <h2 className="text-xl font-extrabold">Choose Your Number</h2>
+            <h2 className="text-xl font-extrabold">Dooro Nambarkaaga VIP-ga</h2>
             <p className="text-sm text-primary-foreground/85 mt-1.5 leading-snug">
-              Select a high-speed 5G ready SIM card from Somalia's top providers.
+              Iibso Sim kaar fudud oo VIP ah watana GB internet
             </p>
           </div>
         </div>
