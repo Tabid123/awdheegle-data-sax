@@ -19,6 +19,7 @@ interface SimCard {
   features: string;
   popular?: boolean;
   providers: ProviderOption[]; // primary + bundled free providers
+  sold?: boolean;
 }
 
 const FALLBACK_SIMS: SimCard[] = [
@@ -92,7 +93,7 @@ const SimCards = () => {
     const load = async () => {
       const { data, error } = await supabase
         .from('sim_cards_catalog')
-        .select('id, sim_type, number, features, popular, providers, sort_order')
+        .select('id, sim_type, number, features, popular, providers, sort_order, sold_at')
         .eq('is_active', true)
         .order('sort_order', { ascending: true });
       if (cancelled) return;
@@ -105,6 +106,7 @@ const SimCards = () => {
             features: r.features || '',
             popular: !!r.popular,
             providers: Array.isArray(r.providers) ? r.providers : [],
+            sold: !!r.sold_at,
           })),
         );
       }
@@ -126,6 +128,7 @@ const SimCards = () => {
   }, []);
 
   const handleBuy = (sim: SimCard) => {
+    if (sim.sold) return;
     const idx = selectedProvider[sim.id] ?? 0;
     const opt = sim.providers[idx];
     navigate('/sim-cards/register', {
