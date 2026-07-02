@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Pencil, CreditCard, User, ShieldCheck, Send, Info, Check, CreditCard as CardIcon, Smartphone, Banknote, CheckCircle2, PartyPopper } from 'lucide-react';
+import { ArrowLeft, Pencil, CreditCard, User, ShieldCheck, Send, Info, Check, CreditCard as CardIcon, Smartphone, Banknote, CheckCircle2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { PaymentLoadingOverlay } from '@/components/PaymentLoadingOverlay';
@@ -475,21 +475,6 @@ const SimCardConfirm = () => {
             <DialogDescription className="text-xs text-muted-foreground mt-2 leading-relaxed">
               Mahadsanid! Dalabkaaga waa la helay. Fadlan la xiriir nagala soo xiriir WhatsApp-kan kuu muuqda, si aad u dhameystirto dalakaaga. mahadsanid.
             </DialogDescription>
-            <div className="mt-4 w-full rounded-2xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground p-4 shadow-lg">
-              <div className="flex items-center justify-center gap-1.5 mb-1.5">
-                <PartyPopper className="w-4 h-4" />
-                <p className="text-[10px] font-bold tracking-widest uppercase opacity-90">Waa la iibsaday</p>
-                <PartyPopper className="w-4 h-4" />
-              </div>
-              <p className="text-2xl font-extrabold tracking-wide">{sim.number}</p>
-              <div className="flex items-center justify-center gap-2 mt-2">
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/20">
-                  {sim.type}
-                </span>
-                <span className="text-[11px] font-semibold opacity-95">{sim.provider}</span>
-                <span className="text-[11px] font-bold">• {sim.price}</span>
-              </div>
-            </div>
           </div>
           <div className="p-5 space-y-3 bg-card">
             <button

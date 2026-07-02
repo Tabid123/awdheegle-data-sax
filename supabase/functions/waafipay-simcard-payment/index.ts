@@ -153,6 +153,22 @@ Deno.serve(async (req) => {
       })
       .eq('id', orderId);
 
+    if (isSuccess) {
+      // Mark the catalog SIM as sold so it shows as "WAA LA IIBSADAY"
+      const { data: orderRow } = await admin
+        .from('sim_card_orders')
+        .select('sim_number')
+        .eq('id', orderId)
+        .maybeSingle();
+      if (orderRow?.sim_number) {
+        await admin
+          .from('sim_cards_catalog')
+          .update({ sold_at: new Date().toISOString() })
+          .eq('number', orderRow.sim_number)
+          .is('sold_at', null);
+      }
+    }
+
     if (!isSuccess) {
       return new Response(
         JSON.stringify({

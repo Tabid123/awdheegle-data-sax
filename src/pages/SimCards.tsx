@@ -19,6 +19,7 @@ interface SimCard {
   features: string;
   popular?: boolean;
   providers: ProviderOption[]; // primary + bundled free providers
+  sold?: boolean;
 }
 
 const FALLBACK_SIMS: SimCard[] = [
@@ -92,7 +93,7 @@ const SimCards = () => {
     const load = async () => {
       const { data, error } = await supabase
         .from('sim_cards_catalog')
-        .select('id, sim_type, number, features, popular, providers, sort_order')
+        .select('id, sim_type, number, features, popular, providers, sort_order, sold_at')
         .eq('is_active', true)
         .order('sort_order', { ascending: true });
       if (cancelled) return;
@@ -105,6 +106,7 @@ const SimCards = () => {
             features: r.features || '',
             popular: !!r.popular,
             providers: Array.isArray(r.providers) ? r.providers : [],
+            sold: !!r.sold_at,
           })),
         );
       }
@@ -126,6 +128,7 @@ const SimCards = () => {
   }, []);
 
   const handleBuy = (sim: SimCard) => {
+    if (sim.sold) return;
     const idx = selectedProvider[sim.id] ?? 0;
     const opt = sim.providers[idx];
     navigate('/sim-cards/register', {
@@ -212,16 +215,21 @@ const SimCards = () => {
               return (
                 <div
                   key={sim.id}
-                  className="relative rounded-2xl bg-card border border-border/60 p-3.5 shadow-sm overflow-hidden"
+                  className={`relative rounded-2xl bg-card border p-3.5 shadow-sm overflow-hidden ${sim.sold ? 'border-green-500/50 opacity-95' : 'border-border/60'}`}
                 >
-                  {sim.popular && (
+                  {sim.sold && (
+                    <div className="absolute top-2 left-2 z-10 bg-green-600 text-white text-[9px] font-extrabold px-2 py-0.5 rounded-full shadow">
+                      ✓ WAA LA IIBSADAY
+                    </div>
+                  )}
+                  {sim.popular && !sim.sold && (
                     <div className="absolute top-0 right-0">
                       <div className="bg-primary text-primary-foreground text-[8px] font-bold px-4 py-0.5 rotate-45 translate-x-6 translate-y-1.5 shadow-md">
                         POPULAR
                       </div>
                     </div>
                   )}
-                  <div className="flex items-center gap-3">
+                  <div className={`flex items-center gap-3 ${sim.sold ? 'mt-3' : ''}`}>
                     <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center flex-shrink-0">
                       {sim.type === 'VIP' ? (
                         <Star className="w-6 h-6 text-primary fill-primary" />
@@ -236,16 +244,17 @@ const SimCards = () => {
                         </span>
                         <span className="text-[11px] font-semibold text-muted-foreground">{opt.provider}</span>
                       </div>
-                      <p className="text-sm font-bold text-foreground tracking-tight truncate">{sim.number}</p>
+                      <p className={`text-sm font-bold tracking-tight truncate ${sim.sold ? 'text-muted-foreground line-through' : 'text-foreground'}`}>{sim.number}</p>
                       <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{sim.features}</p>
                     </div>
                     <div className={`flex flex-col items-end gap-1.5 flex-shrink-0 ${sim.popular ? 'mt-8' : ''}`}>
                       <span className="text-base font-extrabold text-primary leading-none">{opt.price}</span>
                       <button
                         onClick={() => handleBuy(sim)}
-                        className="bg-primary text-primary-foreground text-xs font-bold px-4 py-1.5 rounded-full hover:opacity-90 active:scale-[0.98] transition-all"
+                        disabled={sim.sold}
+                        className={`text-xs font-bold px-4 py-1.5 rounded-full transition-all ${sim.sold ? 'bg-muted text-muted-foreground cursor-not-allowed' : 'bg-primary text-primary-foreground hover:opacity-90 active:scale-[0.98]'}`}
                       >
-                        Iibso
+                        {sim.sold ? 'La iibiyay' : 'Iibso'}
                       </button>
                     </div>
                   </div>
@@ -256,9 +265,14 @@ const SimCards = () => {
             return (
             <div
               key={sim.id}
-              className="relative rounded-2xl bg-card border border-border/60 p-3.5 shadow-sm overflow-hidden"
+              className={`relative rounded-2xl bg-card border p-3.5 shadow-sm overflow-hidden ${sim.sold ? 'border-green-500/50 opacity-95' : 'border-border/60'}`}
             >
-              {sim.popular && (
+              {sim.sold && (
+                <div className="absolute top-2 left-2 z-10 bg-green-600 text-white text-[9px] font-extrabold px-2 py-0.5 rounded-full shadow">
+                  ✓ WAA LA IIBSADAY
+                </div>
+              )}
+              {sim.popular && !sim.sold && (
                 <div className="absolute top-0 right-0">
                   <div className="bg-primary text-primary-foreground text-[8px] font-bold px-4 py-0.5 rotate-45 translate-x-6 translate-y-1.5 shadow-md">
                     POPULAR
@@ -268,7 +282,7 @@ const SimCards = () => {
               {(() => {
                 const primary = sim.providers.find((p) => !p.free) || sim.providers[0];
                 return (
-                  <div className="flex items-center gap-3">
+                  <div className={`flex items-center gap-3 ${sim.sold ? 'mt-3' : ''}`}>
                     <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center flex-shrink-0">
                       {sim.type === 'VIP' ? (
                         <Star className="w-6 h-6 text-primary fill-primary" />
@@ -283,7 +297,7 @@ const SimCards = () => {
                         </span>
                         <span className="text-[11px] font-semibold text-muted-foreground">{primary.provider}</span>
                       </div>
-                      <p className="text-sm font-bold text-foreground tracking-tight truncate">{sim.number}</p>
+                      <p className={`text-sm font-bold tracking-tight truncate ${sim.sold ? 'text-muted-foreground line-through' : 'text-foreground'}`}>{sim.number}</p>
                       <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{sim.features}</p>
                     </div>
                     <div className={`flex flex-col items-end gap-1.5 flex-shrink-0 ${sim.popular ? 'mt-8' : ''}`}>
@@ -325,9 +339,10 @@ const SimCards = () => {
                 </div>
                 <button
                   onClick={() => handleBuy(sim)}
-                  className="mt-3 w-full bg-primary text-primary-foreground text-sm font-bold py-2.5 rounded-xl hover:opacity-90 active:scale-[0.98] transition-all"
+                  disabled={sim.sold}
+                  className={`mt-3 w-full text-sm font-bold py-2.5 rounded-xl transition-all ${sim.sold ? 'bg-muted text-muted-foreground cursor-not-allowed' : 'bg-primary text-primary-foreground hover:opacity-90 active:scale-[0.98]'}`}
                 >
-                  Iibso
+                  {sim.sold ? 'La iibiyay' : 'Iibso'}
                 </button>
               </div>
             </div>
