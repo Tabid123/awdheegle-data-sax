@@ -203,13 +203,12 @@ const SimCards = () => {
             </div>
           )}
           {!loading && simList.map((sim) => {
-            const hasFree = sim.providers.some((p) => p.free);
-            const onlyOne = sim.providers.length === 1;
-
-            // Compact variant: no free providers OR a single provider — matches reference image
-            if (!hasFree || onlyOne) {
-              const opt = sim.providers[0];
-              return (
+            // Always render each SIM as a compact card (primary provider only).
+            // Free-bundle providers are aggregated into a single shared
+            // "SIM CARDS KA DIYAARKA AH" section rendered once below the list.
+            const opt = sim.providers.find((p) => !p.free) || sim.providers[0];
+            if (!opt) return null;
+            return (
                 <div
                   key={sim.id}
                   className="relative rounded-2xl bg-card border border-border/60 p-3.5 shadow-sm overflow-hidden"
@@ -251,89 +250,77 @@ const SimCards = () => {
                   </div>
                 </div>
               );
-            }
-
-            return (
-            <div
-              key={sim.id}
-              className="relative rounded-2xl bg-card border border-border/60 p-3.5 shadow-sm overflow-hidden"
-            >
-              {sim.popular && (
-                <div className="absolute top-0 right-0">
-                  <div className="bg-primary text-primary-foreground text-[10px] font-bold px-6 py-1 rotate-45 translate-x-4 translate-y-3 shadow-md">
-                    POPULAR
-                  </div>
-                </div>
-              )}
-              {(() => {
-                const primary = sim.providers.find((p) => !p.free) || sim.providers[0];
-                return (
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center flex-shrink-0">
-                      {sim.type === 'VIP' ? (
-                        <Star className="w-6 h-6 text-primary fill-primary" />
-                      ) : (
-                        <CreditCard className="w-6 h-6 text-primary" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${typeBadgeClass(sim.type)}`}>
-                          {sim.type}
-                        </span>
-                        <span className="text-[11px] font-semibold text-muted-foreground">{primary.provider}</span>
-                      </div>
-                      <p className="text-sm font-bold text-foreground tracking-tight truncate">{sim.number}</p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{sim.features}</p>
-                    </div>
-                    <div className={`flex flex-col items-end gap-1.5 flex-shrink-0 ${sim.popular ? 'mt-6' : ''}`}>
-                      <span className="text-base font-extrabold text-primary leading-none">{primary.price}</span>
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {/* Provider chooser */}
-
-              <div className="mt-3 pt-3 border-t border-border/50">
-                <p className="text-[10px] font-bold tracking-widest text-muted-foreground mb-2">SIM CARDS KA DIYAARKA AH</p>
-                <div className="grid grid-cols-3 gap-2">
-                  {sim.providers.map((opt, i) => {
-                    return (
-                      <div
-                        key={opt.provider}
-                        className="relative flex flex-col items-center justify-center gap-0.5 rounded-xl border-2 border-border/60 bg-card py-2 px-1"
-                      >
-                        {opt.free && (
-                          <span className="absolute -top-1.5 -right-1.5 bg-green-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full shadow">
-                            FREE
-                          </span>
-                        )}
-                        <span className="text-[11px] font-bold text-foreground">
-                          {opt.provider}
-                        </span>
-                        <span
-                          className={`text-[11px] font-extrabold ${
-                            opt.free ? 'text-green-600 dark:text-green-400' : 'text-primary'
-                          }`}
-                        >
-                          {opt.price}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-                <button
-                  onClick={() => handleBuy(sim)}
-                  className="mt-3 w-full bg-primary text-primary-foreground text-sm font-bold py-2.5 rounded-xl hover:opacity-90 active:scale-[0.98] transition-all"
-                >
-                  Iibso
-                </button>
-              </div>
-            </div>
-            );
           })}
         </div>
+
+        {/* Shared "balance" providers section — aggregated across all SIMs */}
+        {!loading && (() => {
+          const seen = new Set<string>();
+          const balance: ProviderOption[] = [];
+          for (const sim of simList) {
+            for (const p of sim.providers) {
+              if (!p.free) continue;
+              if (seen.has(p.provider)) continue;
+              seen.add(p.provider);
+              balance.push(p);
+            }
+          }
+          // Include any primary providers that appear as free elsewhere too, so the
+          // shared strip reflects every provider currently offered.
+          for (const sim of simList) {
+            for (const p of sim.providers) {
+              if (seen.has(p.provider)) continue;
+              // Only surface providers that appear as free on at least one SIM
+              const isFreeSomewhere = simList.some((s) =>
+                s.providers.some((q) => q.provider === p.provider && q.free),
+              );
+              if (!isFreeSomewhere) continue;
+              seen.add(p.provider);
+              balance.push(p);
+            }
+          }
+          if (balance.length === 0) return null;
+          const firstFreeSim = simList.find((s) => s.providers.some((p) => p.free));
+          return (
+            <div className="px-4 mt-4">
+              <div className="rounded-2xl bg-card border border-border/60 p-3.5 shadow-sm">
+                <p className="text-[10px] font-bold tracking-widest text-muted-foreground mb-2 text-center">
+                  SIM CARDS KA DIYAARKA AH
+                </p>
+                <div className="grid grid-cols-3 gap-2">
+                  {balance.map((opt) => (
+                    <div
+                      key={opt.provider}
+                      className="relative flex flex-col items-center justify-center gap-0.5 rounded-xl border-2 border-border/60 bg-card py-2 px-1"
+                    >
+                      {opt.free && (
+                        <span className="absolute -top-1.5 -right-1.5 bg-green-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full shadow">
+                          FREE
+                        </span>
+                      )}
+                      <span className="text-[11px] font-bold text-foreground">{opt.provider}</span>
+                      <span
+                        className={`text-[11px] font-extrabold ${
+                          opt.free ? 'text-green-600 dark:text-green-400' : 'text-primary'
+                        }`}
+                      >
+                        {opt.price}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                {firstFreeSim && (
+                  <button
+                    onClick={() => handleBuy(firstFreeSim)}
+                    className="mt-3 w-full bg-primary text-primary-foreground text-sm font-bold py-2.5 rounded-xl hover:opacity-90 active:scale-[0.98] transition-all"
+                  >
+                    Iibso
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* How it works */}
         <div className="px-4 mt-5">
