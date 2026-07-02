@@ -216,7 +216,7 @@ const SimCards = () => {
                 >
                   {sim.popular && (
                     <div className="absolute top-0 right-0">
-                      <div className="bg-primary text-primary-foreground text-[8px] font-bold px-4 py-0.5 rotate-45 translate-x-6 translate-y-1.5 shadow-md">
+                      <div className="bg-primary text-primary-foreground text-[7px] font-bold px-3 py-0.5 whitespace-nowrap rotate-45 translate-x-6 translate-y-1.5 shadow-md">
                         POPULAR
                       </div>
                     </div>
