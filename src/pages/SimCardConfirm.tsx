@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Pencil, CreditCard, User, ShieldCheck, Send, Info, Check, CreditCard as CardIcon, Smartphone, Banknote, CheckCircle2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { PaymentLoadingOverlay } from '@/components/PaymentLoadingOverlay';
 import {
   Dialog,
   DialogContent,
@@ -94,35 +96,91 @@ const SimCardConfirm = () => {
     setPayOpen(true);
   };
 
-  const handleConfirm = () => {
-    if (!payNumber.trim() || payNumber.trim().length < 9) {
+  const parsePrice = (raw?: string): number => {
+    if (!raw) return 0;
+    const digits = String(raw).replace(/[^\d.]/g, '');
+    const n = parseFloat(digits);
+    return isNaN(n) ? 0 : n;
+  };
+
+  const handleConfirm = async () => {
+    const cleanPhone = payNumber.replace(/\D/g, '');
+    if (cleanPhone.length < 9) {
       toast({ title: 'Khalad', description: 'Fadlan geli lambar lacag-bixin sax ah', variant: 'destructive' });
       return;
     }
-    const provider = PAYMENT_PROVIDERS.find((p) => p.id === payProvider);
+
     setSubmitting(true);
-    const msg = encodeURIComponent(
-      `*Dalab SIM Card Cusub*\n\n` +
-        `Nooca: ${sim.type || '-'}\n` +
-        `Shirkadda: ${sim.provider || '-'}\n` +
-        `Lambarka SIM: ${sim.number || '-'}\n` +
-        `Qiimaha: ${sim.price || '-'}\n\n` +
-        `*Magaca Macaamilka:*\n${customer.first} ${customer.father} ${customer.grandfather}\n\n` +
-        `*Magaca Hooyada:*\n${mother.first} ${mother.father} ${mother.grandfather}\n\n` +
-        `*Lambarka Damiinka:*\n${guarantor}\n\n` +
-        `*Lacag Bixinta:*\n${provider?.name || payProvider} — ${payNumber.trim()}`,
-    );
-    window.open(`https://wa.me/252615555495?text=${msg}`, '_blank');
-    setTimeout(() => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      const priceNum = parsePrice(sim.price);
+      const fullName = `${customer.first} ${customer.father} ${customer.grandfather}`.trim();
+      const motherFull = `${mother.first} ${mother.father} ${mother.grandfather}`.trim();
+
+      // 1) Insert order row
+      const { data: inserted, error: insErr } = await (supabase as any)
+        .from('sim_card_orders')
+        .insert({
+          user_id: user?.id ?? null,
+          full_name: fullName,
+          mother_name: motherFull,
+          guarantor_phone: guarantor,
+          sim_provider: sim.provider ?? null,
+          sim_number: sim.number ?? '',
+          sim_type: sim.type ?? null,
+          price: priceNum,
+          payment_provider: payProvider,
+          payment_phone: cleanPhone,
+          payment_status: 'pending',
+          order_status: 'new',
+        })
+        .select('id')
+        .single();
+
+      if (insErr || !inserted) {
+        throw new Error(insErr?.message || 'Ma suurta gelin abuurista dalabka');
+      }
+
+      // 2) Trigger WaafiPay via edge function
+      const { data, error } = await supabase.functions.invoke('waafipay-simcard-payment', {
+        body: {
+          orderId: inserted.id,
+          amount: priceNum,
+          paymentPhone: cleanPhone,
+          paymentProvider: payProvider,
+        },
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Khalad ayaa dhacay');
+      }
+
+      if (data?.success) {
+        setPayOpen(false);
+        toast({
+          title: 'Lacagta waa la helay',
+          description: 'Waan kula soo xiriiri doonaa 24 saacadood gudahood.',
+        });
+        navigate('/sim-cards');
+      } else {
+        const msg = data?.error || 'Lacag bixintu way fashilantay';
+        toast({ title: 'Lacag bixintu way fashilantay', description: msg, variant: 'destructive' });
+      }
+    } catch (err: any) {
+      toast({
+        title: 'Khalad',
+        description: err?.message || 'Khalad aan la garaneyn ayaa dhacay',
+        variant: 'destructive',
+      });
+    } finally {
       setSubmitting(false);
-      setPayOpen(false);
-      toast({ title: 'Guul', description: 'Dalabkaaga waa la diray. Waan kula soo xiriiri doonaa.' });
-      navigate('/sim-cards');
-    }, 600);
+    }
   };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <PaymentLoadingOverlay isLoading={submitting} />
       <div
         className="fixed top-0 left-0 right-0 z-50 bg-background border-b border-border/60"
         style={{ paddingTop: 'var(--effective-safe-area-top, 0px)' }}
