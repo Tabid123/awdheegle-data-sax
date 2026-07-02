@@ -262,26 +262,20 @@ const SimCards = () => {
 
               {/* Provider chooser */}
               <div className="mt-3 pt-3 border-t border-border/50">
-                <p className="text-[10px] font-bold tracking-widest text-muted-foreground mb-2">DOORO SHIRKAD</p>
+                <p className="text-[10px] font-bold tracking-widest text-muted-foreground mb-2">SIM CARDS KA DIYAARKA AH</p>
                 <div className="grid grid-cols-3 gap-2">
                   {sim.providers.map((opt, i) => {
-                    const active = (selectedProvider[sim.id] ?? 0) === i;
                     return (
-                      <button
+                      <div
                         key={opt.provider}
-                        onClick={() => setSelectedProvider((s) => ({ ...s, [sim.id]: i }))}
-                        className={`relative flex flex-col items-center justify-center gap-0.5 rounded-xl border-2 py-2 px-1 transition-all ${
-                          active
-                            ? 'border-primary bg-primary/5'
-                            : 'border-border/60 bg-card hover:bg-muted/40'
-                        }`}
+                        className="relative flex flex-col items-center justify-center gap-0.5 rounded-xl border-2 border-border/60 bg-card py-2 px-1"
                       >
                         {opt.free && (
                           <span className="absolute -top-1.5 -right-1.5 bg-green-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full shadow">
                             FREE
                           </span>
                         )}
-                        <span className={`text-[11px] font-bold ${active ? 'text-primary' : 'text-foreground'}`}>
+                        <span className="text-[11px] font-bold text-foreground">
                           {opt.provider}
                         </span>
                         <span
@@ -291,7 +285,7 @@ const SimCards = () => {
                         >
                           {opt.price}
                         </span>
-                      </button>
+                      </div>
                     );
                   })}
                 </div>
