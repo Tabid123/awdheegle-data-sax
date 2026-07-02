@@ -1,7 +1,21 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Pencil, CreditCard, User, Users, ShieldCheck, Send, Info, Check } from 'lucide-react';
+import { ArrowLeft, Pencil, CreditCard, User, ShieldCheck, Send, Info, Check, Wallet, X, Phone } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+
+const PAYMENT_PROVIDERS: { id: string; name: string; short: string; color: string }[] = [
+  { id: 'evc', name: 'EVC Plus', short: 'EVC', color: 'bg-emerald-500' },
+  { id: 'zaad', name: 'Zaad Service', short: 'ZAAD', color: 'bg-sky-500' },
+  { id: 'sahal', name: 'Sahal', short: 'SHL', color: 'bg-orange-500' },
+  { id: 'edahab', name: 'eDahab', short: 'DHB', color: 'bg-amber-500' },
+];
 
 interface ConfirmState {
   sim?: { type?: string; provider?: string; number?: string; price?: string };
@@ -67,6 +81,9 @@ const SimCardConfirm = () => {
   const state = (location.state as ConfirmState) || {};
   const { sim, customer, mother, guarantor } = state;
   const [submitting, setSubmitting] = useState(false);
+  const [payOpen, setPayOpen] = useState(false);
+  const [payProvider, setPayProvider] = useState<string>('evc');
+  const [payNumber, setPayNumber] = useState('');
 
   if (!sim || !customer || !mother || !guarantor) {
     // Missing data — bounce back
@@ -74,7 +91,16 @@ const SimCardConfirm = () => {
     return null;
   }
 
+  const openPayment = () => {
+    setPayOpen(true);
+  };
+
   const handleConfirm = () => {
+    if (!payNumber.trim() || payNumber.trim().length < 9) {
+      toast({ title: 'Khalad', description: 'Fadlan geli lambar lacag-bixin sax ah', variant: 'destructive' });
+      return;
+    }
+    const provider = PAYMENT_PROVIDERS.find((p) => p.id === payProvider);
     setSubmitting(true);
     const msg = encodeURIComponent(
       `*Dalab SIM Card Cusub*\n\n` +
@@ -84,11 +110,13 @@ const SimCardConfirm = () => {
         `Qiimaha: ${sim.price || '-'}\n\n` +
         `*Magaca Macaamilka:*\n${customer.first} ${customer.father} ${customer.grandfather}\n\n` +
         `*Magaca Hooyada:*\n${mother.first} ${mother.father} ${mother.grandfather}\n\n` +
-        `*Lambarka Damiinka:*\n${guarantor}`,
+        `*Lambarka Damiinka:*\n${guarantor}\n\n` +
+        `*Lacag Bixinta:*\n${provider?.name || payProvider} — ${payNumber.trim()}`,
     );
     window.open(`https://wa.me/252615555495?text=${msg}`, '_blank');
     setTimeout(() => {
       setSubmitting(false);
+      setPayOpen(false);
       toast({ title: 'Guul', description: 'Dalabkaaga waa la diray. Waan kula soo xiriiri doonaa.' });
       navigate('/sim-cards');
     }, 600);
@@ -186,7 +214,7 @@ const SimCardConfirm = () => {
         style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}
       >
         <button
-          onClick={handleConfirm}
+          onClick={openPayment}
           disabled={submitting}
           className="w-full bg-primary text-primary-foreground text-base font-bold py-4 rounded-2xl flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-60"
         >
@@ -197,6 +225,91 @@ const SimCardConfirm = () => {
           Markaad rixdo "Xaqiiji", waxaad ogolaatay Shuruudaha Adeegga.
         </p>
       </div>
+
+      {/* Payment dialog */}
+      <Dialog open={payOpen} onOpenChange={setPayOpen}>
+        <DialogContent className="max-w-md rounded-2xl p-0 overflow-hidden">
+          <DialogHeader className="p-5 pb-3 border-b border-border/60">
+            <div className="flex items-center gap-2">
+              <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Wallet className="w-5 h-5 text-primary" />
+              </div>
+              <div className="flex-1 text-left">
+                <DialogTitle className="text-base font-bold">Lacag Bixinta</DialogTitle>
+                <DialogDescription className="text-xs">
+                  Dooro shirkadda oo geli lambarka lacag-bixinta.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="p-5 space-y-4">
+            {sim.price && (
+              <div className="rounded-xl bg-muted/60 p-3 flex items-center justify-between">
+                <span className="text-xs font-medium text-muted-foreground">Wadarta la bixinayo</span>
+                <span className="text-lg font-extrabold text-primary">{sim.price}</span>
+              </div>
+            )}
+
+            <div>
+              <p className="text-xs font-bold text-foreground mb-2">Shirkadda Lacag Bixinta</p>
+              <div className="grid grid-cols-2 gap-2">
+                {PAYMENT_PROVIDERS.map((p) => {
+                  const active = payProvider === p.id;
+                  return (
+                    <button
+                      key={p.id}
+                      onClick={() => setPayProvider(p.id)}
+                      className={`flex items-center gap-2.5 rounded-xl border p-2.5 text-left transition-all ${
+                        active
+                          ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
+                          : 'border-border/60 hover:bg-muted/40'
+                      }`}
+                    >
+                      <div
+                        className={`w-9 h-9 rounded-lg ${p.color} text-white flex items-center justify-center text-[10px] font-extrabold flex-shrink-0`}
+                      >
+                        {p.short}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-foreground truncate">{p.name}</p>
+                      </div>
+                      {active && <Check className="w-4 h-4 text-primary flex-shrink-0" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-foreground">Lambarka Lacag Bixinta</label>
+              <div className="mt-1.5 relative">
+                <Phone className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="tel"
+                  inputMode="tel"
+                  placeholder="252..."
+                  value={payNumber}
+                  onChange={(e) => setPayNumber(e.target.value)}
+                  className="w-full pl-9 pr-3 py-3 rounded-xl bg-muted/60 text-sm font-medium text-foreground placeholder:text-muted-foreground/70 outline-none focus:ring-2 focus:ring-primary/30"
+                />
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-1.5">
+                Lacagta waxaa laga jarayaa lambarkan.
+              </p>
+            </div>
+
+            <button
+              onClick={handleConfirm}
+              disabled={submitting}
+              className="w-full bg-primary text-primary-foreground text-base font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-60"
+            >
+              {submitting ? 'Waa la dirayaa...' : 'Bixi oo Gudbi'}
+              {!submitting && <Send className="w-5 h-5" />}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
