@@ -454,6 +454,70 @@ export function SimCardsManager() {
             </>
           )}
         </TabsContent>
+
+        <TabsContent value="payments" className="space-y-3">
+          <div className="flex justify-end">
+            <Button onClick={openPayAdd} size="sm">
+              <Plus className="w-4 h-4 mr-1" /> Ku dar shirkad
+            </Button>
+          </div>
+          {payLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : payProviders.length === 0 ? (
+            <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">Wali ma jirto shirkad.</CardContent></Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {payProviders.map((p) => (
+                <Card key={p.id} className={p.is_active ? '' : 'opacity-60'}>
+                  <CardContent className="p-4 space-y-2">
+                    <div className="flex items-start gap-3">
+                      <div className="w-12 h-12 rounded-lg border bg-muted overflow-hidden shrink-0 flex items-center justify-center">
+                        {p.logo_url ? (
+                          <img src={p.logo_url} alt={p.display_name} className="w-full h-full object-cover" />
+                        ) : (
+                          <Banknote className="w-6 h-6 text-muted-foreground" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-sm truncate">{p.display_name}</p>
+                        <p className="text-[11px] text-muted-foreground">{p.provider_name}</p>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {(p.prefixes || []).map((pfx: string) => (
+                            <span key={pfx} className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                              {pfx}
+                            </span>
+                          ))}
+                          {(!p.prefixes || p.prefixes.length === 0) && (
+                            <span className="text-[10px] text-muted-foreground">Prefix ma jiro</span>
+                          )}
+                        </div>
+                      </div>
+                      <Switch checked={p.is_active} onCheckedChange={() => togglePayActive(p)} />
+                    </div>
+                    <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                      {p.enabled_for_sim_cards ? (
+                        <Badge variant="secondary" className="text-[10px]">SIM Cards ✓</Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[10px]">SIM Cards ✗</Badge>
+                      )}
+                      <span>#{p.sort_order ?? 0}</span>
+                    </div>
+                    <div className="flex gap-2 pt-1">
+                      <Button size="sm" variant="outline" className="flex-1" onClick={() => openPayEdit(p)}>
+                        <Pencil className="w-3.5 h-3.5 mr-1" /> Wax ka bedel
+                      </Button>
+                      <Button size="sm" variant="destructive" onClick={() => removePay(p.id)}>
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
       </Tabs>
 
       <Dialog open={payDialogOpen} onOpenChange={setPayDialogOpen}>
