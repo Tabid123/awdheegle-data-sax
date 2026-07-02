@@ -384,7 +384,20 @@ const SimCardConfirm = () => {
           <div className="p-5 space-y-3 bg-card">
             <button
               onClick={() => {
-                const text = `Ascwr, waan iibsaday SIM card. Dalabkaygu: ${sim.number} (${sim.type} - ${sim.provider}). Order ID: ${orderId}. Fadlan ii caawimaada.`;
+                const fullName = `${customer.first} ${customer.father} ${customer.grandfather}`.trim();
+                const motherFull = `${mother.first} ${mother.father} ${mother.grandfather}`.trim();
+                const formatPhone = (raw?: string) => {
+                  if (!raw) return '';
+                  const digits = raw.replace(/\D/g, '');
+                  if (digits.startsWith('252')) {
+                    return `+252 ${digits.slice(3, 5)} ${digits.slice(5, 8)} ${digits.slice(8)}`;
+                  }
+                  if (digits.startsWith('0')) {
+                    return `+252 ${digits.slice(1, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}`;
+                  }
+                  return `+252 ${digits.slice(0, 2)} ${digits.slice(2, 5)} ${digits.slice(5)}`;
+                };
+                const text = `Asc, Waxaan iibsaday SIM card. Dalabkaygu: ${formatPhone(sim.number)}\n\nMagaca qofka oo sadaxan: ${fullName}\n\nMagaca hooyo o sadaxan: ${motherFull}\n\nLambarka damiinka: ${guarantor}\n\nQiimaha: ${sim.price}\n\n(${sim.type} - ${sim.provider}). Order ID: ${orderId}`;
                 window.open(`https://wa.me/252615555495?text=${encodeURIComponent(text)}`, '_blank');
               }}
               className="w-full bg-green-600 hover:bg-green-700 text-white text-base font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
