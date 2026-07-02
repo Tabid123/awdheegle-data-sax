@@ -227,20 +227,10 @@ const SimCardConfirm = () => {
 
       {/* Payment dialog */}
       <Dialog open={payOpen} onOpenChange={setPayOpen}>
-        <DialogContent
-          className="max-w-sm rounded-2xl p-5 gap-0 border-border/60"
-          hideDefaultCloseButton
-        >
-          <div className="flex items-center justify-between mb-4">
-            <DialogTitle className="text-lg font-extrabold text-foreground">Bixinta Lacagta</DialogTitle>
-            <button
-              onClick={() => setPayOpen(false)}
-              className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-muted transition-colors"
-              aria-label="Xir"
-            >
-              <svg className="w-4 h-4 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
-            </button>
-          </div>
+        <DialogContent className="max-w-sm rounded-2xl p-5 gap-0 border-border/60">
+          <DialogTitle className="text-lg font-extrabold text-foreground mb-4 pr-8">
+            Bixinta Lacagta
+          </DialogTitle>
 
           <DialogDescription className="sr-only">
             Dooro adeegga lacag-bixinta oo geli lambarkaaga.
