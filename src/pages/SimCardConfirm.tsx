@@ -32,6 +32,7 @@ interface ConfirmState {
   customer?: { first: string; father: string; grandfather: string };
   mother?: { first: string; father: string; grandfather: string };
   guarantor?: string;
+  dob?: string;
 }
 
 const Stepper = () => (
@@ -89,7 +90,7 @@ const SimCardConfirm = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const state = (location.state as ConfirmState) || {};
-  const { sim, customer, mother, guarantor } = state;
+  const { sim, customer, mother, guarantor, dob } = state;
   const [submitting, setSubmitting] = useState(false);
   const [payOpen, setPayOpen] = useState(false);
   const [successOpen, setSuccessOpen] = useState(false);
@@ -211,6 +212,7 @@ const SimCardConfirm = () => {
           full_name: fullName,
           mother_name: motherFull,
           guarantor_phone: guarantor,
+          date_of_birth: dob ?? null,
           sim_provider: sim.provider ?? null,
           sim_number: sim.number ?? '',
           sim_type: sim.type ?? null,
@@ -339,6 +341,16 @@ const SimCardConfirm = () => {
           >
             <p className="text-sm font-bold text-foreground">{guarantor}</p>
           </Row>
+
+          {dob && (
+            <Row
+              icon={<User className="w-4 h-4 text-primary" />}
+              title="Taariikhda Dhalashada"
+              onEdit={() => navigate(-1)}
+            >
+              <p className="text-sm font-bold text-foreground">{dob}</p>
+            </Row>
+          )}
         </div>
 
         <div className="px-4 mt-4">
@@ -492,7 +504,7 @@ const SimCardConfirm = () => {
                   }
                   return `+252 ${digits.slice(0, 2)} ${digits.slice(2, 5)} ${digits.slice(5)}`;
                 };
-                const text = `Asc, Waxaan iibsaday SIM card. Dalabkaygu: ${formatPhone(sim.number)}\n\nMagaca qofka oo sadaxan: ${fullName}\n\nMagaca hooyo o sadaxan: ${motherFull}\n\nLambarka damiinka: ${guarantor}\n\nQiimaha: ${sim.price}\n\n(${sim.type} - ${sim.provider}). Order ID: ${orderId}`;
+                const text = `Asc, Waxaan iibsaday SIM card. Dalabkaygu: ${formatPhone(sim.number)}\n\nMagaca qofka oo sadaxan: ${fullName}\n\nMagaca hooyo o sadaxan: ${motherFull}\n\nTaariikhda dhalashada: ${dob || 'N/A'}\n\nLambarka damiinka: ${guarantor}\n\nQiimaha: ${sim.price}\n\n(${sim.type} - ${sim.provider}). Order ID: ${orderId}`;
                 window.open(`https://wa.me/252615555495?text=${encodeURIComponent(text)}`, '_blank');
               }}
               className="w-full bg-green-600 hover:bg-green-700 text-white text-base font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
