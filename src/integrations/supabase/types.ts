@@ -1776,6 +1776,42 @@ export type Database = {
         }
         Relationships: []
       }
+      reversal_alerts: {
+        Row: {
+          amount: number
+          created_at: string
+          dismissed_at: string | null
+          dismissed_by: string | null
+          id: string
+          sender_phone: string
+          sms_body: string
+          sms_log_id: string | null
+          ussd_code: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          dismissed_at?: string | null
+          dismissed_by?: string | null
+          id?: string
+          sender_phone: string
+          sms_body: string
+          sms_log_id?: string | null
+          ussd_code: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          dismissed_at?: string | null
+          dismissed_by?: string | null
+          id?: string
+          sender_phone?: string
+          sms_body?: string
+          sms_log_id?: string | null
+          ussd_code?: string
+        }
+        Relationships: []
+      }
       sim_balances: {
         Row: {
           android_device_id: string | null
