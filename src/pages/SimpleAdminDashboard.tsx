@@ -272,7 +272,9 @@ const SimpleAdminDashboard = () => {
       const pending = Number((analyticsSummary as any)?.pending_orders ?? 0);
       const failed = Number((analyticsSummary as any)?.failed_orders ?? 0);
 
-      const deviceList = devicesRes.data || [];
+      const deviceList = (devicesRes.data || []).slice().sort((a: any, b: any) =>
+        (a.device_id || a.id || '').localeCompare(b.device_id || b.id || '')
+      );
       const OFFLINE_THRESHOLD = 5 * 60 * 1000;
       const now = Date.now();
       const devicesOnline = deviceList.filter(d => d.last_ping_at && (now - new Date(d.last_ping_at).getTime()) < OFFLINE_THRESHOLD).length;
@@ -603,7 +605,7 @@ const SimpleAdminDashboard = () => {
                   // Use first SIM's provider color for the card border/accent
                   const mainColors = device.sims.length > 0 ? getProviderColor(device.sims[0].provider_name, device.sims[0].sim_number) : { bg: 'bg-gray-600', dark: 'bg-gray-700', border: 'border-gray-300' };
                   return (
-                    <div key={di} className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 overflow-hidden text-[11px]">
+                    <div key={device.device_id || di} className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 overflow-hidden text-[11px]">
                       {/* Device Header */}
                       <div className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-gray-700 dark:to-gray-750 px-2 py-1.5 border-b border-gray-200 dark:border-gray-600">
                         <div className="flex items-center gap-1.5">
