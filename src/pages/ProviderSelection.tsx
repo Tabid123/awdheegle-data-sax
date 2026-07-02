@@ -237,7 +237,7 @@ const ProviderSelection = () => {
         className="flex-1 overflow-y-auto"
         style={{ 
           paddingTop: 'calc(5rem + var(--effective-safe-area-top, 0px))',
-          paddingBottom: 'calc(5rem + env(safe-area-inset-bottom, 0px))' 
+          paddingBottom: 'calc(6.5rem + env(safe-area-inset-bottom, 0px))' 
         }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
@@ -254,7 +254,7 @@ const ProviderSelection = () => {
         </div>
 
         {/* Banner */}
-        <div className="px-4 pt-2 pb-3">
+        <div className="px-4 pt-1 pb-2 sm:pt-2 sm:pb-3">
           <RotatingBanner />
         </div>
 
@@ -272,13 +272,13 @@ const ProviderSelection = () => {
         )}
 
         {/* Providers Section */}
-        <div className="px-4 space-y-4">
+        <div className="px-4 space-y-3 sm:space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold text-foreground">Dooro Shirkada</h2>
+            <h2 className="text-sm sm:text-base font-bold text-foreground">Dooro Shirkada</h2>
             <span className="text-xs text-muted-foreground">{providers.length} shirkadood</span>
           </div>
           
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
             {providers.map((provider: Provider) => (
               <div key={provider.id} className={isReallyOnline === false ? 'opacity-60' : ''}>
                 <ProviderCard 
@@ -293,23 +293,23 @@ const ProviderSelection = () => {
             {/* Offline Mode Card */}
             <button 
               onClick={handleOfflineModeClick}
-              className={`relative rounded-2xl p-4 flex flex-col items-center gap-3 transition-all duration-300 hover:-translate-y-1 ${
+              className={`relative rounded-2xl p-3 sm:p-4 flex flex-col items-center gap-2 sm:gap-3 transition-all duration-300 hover:-translate-y-1 ${
                 isReallyOnline === false 
                   ? 'animate-bounce ring-2 ring-accent shadow-lg' 
                   : ''
               }`}
               style={{ background: 'linear-gradient(145deg, #1236C0, #1236C0)' }}
             >
-              <div className="w-12 h-12 bg-[#FFFFFF]/20 rounded-full flex items-center justify-center">
-                <WifiOff className="w-6 h-6 text-[#FFFFFF]" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-[#FFFFFF]/20 rounded-full flex items-center justify-center">
+                <WifiOff className="w-5 h-5 sm:w-6 sm:h-6 text-[#FFFFFF]" />
               </div>
-              <span className="text-[#FFFFFF] font-semibold text-sm">Offline</span>
+              <span className="text-[#FFFFFF] font-semibold text-xs sm:text-sm">Offline</span>
             </button>
           </div>
         </div>
 
         {/* Popular Packages */}
-        <div className="px-4 mt-6 mb-4">
+        <div className="px-4 mt-4 sm:mt-6 mb-4">
           <div className="mb-4">
             <SellSimCard />
           </div>
@@ -320,7 +320,7 @@ const ProviderSelection = () => {
       {/* Support FAB */}
       <button
         onClick={() => setShowContactSheet(!showContactSheet)}
-        className={`fixed bottom-24 right-4 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-all duration-300 ${
+        className={`fixed bottom-20 sm:bottom-24 right-4 z-50 w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-all duration-300 ${
           showContactSheet ? 'bg-destructive' : ''
         }`}
         style={!showContactSheet ? { background: 'linear-gradient(135deg, #1236C0, #1236C0)' } : {}}
