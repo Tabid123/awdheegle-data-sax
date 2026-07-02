@@ -36,7 +36,7 @@ const ProviderCard = ({ name, logo, onClick, disabled = false }: ProviderCardPro
         borderColor: `hsl(${providerColor} / 0.42)`,
         boxShadow: `0 0 0 2px hsl(${providerColor} / 0.14)`,
       }}
-      className={`group relative w-full rounded-2xl bg-card border-2 p-4 flex flex-col items-center gap-3 transition-all duration-300 ${
+      className={`group relative w-full rounded-2xl bg-card border-2 p-3 sm:p-4 flex flex-col items-center gap-2 sm:gap-3 transition-all duration-300 ${
         !disabled
           ? 'hover:shadow-elegant hover:-translate-y-1 active:scale-[0.97]'
           : 'opacity-50 cursor-not-allowed'
@@ -50,7 +50,7 @@ const ProviderCard = ({ name, logo, onClick, disabled = false }: ProviderCardPro
       />
 
       <div
-        className="relative flex h-16 w-16 items-center justify-center rounded-full border-2 bg-background/80"
+        className="relative flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-full border-2 bg-background/80"
         style={{
           borderColor: `hsl(${providerColor} / 0.58)`,
           boxShadow: `0 0 0 4px hsl(${providerColor} / 0.14)`,
@@ -60,7 +60,7 @@ const ProviderCard = ({ name, logo, onClick, disabled = false }: ProviderCardPro
           <img
             src={logo}
             alt={`${name} logo`}
-            className="h-11 w-11 object-contain"
+            className="h-9 w-9 sm:h-11 sm:w-11 object-contain"
             loading="eager"
             decoding="async"
           />
@@ -71,7 +71,7 @@ const ProviderCard = ({ name, logo, onClick, disabled = false }: ProviderCardPro
         )}
       </div>
 
-      <span className="relative text-sm font-semibold text-foreground tracking-tight">{name}</span>
+      <span className="relative text-xs sm:text-sm font-semibold text-foreground tracking-tight">{name}</span>
     </button>
   );
 };
