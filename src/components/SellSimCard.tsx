@@ -1,10 +1,31 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import simCardImage from '@/assets/sim-card-mockup.png';
+import { supabase } from '@/integrations/supabase/client';
+
+type MiniProvider = { provider_name: string; display_name: string; logo_url: string | null };
+const TARGET = ['Hormuud', 'Somnet', 'Somtel'];
 
 const SellSimCard = () => {
   const navigate = useNavigate();
+  const [providers, setProviders] = useState<MiniProvider[]>([]);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const { data } = await supabase
+        .from('providers_config')
+        .select('provider_name, display_name, logo_url')
+        .in('provider_name', TARGET);
+      if (!mounted || !data) return;
+      const ordered = TARGET
+        .map((n) => data.find((d: any) => d.provider_name === n))
+        .filter(Boolean) as MiniProvider[];
+      setProviders(ordered);
+    })();
+    return () => { mounted = false; };
+  }, []);
 
   return (
     <div className="space-y-2">
@@ -43,6 +64,23 @@ const SellSimCard = () => {
             loading="lazy"
             className="w-20 h-20 sm:w-24 sm:h-24 object-contain flex-shrink-0"
           />
+        </div>
+
+        <div className="mt-3 grid grid-cols-3 gap-2">
+          {(providers.length ? providers : TARGET.map((n) => ({ provider_name: n, display_name: n, logo_url: null }))).map((p) => (
+            <button
+              key={p.provider_name}
+              onClick={() => navigate('/sim-cards')}
+              className="flex items-center justify-center gap-1.5 rounded-full border border-border/60 bg-background px-2 py-1.5 hover:bg-muted active:scale-95 transition-all shadow-sm"
+            >
+              {p.logo_url ? (
+                <img src={p.logo_url} alt={`${p.display_name} logo`} className="w-4 h-4 rounded-full object-contain" loading="lazy" />
+              ) : (
+                <span className="w-4 h-4 rounded-full bg-muted" />
+              )}
+              <span className="text-[11px] font-semibold text-foreground truncate">{p.display_name}</span>
+            </button>
+          ))}
         </div>
       </div>
     </div>
