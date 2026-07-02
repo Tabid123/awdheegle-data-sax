@@ -83,6 +83,8 @@ const SimCardConfirm = () => {
   const { sim, customer, mother, guarantor } = state;
   const [submitting, setSubmitting] = useState(false);
   const [payOpen, setPayOpen] = useState(false);
+  const [successOpen, setSuccessOpen] = useState(false);
+  const [orderId, setOrderId] = useState('');
   const [payProvider, setPayProvider] = useState<string>('evc');
   const [payNumber, setPayNumber] = useState('');
 
