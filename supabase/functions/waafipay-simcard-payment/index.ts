@@ -33,9 +33,9 @@ Deno.serve(async (req) => {
 
     const body = (await req.json()) as PaymentRequest;
     const { orderId, amount, paymentPhone, paymentProvider } = body || ({} as PaymentRequest);
-    if (!orderId || !amount || !paymentPhone || !paymentProvider) {
+    if (!orderId || !paymentPhone || !paymentProvider || amount === undefined || amount === null || Number(amount) <= 0) {
       return new Response(
-        JSON.stringify({ success: false, error: 'Missing required fields' }),
+        JSON.stringify({ success: false, error: 'Xogta lacag-bixinta way dhiman tahay (qiimo, lambar, ama adeeg)' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
