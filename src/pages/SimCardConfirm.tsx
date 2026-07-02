@@ -118,10 +118,14 @@ const SimCardConfirm = () => {
       const fullName = `${customer.first} ${customer.father} ${customer.grandfather}`.trim();
       const motherFull = `${mother.first} ${mother.father} ${mother.grandfather}`.trim();
 
-      // 1) Insert order row
-      const { data: inserted, error: insErr } = await (supabase as any)
+      // 1) Insert order row — generate ID client-side so we don't need SELECT-after-insert
+      const newOrderId = (globalThis.crypto?.randomUUID?.() as string) ||
+        `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+      const { error: insErr } = await (supabase as any)
         .from('sim_card_orders')
         .insert({
+          id: newOrderId,
           user_id: user?.id ?? null,
           full_name: fullName,
           mother_name: motherFull,
@@ -134,18 +138,16 @@ const SimCardConfirm = () => {
           payment_phone: cleanPhone,
           payment_status: 'pending',
           order_status: 'new',
-        })
-        .select('id')
-        .single();
+        });
 
-      if (insErr || !inserted) {
-        throw new Error(insErr?.message || 'Ma suurta gelin abuurista dalabka');
+      if (insErr) {
+        throw new Error(insErr.message || 'Ma suurta gelin abuurista dalabka');
       }
 
       // 2) Trigger WaafiPay via edge function
       const { data, error } = await supabase.functions.invoke('waafipay-simcard-payment', {
         body: {
-          orderId: inserted.id,
+          orderId: newOrderId,
           amount: priceNum,
           paymentPhone: cleanPhone,
           paymentProvider: payProvider,
