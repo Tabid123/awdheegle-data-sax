@@ -39,10 +39,7 @@ const SimCards = () => {
   const navigate = useNavigate();
 
   const handleBuy = (sim: SimCard) => {
-    const msg = encodeURIComponent(
-      `Salaam, waxaan rabaa inaan iibsado SIM card:\n\nNooca: ${sim.type}\nShirkadda: ${sim.provider}\nLambarka: ${sim.number}\nQiimaha: ${sim.price}`,
-    );
-    window.open(`https://wa.me/252615555495?text=${msg}`, '_blank');
+    navigate('/sim-cards/register', { state: { sim } });
   };
 
   return (
