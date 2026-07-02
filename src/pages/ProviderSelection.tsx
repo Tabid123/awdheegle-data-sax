@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import RotatingBanner from '@/components/RotatingBanner';
 import ProviderCard from '@/components/ProviderCard';
 import PopularPackages from '@/components/PopularPackages';
+import SellSimCard from '@/components/SellSimCard';
 import { Phone, MessageCircle, WifiOff, X, RefreshCw, Headphones } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient, useQuery, QueryClient } from '@tanstack/react-query';
@@ -309,6 +310,9 @@ const ProviderSelection = () => {
 
         {/* Popular Packages */}
         <div className="px-4 mt-6 mb-4">
+          <div className="mb-4">
+            <SellSimCard />
+          </div>
           <PopularPackages />
         </div>
       </div>
