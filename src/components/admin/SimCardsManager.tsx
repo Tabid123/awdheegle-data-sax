@@ -274,7 +274,51 @@ export function SimCardsManager() {
               </CardContent>
             </Card>
           ) : (
-            <Card>
+            <>
+            {/* Mobile: card list */}
+            <div className="grid grid-cols-1 gap-2 md:hidden">
+              {orders.map((o) => (
+                <Card key={o.id}>
+                  <CardContent className="p-3 space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-sm truncate">{o.full_name}</p>
+                        <p className="text-xs text-muted-foreground">{o.payment_phone}</p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-sm font-bold text-primary">${Number(o.price || 0).toFixed(2)}</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {new Date(o.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between gap-2 pt-2 border-t">
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium truncate">{o.sim_number}</p>
+                        <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+                          <Badge variant="outline" className="text-[10px]">{o.sim_type}</Badge>
+                          <span className="text-[10px] text-muted-foreground">{o.sim_provider}</span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        <Badge
+                          variant={o.payment_status === 'paid' ? 'default' : o.payment_status === 'failed' ? 'destructive' : 'secondary'}
+                          className="text-[10px]"
+                        >
+                          {o.payment_status}
+                        </Badge>
+                        <Badge variant="outline" className="text-[10px]">{o.order_status}</Badge>
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">
+                      {new Date(o.created_at).toLocaleTimeString()}
+                    </p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+            {/* Desktop: table */}
+            <Card className="hidden md:block">
               <CardContent className="p-0 overflow-x-auto">
                 <Table>
                   <TableHeader>
@@ -321,6 +365,7 @@ export function SimCardsManager() {
                 </Table>
               </CardContent>
             </Card>
+            </>
           )}
         </TabsContent>
       </Tabs>
