@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Pencil, CreditCard, User, ShieldCheck, Send, Info, Check, Wallet, X, Phone } from 'lucide-react';
+import { ArrowLeft, Pencil, CreditCard, User, ShieldCheck, Send, Info, Check, CreditCard as CardIcon, Smartphone, Banknote, CheckCircle2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import {
   Dialog,
@@ -10,11 +10,10 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 
-const PAYMENT_PROVIDERS: { id: string; name: string; short: string; color: string }[] = [
-  { id: 'evc', name: 'EVC Plus', short: 'EVC', color: 'bg-emerald-500' },
-  { id: 'zaad', name: 'Zaad Service', short: 'ZAAD', color: 'bg-sky-500' },
-  { id: 'sahal', name: 'Sahal', short: 'SHL', color: 'bg-orange-500' },
-  { id: 'edahab', name: 'eDahab', short: 'DHB', color: 'bg-amber-500' },
+const PAYMENT_PROVIDERS: { id: string; name: string; Icon: React.ComponentType<{ className?: string }> }[] = [
+  { id: 'evc', name: 'EVC Plus', Icon: CardIcon },
+  { id: 'edahab', name: 'e-Dahab', Icon: Banknote },
+  { id: 'sahal', name: 'Sahal', Icon: Smartphone },
 ];
 
 interface ConfirmState {
@@ -228,86 +227,81 @@ const SimCardConfirm = () => {
 
       {/* Payment dialog */}
       <Dialog open={payOpen} onOpenChange={setPayOpen}>
-        <DialogContent className="max-w-md rounded-2xl p-0 overflow-hidden">
-          <DialogHeader className="p-5 pb-3 border-b border-border/60">
-            <div className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
-                <Wallet className="w-5 h-5 text-primary" />
-              </div>
-              <div className="flex-1 text-left">
-                <DialogTitle className="text-base font-bold">Lacag Bixinta</DialogTitle>
-                <DialogDescription className="text-xs">
-                  Dooro shirkadda oo geli lambarka lacag-bixinta.
-                </DialogDescription>
-              </div>
-            </div>
-          </DialogHeader>
-
-          <div className="p-5 space-y-4">
-            {sim.price && (
-              <div className="rounded-xl bg-muted/60 p-3 flex items-center justify-between">
-                <span className="text-xs font-medium text-muted-foreground">Wadarta la bixinayo</span>
-                <span className="text-lg font-extrabold text-primary">{sim.price}</span>
-              </div>
-            )}
-
-            <div>
-              <p className="text-xs font-bold text-foreground mb-2">Shirkadda Lacag Bixinta</p>
-              <div className="grid grid-cols-2 gap-2">
-                {PAYMENT_PROVIDERS.map((p) => {
-                  const active = payProvider === p.id;
-                  return (
-                    <button
-                      key={p.id}
-                      onClick={() => setPayProvider(p.id)}
-                      className={`flex items-center gap-2.5 rounded-xl border p-2.5 text-left transition-all ${
-                        active
-                          ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
-                          : 'border-border/60 hover:bg-muted/40'
-                      }`}
-                    >
-                      <div
-                        className={`w-9 h-9 rounded-lg ${p.color} text-white flex items-center justify-center text-[10px] font-extrabold flex-shrink-0`}
-                      >
-                        {p.short}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-foreground truncate">{p.name}</p>
-                      </div>
-                      {active && <Check className="w-4 h-4 text-primary flex-shrink-0" />}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div>
-              <label className="text-xs font-bold text-foreground">Lambarka Lacag Bixinta</label>
-              <div className="mt-1.5 relative">
-                <Phone className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="tel"
-                  inputMode="tel"
-                  placeholder="252..."
-                  value={payNumber}
-                  onChange={(e) => setPayNumber(e.target.value)}
-                  className="w-full pl-9 pr-3 py-3 rounded-xl bg-muted/60 text-sm font-medium text-foreground placeholder:text-muted-foreground/70 outline-none focus:ring-2 focus:ring-primary/30"
-                />
-              </div>
-              <p className="text-[11px] text-muted-foreground mt-1.5">
-                Lacagta waxaa laga jarayaa lambarkan.
-              </p>
-            </div>
-
+        <DialogContent
+          className="max-w-sm rounded-2xl p-5 gap-0 border-border/60"
+          hideDefaultCloseButton
+        >
+          <div className="flex items-center justify-between mb-4">
+            <DialogTitle className="text-lg font-extrabold text-foreground">Bixinta Lacagta</DialogTitle>
             <button
-              onClick={handleConfirm}
-              disabled={submitting}
-              className="w-full bg-primary text-primary-foreground text-base font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-60"
+              onClick={() => setPayOpen(false)}
+              className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-muted transition-colors"
+              aria-label="Xir"
             >
-              {submitting ? 'Waa la dirayaa...' : 'Bixi oo Gudbi'}
-              {!submitting && <Send className="w-5 h-5" />}
+              <svg className="w-4 h-4 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
             </button>
           </div>
+
+          <DialogDescription className="sr-only">
+            Dooro adeegga lacag-bixinta oo geli lambarkaaga.
+          </DialogDescription>
+
+          <p className="text-[10px] font-bold tracking-widest text-muted-foreground mb-2">DOORO ADEEGGA</p>
+          <div className="grid grid-cols-3 gap-2.5 mb-5">
+            {PAYMENT_PROVIDERS.map((p) => {
+              const active = payProvider === p.id;
+              const Icon = p.Icon;
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => setPayProvider(p.id)}
+                  className={`relative flex flex-col items-center justify-center gap-2 rounded-2xl border-2 py-3 px-1 transition-all ${
+                    active
+                      ? 'border-primary bg-primary/5'
+                      : 'border-border/70 bg-card hover:bg-muted/40'
+                  }`}
+                >
+                  <div
+                    className={`w-11 h-11 rounded-xl flex items-center justify-center ${
+                      active ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'
+                    }`}
+                  >
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <span className={`text-[11px] font-bold ${active ? 'text-primary' : 'text-foreground'}`}>
+                    {p.name}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <p className="text-[10px] font-bold tracking-widest text-muted-foreground mb-2">LAMBARKA LACAG BIXINTA</p>
+          <input
+            type="tel"
+            inputMode="tel"
+            placeholder="252..."
+            value={payNumber}
+            onChange={(e) => setPayNumber(e.target.value)}
+            className="w-full px-4 py-3.5 rounded-xl bg-muted/60 text-sm font-medium text-foreground placeholder:text-muted-foreground/70 outline-none focus:ring-2 focus:ring-primary/30 mb-5"
+          />
+
+          <button
+            onClick={handleConfirm}
+            disabled={submitting}
+            className="w-full bg-primary text-primary-foreground text-base font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-60"
+          >
+            {submitting ? 'Waa la dirayaa...' : 'Bixi Hadda'}
+            {!submitting && <CheckCircle2 className="w-5 h-5" />}
+          </button>
+
+          <button
+            onClick={() => setPayOpen(false)}
+            disabled={submitting}
+            className="w-full text-center text-sm font-semibold text-primary mt-3 hover:underline"
+          >
+            Cancel
+          </button>
         </DialogContent>
       </Dialog>
     </div>
