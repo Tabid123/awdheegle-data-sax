@@ -239,7 +239,7 @@ const SimCards = () => {
                       <p className="text-sm font-bold text-foreground tracking-tight truncate">{sim.number}</p>
                       <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{sim.features}</p>
                     </div>
-                    <div className={`flex flex-col items-end gap-1.5 flex-shrink-0 ${sim.popular ? 'mt-6' : ''}`}>
+                    <div className={`flex flex-col items-end gap-1.5 flex-shrink-0 ${sim.popular ? 'mr-10' : ''}`}>
                       <span className="text-base font-extrabold text-primary leading-none">{opt.price}</span>
                       <button
                         onClick={() => handleBuy(sim)}
