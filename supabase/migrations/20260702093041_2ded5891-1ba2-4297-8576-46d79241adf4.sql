@@ -1,0 +1,1 @@
+ALTER TABLE public.payment_providers_config ADD COLUMN IF NOT EXISTS prefixes text[] NOT NULL DEFAULT '{}'; ALTER TABLE public.payment_providers_config ADD COLUMN IF NOT EXISTS enabled_for_sim_cards boolean NOT NULL DEFAULT true; GRANT SELECT ON public.payment_providers_config TO anon;

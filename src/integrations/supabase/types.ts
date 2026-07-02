@@ -1423,11 +1423,13 @@ export type Database = {
           created_at: string
           display_name: string
           display_order: number | null
+          enabled_for_sim_cards: boolean
           id: string
           is_active: boolean
           logo_url: string | null
           payment_number: string | null
           payment_phone: string | null
+          prefixes: string[]
           provider_logo: string | null
           provider_name: string
           sort_order: number
@@ -1439,11 +1441,13 @@ export type Database = {
           created_at?: string
           display_name: string
           display_order?: number | null
+          enabled_for_sim_cards?: boolean
           id?: string
           is_active?: boolean
           logo_url?: string | null
           payment_number?: string | null
           payment_phone?: string | null
+          prefixes?: string[]
           provider_logo?: string | null
           provider_name: string
           sort_order?: number
@@ -1455,11 +1459,13 @@ export type Database = {
           created_at?: string
           display_name?: string
           display_order?: number | null
+          enabled_for_sim_cards?: boolean
           id?: string
           is_active?: boolean
           logo_url?: string | null
           payment_number?: string | null
           payment_phone?: string | null
+          prefixes?: string[]
           provider_logo?: string | null
           provider_name?: string
           sort_order?: number
