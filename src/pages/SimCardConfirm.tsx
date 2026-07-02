@@ -119,7 +119,7 @@ const SimCardConfirm = () => {
       const motherFull = `${mother.first} ${mother.father} ${mother.grandfather}`.trim();
 
       // 1) Insert order row
-      const { data: inserted, error: insErr } = await supabase
+      const { data: inserted, error: insErr } = await (supabase as any)
         .from('sim_card_orders')
         .insert({
           user_id: user?.id ?? null,
