@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, User, Users, ShieldCheck, Phone, ChevronRight, CreditCard } from 'lucide-react';
+import { ArrowLeft, User, Users, ShieldCheck, Phone, ChevronRight, CreditCard, Calendar } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 interface SimInfo {
@@ -22,6 +22,7 @@ const SimCardRegistration = () => {
   const [mother2, setMother2] = useState('');
   const [mother3, setMother3] = useState('');
   const [guarantor, setGuarantor] = useState('');
+  const [dob, setDob] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = () => {
@@ -37,6 +38,10 @@ const SimCardRegistration = () => {
       toast({ title: 'Khalad', description: 'Fadlan geli lambar damiin sax ah', variant: 'destructive' });
       return;
     }
+    if (!dob) {
+      toast({ title: 'Khalad', description: 'Fadlan geli taariikhda dhalashada', variant: 'destructive' });
+      return;
+    }
 
     navigate('/sim-cards/confirm', {
       state: {
@@ -44,6 +49,7 @@ const SimCardRegistration = () => {
         customer: { first: customer1.trim(), father: customer2.trim(), grandfather: customer3.trim() },
         mother: { first: mother1.trim(), father: mother2.trim(), grandfather: mother3.trim() },
         guarantor: guarantor.trim(),
+        dob,
       },
     });
   };
@@ -147,6 +153,24 @@ const SimCardRegistration = () => {
               />
             </div>
             <p className="text-[11px] text-muted-foreground mt-2">Hubi in lambarku yahay mid shaqaynaya.</p>
+          </div>
+        </div>
+
+        {/* Date of birth */}
+        <div className="px-4 mt-5">
+          <div className="rounded-2xl bg-card border border-border/60 p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Calendar className="w-4 h-4 text-primary" />
+              <h3 className="text-sm font-bold text-foreground">Taariikhda Dhalashada</h3>
+            </div>
+            <label className="text-xs font-medium text-foreground">Taariikhda uu dhashay qofka</label>
+            <input
+              type="date"
+              value={dob}
+              onChange={(e) => setDob(e.target.value)}
+              max={new Date().toISOString().split('T')[0]}
+              className="mt-1.5 w-full px-3 py-3 rounded-xl bg-muted/60 text-sm font-medium text-foreground placeholder:text-muted-foreground/70 outline-none focus:ring-2 focus:ring-primary/30"
+            />
           </div>
         </div>
 
