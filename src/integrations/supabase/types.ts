@@ -1886,6 +1886,45 @@ export type Database = {
         }
         Relationships: []
       }
+      sim_cards_catalog: {
+        Row: {
+          created_at: string
+          features: string | null
+          id: string
+          is_active: boolean
+          number: string
+          popular: boolean
+          providers: Json
+          sim_type: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          features?: string | null
+          id?: string
+          is_active?: boolean
+          number: string
+          popular?: boolean
+          providers?: Json
+          sim_type?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          features?: string | null
+          id?: string
+          is_active?: boolean
+          number?: string
+          popular?: boolean
+          providers?: Json
+          sim_type?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       sims: {
         Row: {
           balance: number
