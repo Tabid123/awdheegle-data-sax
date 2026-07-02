@@ -49,6 +49,7 @@ const PaymentSmsLog = lazy(() => import('@/components/admin/PaymentSmsLog').then
 const SmsLacagoCards = lazy(() => import('@/components/admin/SmsLacagoCards').then(m => ({ default: m.SmsLacagoCards })));
 const SmsLogsViewer = lazy(() => import('@/components/admin/SmsLogsViewer'));
 const DeliveryTracker = lazy(() => import('@/components/admin/DeliveryTracker').then(m => ({ default: m.DeliveryTracker })));
+const SimCardsManager = lazy(() => import('@/components/admin/SimCardsManager').then(m => ({ default: m.SimCardsManager })));
 
 interface DetailConfig {
   title: string;
@@ -90,6 +91,7 @@ const DETAIL_CONFIGS: Record<string, DetailConfig> = {
   'abdiqafar': { title: 'Abdiqafar', titleSo: 'Abdiqafar', headerBg: 'from-sky-500 to-sky-700' },
   'unmatched': { title: 'Unmatched Payments', titleSo: 'Lacago La Heli Waayay', headerBg: 'from-red-600 to-red-800' },
   'sms-logs': { title: 'SMS Logs', titleSo: 'SMS', headerBg: 'from-indigo-600 to-indigo-800' },
+  'sim-cards': { title: 'SIM Cards', titleSo: 'SIM Cards', headerBg: 'from-fuchsia-600 to-fuchsia-800' },
 };
 
 const LazyFallback = () => (
@@ -154,6 +156,7 @@ const SimpleAdminDetail = () => {
       case 'abdiqafar': return <AbdiqafarView isSo={isSo} />;
       case 'unmatched': return <UnmatchedPayments />;
       case 'sms-logs': return <SmsLogsViewer />;
+      case 'sim-cards': return <SimCardsManager />;
       default: return <LazyFallback />;
     }
   };
