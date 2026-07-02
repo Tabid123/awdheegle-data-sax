@@ -149,7 +149,58 @@ const SimCards = () => {
 
         {/* SIM cards list */}
         <div className="px-4 mt-3 space-y-3">
-          {SIM_CARDS.map((sim) => (
+          {SIM_CARDS.map((sim) => {
+            const hasFree = sim.providers.some((p) => p.free);
+            const onlyOne = sim.providers.length === 1;
+
+            // Compact variant: no free providers OR a single provider — matches reference image
+            if (!hasFree || onlyOne) {
+              const opt = sim.providers[0];
+              return (
+                <div
+                  key={sim.id}
+                  className="relative rounded-2xl bg-card border border-border/60 p-3.5 shadow-sm overflow-hidden"
+                >
+                  {sim.popular && (
+                    <div className="absolute top-0 right-0">
+                      <div className="bg-primary text-primary-foreground text-[10px] font-bold px-6 py-1 rotate-45 translate-x-6 translate-y-2 shadow-md">
+                        POPULAR
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center flex-shrink-0">
+                      {sim.type === 'VIP' ? (
+                        <Star className="w-6 h-6 text-primary fill-primary" />
+                      ) : (
+                        <CreditCard className="w-6 h-6 text-primary" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${typeBadgeClass(sim.type)}`}>
+                          {sim.type}
+                        </span>
+                        <span className="text-[11px] font-semibold text-muted-foreground">{opt.provider}</span>
+                      </div>
+                      <p className="text-sm font-bold text-foreground tracking-tight truncate">{sim.number}</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{sim.features}</p>
+                    </div>
+                    <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                      <span className="text-base font-extrabold text-primary leading-none">{opt.price}</span>
+                      <button
+                        onClick={() => handleBuy(sim)}
+                        className="bg-primary text-primary-foreground text-xs font-bold px-4 py-1.5 rounded-full hover:opacity-90 active:scale-[0.98] transition-all"
+                      >
+                        Iibso
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            return (
             <div
               key={sim.id}
               className="relative rounded-2xl bg-card border border-border/60 p-3.5 shadow-sm overflow-hidden"
@@ -223,7 +274,8 @@ const SimCards = () => {
                 </button>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* How it works */}
