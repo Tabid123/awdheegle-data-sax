@@ -15,6 +15,12 @@ interface DeliveryQueueItem {
   android_device_id: string | null;
   status: string;
   created_at: string;
+  dispatched_at?: string | null;
+  matchedSms?: {
+    message: string;
+    created_at: string;
+    direction?: string | null;
+  } | null;
 }
 
 interface OrderDetail {
