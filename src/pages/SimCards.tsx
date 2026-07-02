@@ -5,21 +5,66 @@ import { BottomNavigation } from '@/components/BottomNavigation';
 
 type SimType = 'PREPAID' | 'GOLD NUMBER' | 'STANDARD' | 'VIP';
 
+interface ProviderOption {
+  provider: string;
+  price: string; // e.g. "$9.00" or "Free"
+  free?: boolean;
+}
+
 interface SimCard {
   id: string;
   type: SimType;
-  provider: string;
   number: string;
-  price: string;
   features: string;
   popular?: boolean;
+  providers: ProviderOption[]; // primary + bundled free providers
 }
 
 const SIM_CARDS: SimCard[] = [
-  { id: '1', type: 'PREPAID', provider: 'Hormuud', number: '+252 61 789 4432', price: '$2.00', features: '5G Ready • Instant Activation' },
-  { id: '2', type: 'GOLD NUMBER', provider: 'Somtel', number: '+252 62 555 0101', price: '$5.00', features: 'Premium • 10GB Welcome Data' },
-  { id: '3', type: 'STANDARD', provider: 'Somnet', number: '+252 68 221 8890', price: '$1.50', features: '4G LTE • Low Roaming Fees' },
-  { id: '4', type: 'VIP', provider: 'Hormuud', number: '+252 61 111 0000', price: '$50.0', features: 'Exclusive Number • Priority Support', popular: true },
+  {
+    id: '1',
+    type: 'PREPAID',
+    number: '+252 61 789 4432',
+    features: '5G Ready • Instant Activation',
+    providers: [
+      { provider: 'Hormuud', price: '$2.00' },
+      { provider: 'Somtel', price: 'Free', free: true },
+      { provider: 'Somnet', price: 'Free', free: true },
+    ],
+  },
+  {
+    id: '2',
+    type: 'GOLD NUMBER',
+    number: '+252 62 555 0101',
+    features: 'Premium • 10GB Welcome Data',
+    providers: [
+      { provider: 'Somtel', price: '$5.00' },
+      { provider: 'Hormuud', price: 'Free', free: true },
+    ],
+  },
+  {
+    id: '3',
+    type: 'STANDARD',
+    number: '+252 61 953 5029',
+    features: '4G LTE • Multi-Network',
+    providers: [
+      { provider: 'Hormuud', price: '$9.00' },
+      { provider: 'Somtel', price: 'Free', free: true },
+      { provider: 'Somnet', price: 'Free', free: true },
+    ],
+  },
+  {
+    id: '4',
+    type: 'VIP',
+    number: '+252 61 111 0000',
+    features: 'Exclusive Number • Priority Support',
+    popular: true,
+    providers: [
+      { provider: 'Hormuud', price: '$50.00' },
+      { provider: 'Somtel', price: 'Free', free: true },
+      { provider: 'Somnet', price: 'Free', free: true },
+    ],
+  },
 ];
 
 const typeBadgeClass = (type: SimType) => {
@@ -37,9 +82,22 @@ const typeBadgeClass = (type: SimType) => {
 
 const SimCards = () => {
   const navigate = useNavigate();
+  const [selectedProvider, setSelectedProvider] = React.useState<Record<string, number>>({});
 
   const handleBuy = (sim: SimCard) => {
-    navigate('/sim-cards/register', { state: { sim } });
+    const idx = selectedProvider[sim.id] ?? 0;
+    const opt = sim.providers[idx];
+    navigate('/sim-cards/register', {
+      state: {
+        sim: {
+          id: sim.id,
+          type: sim.type,
+          number: sim.number,
+          provider: opt.provider,
+          price: opt.price,
+        },
+      },
+    });
   };
 
   return (
@@ -103,7 +161,7 @@ const SimCards = () => {
                   </div>
                 </div>
               )}
-              <div className="flex items-center gap-3">
+              <div className="flex items-start gap-3">
                 <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center flex-shrink-0">
                   {sim.type === 'VIP' ? (
                     <Star className="w-6 h-6 text-primary fill-primary" />
@@ -116,20 +174,53 @@ const SimCards = () => {
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${typeBadgeClass(sim.type)}`}>
                       {sim.type}
                     </span>
-                    <span className="text-xs text-muted-foreground font-medium">{sim.provider}</span>
                   </div>
                   <p className="text-sm font-bold text-foreground tracking-tight">{sim.number}</p>
                   <p className="text-[11px] text-muted-foreground mt-0.5">{sim.features}</p>
                 </div>
-                <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-                  <span className="text-lg font-extrabold text-primary">{sim.price}</span>
-                  <button
-                    onClick={() => handleBuy(sim)}
-                    className="bg-primary text-primary-foreground text-xs font-bold px-4 py-1.5 rounded-lg hover:opacity-90 active:scale-95 transition-all"
-                  >
-                    Iibso
-                  </button>
+              </div>
+
+              {/* Provider chooser */}
+              <div className="mt-3 pt-3 border-t border-border/50">
+                <p className="text-[10px] font-bold tracking-widest text-muted-foreground mb-2">DOORO SHIRKAD</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {sim.providers.map((opt, i) => {
+                    const active = (selectedProvider[sim.id] ?? 0) === i;
+                    return (
+                      <button
+                        key={opt.provider}
+                        onClick={() => setSelectedProvider((s) => ({ ...s, [sim.id]: i }))}
+                        className={`relative flex flex-col items-center justify-center gap-0.5 rounded-xl border-2 py-2 px-1 transition-all ${
+                          active
+                            ? 'border-primary bg-primary/5'
+                            : 'border-border/60 bg-card hover:bg-muted/40'
+                        }`}
+                      >
+                        {opt.free && (
+                          <span className="absolute -top-1.5 -right-1.5 bg-green-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full shadow">
+                            FREE
+                          </span>
+                        )}
+                        <span className={`text-[11px] font-bold ${active ? 'text-primary' : 'text-foreground'}`}>
+                          {opt.provider}
+                        </span>
+                        <span
+                          className={`text-[11px] font-extrabold ${
+                            opt.free ? 'text-green-600 dark:text-green-400' : 'text-primary'
+                          }`}
+                        >
+                          {opt.price}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
+                <button
+                  onClick={() => handleBuy(sim)}
+                  className="mt-3 w-full bg-primary text-primary-foreground text-sm font-bold py-2.5 rounded-xl hover:opacity-90 active:scale-[0.98] transition-all"
+                >
+                  Iibso
+                </button>
               </div>
             </div>
           ))}
