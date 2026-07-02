@@ -25,6 +25,7 @@ import PaymentSuccess from "./pages/PaymentSuccess";
 import OrderHistory from "./pages/OrderHistory";
 import Profile from "./pages/Profile";
 import Notifications from "./pages/Notifications";
+import SimCards from "./pages/SimCards";
 import NotFound from "./pages/NotFound";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -87,6 +88,7 @@ const AppContent = () => {
         <Route path="/history" element={<ProtectedRoute><OrderHistory /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+        <Route path="/sim-cards" element={<ProtectedRoute><SimCards /></ProtectedRoute>} />
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin" element={<AdminDashboard />} />
          <Route path="/simple-admin" element={<SimpleAdminDashboard />} />
