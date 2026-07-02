@@ -110,6 +110,7 @@ Deno.serve(async (req) => {
       });
       httpStatus = resp.status;
       const text = await resp.text();
+      console.log('[waafipay] response', { httpStatus, text });
       try {
         waafiResp = JSON.parse(text);
       } catch {
