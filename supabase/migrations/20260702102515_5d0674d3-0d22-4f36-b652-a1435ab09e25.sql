@@ -1,0 +1,1 @@
+ALTER TABLE public.sim_cards_catalog ADD COLUMN IF NOT EXISTS sold_at TIMESTAMPTZ;

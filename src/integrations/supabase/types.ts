@@ -1903,6 +1903,7 @@ export type Database = {
           popular: boolean
           providers: Json
           sim_type: string
+          sold_at: string | null
           sort_order: number
           updated_at: string
         }
@@ -1916,6 +1917,7 @@ export type Database = {
           popular?: boolean
           providers?: Json
           sim_type?: string
+          sold_at?: string | null
           sort_order?: number
           updated_at?: string
         }
@@ -1929,6 +1931,7 @@ export type Database = {
           popular?: boolean
           providers?: Json
           sim_type?: string
+          sold_at?: string | null
           sort_order?: number
           updated_at?: string
         }
