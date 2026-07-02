@@ -478,6 +478,15 @@ const DataPackages = () => {
         {filteredPackages.map((pkg) => {
           const brandText = getBrandColor(providerName);
           const brandBg = brandText.replace('text-', 'bg-');
+          const brandTintMap: Record<string, string> = {
+            'text-hormuud': 'bg-hormuud/10',
+            'text-somtel': 'bg-somtel/10',
+            'text-somlink': 'bg-somlink/10',
+            'text-somnet': 'bg-somnet/10',
+            'text-amtel': 'bg-amtel/10',
+            'text-primary': 'bg-primary/10',
+          };
+          const brandTint = brandTintMap[brandText] || 'bg-primary/10';
           const isSelected = selectedPackageId === pkg.id;
           return (
             <button
@@ -498,7 +507,7 @@ const DataPackages = () => {
               }`}
             >
               {/* Tinted top band with data amount */}
-              <div className={`${brandBg}/10 px-3 py-5 flex items-center justify-center`}>
+              <div className={`${brandTint} px-3 py-5 flex items-center justify-center`}>
                 <span className={`text-2xl font-extrabold tracking-tight ${brandText}`}>
                   {pkg.data_amount}
                 </span>
