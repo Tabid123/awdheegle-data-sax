@@ -169,13 +169,18 @@ const SimCardConfirm = () => {
       if (data?.success) {
         setPayOpen(false);
         toast({
-          title: 'Lacagta waa la helay',
-          description: 'Waan kula soo xiriiri doonaa 24 saacadood gudahood.',
+          title: '✅ Lacagta si guul leh ayaa loo bixiyay',
+          description: `Transaction ID: ${data.transactionId || '—'}. Waxaad heli doontaa SMS xaqiijin ah, waanan kula soo xiriiri doonaa 24 saacadood gudahood.`,
         });
         navigate('/sim-cards');
       } else {
         const msg = data?.error || 'Lacag bixintu way fashilantay';
-        toast({ title: 'Lacag bixintu way fashilantay', description: msg, variant: 'destructive' });
+        const code = data?.responseCode ? ` (code ${data.responseCode})` : '';
+        toast({
+          title: '❌ Lacag bixintu way fashilantay',
+          description: `${msg}${code}. Fadlan hubi hadhaagaaga & lambarka, kadibna isku day mar kale.`,
+          variant: 'destructive',
+        });
       }
     } catch (err: any) {
       toast({
