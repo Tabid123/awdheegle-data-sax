@@ -474,73 +474,78 @@ const DataPackages = () => {
       </div>
 
       {/* Data Packages */}
-      <div className="p-4 space-y-4">
+      <div className="p-3 grid grid-cols-2 gap-3">
         {filteredPackages.map((pkg) => {
+          const brandText = getBrandColor(providerName);
+          const brandBg = brandText.replace('text-', 'bg-');
+          const brandTintMap: Record<string, string> = {
+            'text-hormuud': 'bg-hormuud/10',
+            'text-somtel': 'bg-somtel/10',
+            'text-somlink': 'bg-somlink/10',
+            'text-somnet': 'bg-somnet/10',
+            'text-amtel': 'bg-amtel/10',
+            'text-primary': 'bg-primary/10',
+          };
+          const brandTint = brandTintMap[brandText] || 'bg-primary/10';
+          const isSelected = selectedPackageId === pkg.id;
           return (
-          <div 
-            key={pkg.id} 
-            ref={(el) => packageRefs.current[pkg.id] = el}
-            className={`bg-card rounded-xl border border-border shadow-sm p-4 transition-all ${
-              selectedPackageId === pkg.id ? 'ring-2 ring-primary shadow-lg' : ''
-            }`}
-          >
-            <div className="flex justify-between items-start mb-2">
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-foreground">{pkg.package_name}</h3>
-              </div>
-              <div className="text-right">
-                <span className="text-sm text-destructive line-through mr-2">
-                  ${formatPrice(pkg.cost_price)}
-                </span>
-                <span className={`text-2xl font-bold ${getBrandColor(providerName)}`}>${formatPrice(pkg.selling_price)}</span>
-              </div>
-            </div>
-            <div className={`h-0.5 mb-3 ${getBrandColor(providerName).replace('text-', 'bg-')}`} style={{ width: '100%' }}></div>
-
-            <div className="space-y-2 mb-4">
-              <div className="flex items-center gap-2">
-                <div 
-                  className="w-5 h-5"
-                  style={{
-                    WebkitMaskImage: `url(${dataIcon})`,
-                    maskImage: `url(${dataIcon})`,
-                    WebkitMaskSize: 'contain',
-                    maskSize: 'contain',
-                    WebkitMaskRepeat: 'no-repeat',
-                    maskRepeat: 'no-repeat',
-                  }}
-                >
-                  <div className={`w-full h-full ${getBrandColor(providerName).replace('text-', 'bg-')}`} />
-                </div>
-                <span className="text-sm text-muted-foreground">{pkg.data_amount}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Smartphone className={`w-4 h-4 ${getBrandColor(providerName)}`} />
-                <span className="text-sm text-muted-foreground">{pkg.connection_type_label || 'Mobile Internet'}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Clock className={`w-4 h-4 ${getBrandColor(providerName)}`} />
-                <span className="text-sm text-muted-foreground">{pkg.validity_days}</span>
-              </div>
-            </div>
-
-            <Button 
-              onClick={() => handlePurchase({ 
+            <button
+              key={pkg.id}
+              ref={(el) => packageRefs.current[pkg.id] = el}
+              onClick={() => handlePurchase({
                 id: pkg.id,
                 providerId: provider,
                 categoryId: pkg.category_id,
-                name: pkg.package_name, 
+                name: pkg.package_name,
                 price: `$${formatPrice(pkg.selling_price)}`,
                 data: pkg.data_amount,
                 validity: pkg.validity_days,
-                ussdCode: pkg.ussd_code
+                ussdCode: pkg.ussd_code,
               })}
-              className={`w-full ${getBrandButtonClass(providerName)} text-white font-semibold py-3 rounded-lg hover:opacity-90 transition-opacity`}
+              className={`group text-left bg-card rounded-2xl border border-border shadow-sm hover:shadow-md active:scale-[0.98] transition-all overflow-hidden flex flex-col ${
+                isSelected ? 'ring-2 ring-primary shadow-lg' : ''
+              }`}
             >
-              IIBSO
-            </Button>
-          </div>
-        )})}
+              {/* Tinted top band with data amount */}
+              <div className={`${brandTint} px-3 py-5 flex items-center justify-center`}>
+                <span className={`text-2xl font-extrabold tracking-tight ${brandText}`}>
+                  {pkg.data_amount}
+                </span>
+              </div>
+
+              {/* Price row */}
+              <div className="px-3 pt-3 flex items-baseline justify-between">
+                <span className="text-lg font-bold text-foreground">
+                  ${formatPrice(pkg.selling_price)}
+                </span>
+                {pkg.cost_price != null && Number(pkg.cost_price) > Number(pkg.selling_price) && (
+                  <span className="text-xs text-muted-foreground line-through">
+                    ${formatPrice(pkg.cost_price)}
+                  </span>
+                )}
+              </div>
+
+              {/* Validity */}
+              <div className="px-3 pt-2 pb-3 text-center">
+                <span className="text-xs text-muted-foreground">
+                  Valid: {pkg.validity_days}
+                </span>
+              </div>
+
+              {/* Bottom meta icons */}
+              <div className="mt-auto border-t border-border/60 px-3 py-2 flex items-center justify-between text-[11px] text-muted-foreground">
+                <div className="flex items-center gap-1">
+                  <Smartphone className={`w-3.5 h-3.5 ${brandText}`} />
+                  <span className="truncate">{pkg.connection_type_label || 'Mobile'}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Clock className={`w-3.5 h-3.5 ${brandText}`} />
+                  <span className="truncate">{pkg.validity_days}</span>
+                </div>
+              </div>
+            </button>
+          );
+        })}
       </div>
 
       {/* Offline Confirmation Screen */}
