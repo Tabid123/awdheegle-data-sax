@@ -1,27 +1,44 @@
-## Cusbooneysii design-ka packages-ka `/packages/:provider`
+## Reversal Alerts Feature — Plan
 
-Waxaan dib u qaabeeyaa kaadhka package kasta oo ku yaal `src/pages/DataPackages.tsx` si uu ula mid noqdo sawirka tixraaca — laakiin **la'aan** "10% OFF" badge, iyo iyadoo la adeegsanayo midabada shirkad-goboleedka (hormuud/somtel/somnet/somlink/amtel).
+Otomaatig u ogow SMS-yada EVCPlus lacag-xirasho ah oo ka soo bandhig ogeysiisyo header-ka admin dashboard-ka.
 
-### Muuqaalka cusub ee kaadhka
-- **Grid 2-tiirar ah** (mobile & desktop) halkii saf keli ah.
-- **Xariiqda sare (soft tinted band)**: waxay ku qaadataa midabka brand-ka `10%` opacity ah oo background ah, oo ka dhigan qaybta pink-tinted ee sawirka. Dhexdeeda:
-  - Data amount aad u weyn oo bold ah (e.g. `850MB`, `2GB`, `28GB`), oo ah midabka brand-ka.
-- **Qaybta hoose**:
-  - Bidix: qiimaha iibinta (`$0.45`) oo bold ah + qiimaha asalka ah oo line-through ah dhinaca midig ee agtiisa (`$0.5`).
-  - `Valid: {validity_days}` xariiq muted ah.
-  - Xariiq hoose oo leh 2 icon oo yar: `Smartphone` icon + `connection_type_label` (tusaale "Mobile Internet"), iyo `Clock` icon + validity. *(Reference-ka wuxuu tusayaa Mins/SMS, laakiin xogtaas kuma jirto `data_packages_config`. Waxaan ku bedelayaa xogta hadda taal si aan u ilaaliyo functionality.)*
-- **Corners**: `rounded-2xl`, shadow yar `shadow-sm hover:shadow-md`, border `border-border`.
-- **Kaadhku dhan wuu la taabtaa** (tap-to-purchase) — sidoo kale kaadhka hoosta wuxuu weli haystaa button `IIBSO` oo yar / ama kaadh-dhan clickable ah (waan ilaalinayaa button-ka `IIBSO`).
-- Sidoo kale waxaan cusbooneysiin doonaa "Offline Confirmation" card gudaha isla file-ka si uu ula mid noqdo qaabkan cusub.
+### 1) Database migration (Supabase)
 
-### Midabada
-- Waxaan adeegsan doonaa helpers hadda jira `getBrandColor` / `getBrandBackgroundClass` (hormuud, somtel, somnet, somlink, amtel) — sidaas bandhig-tinted band iyo data amount labaduba waxay raacaan midabka shirkadda la doortay.
-- Ma jiraan `10% OFF` badge; waa la saarayaa dhammaan noocyada.
+**Table `public.reversal_alerts`:**
+- `id`, `sms_log_id` (nullable ref), `amount numeric`, `sender_phone text`, `ussd_code text`, `sms_body text NOT NULL`, `created_at`, `dismissed_at`, `dismissed_by`
+- GRANTs: `SELECT, UPDATE` → authenticated; `ALL` → service_role
+- RLS enabled + policies:
+  - Admins SELECT via `is_admin(auth.uid())`
+  - Admins UPDATE (dismiss) via `is_admin(auth.uid())`
+- `ALTER PUBLICATION supabase_realtime ADD TABLE public.reversal_alerts`
 
-### Waxa la beddelayo
-- **`src/pages/DataPackages.tsx`** – kaliya file-kan. Grid + kaadh markup ayaa dib loo qoray, laakiin data-fetching, purchase flow, offline logic, iyo state kale wax ma is beddelayaan.
+**Trigger `sms_logs_detect_reversal()`** — AFTER INSERT on `sms_logs`:
+- POSIX regex: `\$[[:space:]]*([0-9]+(?:\.[0-9]+)?|\.[0-9]+)[[:space:]]+ayaa[[:space:]]+waxaa?[[:space:]]+kaa[[:space:]]+xanibay[[:space:]]+(\+?[0-9]{7,15}).*garaac[[:space:]]+([0-9*#+]+)`
+- Amount `.05` → `0.05` normalization
+- Phone: strip non-digits; USSD: keep `[0-9*#+]`
+- Dedupe: skip if same `sms_log_id` or `sms_body` already exists
+- SECURITY DEFINER, `search_path = public`
 
-### Waxa aan taabaneyn
-- Schema-da database — mid cusub lagu darin.
-- API/RPC calls, offline sync, USSD dial flow.
-- Ma jiro badge dhinaca dhinac ah oo "10% OFF" ah (sida uu codsaday).
+**Backfill** ee SMS-yadii hore matching-ka ah.
+
+### 2) Frontend component
+
+**`src/components/admin/ReversalAlertsHeader.tsx`:**
+- `useQuery(['reversal-alerts-24h'])` → `dismissed_at IS NULL AND created_at >= now()-24h`, `refetchInterval: 60_000`
+- Realtime channel inside `useEffect` with cleanup → invalidate query on changes
+- ⚠️ AlertTriangle icon + red badge (semantic tokens `bg-destructive/text-destructive-foreground`), `animate-pulse` when count > 0
+- Popover liis: waqti (`dd MMM HH:mm`), amount bold, sender (`font-mono`), USSD + Copy button (`navigator.clipboard`), "Xaqiiji oo qari" → UPDATE `dismissed_at = now(), dismissed_by = auth.uid()`
+- Somali labels: "Reversal Alerts (24 saac)", "Fariimaha lacag-celin ah ee 24-saacii la soo dhaafay", "Wax reversal ah ma jiraan", "Xaqiiji oo qari", "La koobiyay"
+
+### 3) Integration
+- Ku dar `<ReversalAlertsHeader />` header-ka `SimpleAdminDashboard.tsx` (agagaarka refresh button-ka).
+
+### 4) Verification
+- Insert 5 test SMS rows (kuwa spec-ka) → xaqiiji in `reversal_alerts` uu helo dhammaan 5, oo header badge muujiso `5`.
+- Insert SMS aan pattern-ka lahayn → xaqiiji in aan alert la abuurin.
+- Screenshot header + popover.
+
+### Xusuusin
+- `is_admin(uuid)` horey ayey u jirtaa ✓
+- Ma jiro CHECK constraint — kaliya trigger logic
+- Semantic tokens kaliya (no hardcoded colors)
