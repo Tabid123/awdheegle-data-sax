@@ -1,52 +1,51 @@
-## Waxa la doonayo
+# Qorshaha: WaafiPay API kaliya SIM Card Payment
 
-Ku dar kaadhad cusub oo qurux badan oo "Iibso SIM Card" ah (sida sawirka la soo diray) bogga hore, oo la dhigo ka sarreeya qeybta "Xirmooyinka La Doortay".
+## Baaxadda (Scope)
+- WaafiPay API waxaa loo isticmaalayaa **kaliya** popup-ka lacag-bixinta ee `SimCardConfirm.tsx` (marka "Bixi Hadda" la taabto).
+- Waxa kale oo dhan (dalabyada xirmooyinka, bulk SMS, USSD dispatch, admin dashboards, iwm.) **wax isbadal ah kuma sameynayo** — sida ay hadda u shaqeynayaan ayay u sii shaqeyn doonaan.
 
-## Meesha uu ku dhici doono
+## 1) Database — shax cusub `sim_card_orders`
+Fields:
+- `full_name`, `mother_name`, `guarantor_phone`
+- `sim_provider`, `sim_number`, `sim_type`, `price` (numeric)
+- `payment_provider` (evc / edahab / sahal), `payment_phone`
+- `payment_status` (pending / paid / failed) default `pending`
+- `order_status` (new / processing / delivered / cancelled) default `new`
+- `waafipay_transaction_id`, `waafipay_reference_id`, `waafipay_response` (jsonb), `error_message`
+- `user_id` (nullable — guests OK)
+- `created_at`, `updated_at`
 
-Faylka: `src/pages/ProviderSelection.tsx` (bogga ka soo baxa `/providers` — oo ay ku jiraan Dooro Shirkada iyo Xirmooyinka La Doortay).
+RLS + GRANTs:
+- Authenticated: INSERT + SELECT own rows (`user_id = auth.uid()`).
+- Admin (`is_admin(auth.uid())`): SELECT / UPDATE / DELETE all.
+- service_role: ALL.
+- `GRANT SELECT, INSERT, UPDATE ON public.sim_card_orders TO authenticated; GRANT ALL TO service_role;` (No anon.)
 
-Sida uu u kala hormari doono:
-```
-[Banner rotating]
-[Dooro Shirkada — grid provider-yada]
-[Adeegyada Cusub — Iibso SIM Card card]   ← CUSUB
-[Xirmooyinka La Doortay — PopularPackages]
-[Footer]
-```
+## 2) Edge Function cusub — `waafipay-simcard-payment`
+- Path: `supabase/functions/waafipay-simcard-payment/index.ts` iyo geli `supabase/config.toml` (`verify_jwt = true`).
+- Input: `{ orderId, amount, paymentPhone, paymentProvider }`.
+- Waxay isticmaashaa secrets-ka horeba u jira: `WAAFIPAY_API_USER_ID`, `WAAFIPAY_API_KEY`, `WAAFIPAY_MERCHANT_UID`.
+- Waxay u dirtaa `https://api.waafipay.net/asm` codsi `API_PURCHASE` ah oo `paymentMethod: "MWALLET_ACCOUNT"` leh, `mwalletAccount` waa MSISDN buuxa (`252XXXXXXXX`).
+- Guul (`responseCode = "2001"`) → cusboonaysii row-ga `payment_status='paid'` + kaydso `transactionId`/`referenceId`/`waafipay_response`.
+- Khalad → `payment_status='failed'` + `error_message` (`responseMsg`).
+- Ka celi `{ success, message, transactionId?, error? }`.
 
-## Component-ka cusub
+## 3) Frontend — `src/pages/SimCardConfirm.tsx`
+Beddel `handleConfirm`:
+1. Validate `payNumber` (7-9 digits, normalize prefix `252`).
+2. Insert row cusub `sim_card_orders` (`payment_status='pending'`).
+3. Call `supabase.functions.invoke('waafipay-simcard-payment', { body: {...} })`.
+4. Tus `PaymentLoadingOverlay` inta la sugayo.
+5. Guul → toast "Lacagta waa la helay", xir popup, u geey `/sim-cards`.
+6. Khalad → toast qalad ah oo tusa `responseMsg`; popup furan ha ka dhigo si isku day mar kale loo sameyn karo.
+- WhatsApp send-off waa laga saarayaa qeybtan lacag-bixinta — WaafiPay ayaa hadda default ah.
 
-Component cusub: `src/components/SellSimCard.tsx`
+## 4) Waxa aan la taabanayn
+- UI SIM cards, foomka diiwaangelinta, design-ka xaqiijinta.
+- Dalabyada xirmooyinka (packages), USSD dispatch, bulk SMS, admin dashboards — dhammaan sida ay hadda yihiin.
 
-Naqshadeynta (waafaqsan sawirka + brand-ka Awdheegle):
-- Cinwaan yar oo buluug ah `"Adeegyada Cusub"` kor ku qoran
-- Kaadhad `rounded-2xl` leh `border` khafiif ah oo `bg-card` ah
-- Bidix:
-  - Astaan wareegsan (buluug `bg-primary`) oo leh `Sim` icon lucide-ka
-  - Ciwaan weyn `"Iibso SIM Card"`
-  - Qoraal khafiif ah `"Dalbo SIM kaaga cusub hadda"`
-  - Batan buluug ah `"Bilaw"` oo leh arrow → (rounded-full)
-- Midig: sawir yar oo mockup ah oo SIM card ah (dhinaca kaliya, aan qaadan meel badan)
-- Marka la taabto batan-ka → wuxuu u wareegaa route cusub `/sim-cards` (ama fur WhatsApp — la go'aamin doono marka la implement gareeyo)
-
-## Faahfaahin farsamo
-
-1. Samee `src/components/SellSimCard.tsx`:
-   - Isticmaal `Card` shadcn + `Button`
-   - Icon `Sim` ama `CreditCard` laga soo qaato `lucide-react`
-   - Sawirka SIM-ka: `imagegen` (sawir yar, transparent PNG, style-ka Awdheegle)
-   - `onClick` → `navigate('/sim-cards')` (placeholder — bog cusub markaan sameyno)
-
-2. Ku dar `ProviderSelection.tsx` isla meesha:
-   ```tsx
-   <SellSimCard />
-   <PopularPackages />
-   ```
-
-3. Ma dhisayno bogga `/sim-cards` hadda — kaliya kaadhka bandhig ah.
-
-## Waxa aan la beddelayn
-
-- Hab-shaqeynta bogga hore, phone input, splash, iwm — dhammaan waa la ilaalinayaa.
-- `PopularPackages` iyo `RotatingBanner` waa siday u yihiin.
+## Talaabooyinka fulinta
+1. `supabase--migration` — abuur `sim_card_orders` + RLS + GRANTs + trigger `updated_at`.
+2. Abuur `supabase/functions/waafipay-simcard-payment/index.ts` + geli `config.toml`.
+3. Cusboonaysii `src/pages/SimCardConfirm.tsx` si loo isticmaalo edge function-ka + `PaymentLoadingOverlay`.
+4. Xaqiiji build + tijaabi.
