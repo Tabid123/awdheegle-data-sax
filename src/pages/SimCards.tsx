@@ -216,7 +216,7 @@ const SimCards = () => {
                 >
                   {sim.popular && (
                     <div className="absolute top-0 right-0">
-                      <div className="bg-primary text-primary-foreground text-[7px] font-bold tracking-wider px-5 py-0.5 rotate-45 translate-x-5 translate-y-2 shadow-md whitespace-nowrap">
+                      <div className="bg-primary text-primary-foreground text-[8px] font-bold px-4 py-0.5 rotate-45 translate-x-6 translate-y-1.5 shadow-md">
                         POPULAR
                       </div>
                     </div>
@@ -239,7 +239,7 @@ const SimCards = () => {
                       <p className="text-sm font-bold text-foreground tracking-tight truncate">{sim.number}</p>
                       <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{sim.features}</p>
                     </div>
-                    <div className={`flex flex-row items-center gap-2 flex-shrink-0 ${sim.popular ? 'mt-8' : ''}`}>
+                    <div className={`flex flex-col items-end gap-1.5 flex-shrink-0 ${sim.popular ? 'mt-8' : ''}`}>
                       <span className="text-base font-extrabold text-primary leading-none">{opt.price}</span>
                       <button
                         onClick={() => handleBuy(sim)}
@@ -260,7 +260,7 @@ const SimCards = () => {
             >
               {sim.popular && (
                 <div className="absolute top-0 right-0">
-                  <div className="bg-primary text-primary-foreground text-[7px] font-bold tracking-wider px-5 py-0.5 rotate-45 translate-x-5 translate-y-2 shadow-md whitespace-nowrap">
+                  <div className="bg-primary text-primary-foreground text-[8px] font-bold px-4 py-0.5 rotate-45 translate-x-6 translate-y-1.5 shadow-md">
                     POPULAR
                   </div>
                 </div>
