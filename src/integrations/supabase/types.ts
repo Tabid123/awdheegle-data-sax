@@ -1820,6 +1820,72 @@ export type Database = {
           },
         ]
       }
+      sim_card_orders: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          full_name: string
+          guarantor_phone: string | null
+          id: string
+          mother_name: string | null
+          order_status: string
+          payment_phone: string | null
+          payment_provider: string | null
+          payment_status: string
+          price: number
+          sim_number: string
+          sim_provider: string | null
+          sim_type: string | null
+          updated_at: string
+          user_id: string | null
+          waafipay_reference_id: string | null
+          waafipay_response: Json | null
+          waafipay_transaction_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          full_name: string
+          guarantor_phone?: string | null
+          id?: string
+          mother_name?: string | null
+          order_status?: string
+          payment_phone?: string | null
+          payment_provider?: string | null
+          payment_status?: string
+          price?: number
+          sim_number: string
+          sim_provider?: string | null
+          sim_type?: string | null
+          updated_at?: string
+          user_id?: string | null
+          waafipay_reference_id?: string | null
+          waafipay_response?: Json | null
+          waafipay_transaction_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          full_name?: string
+          guarantor_phone?: string | null
+          id?: string
+          mother_name?: string | null
+          order_status?: string
+          payment_phone?: string | null
+          payment_provider?: string | null
+          payment_status?: string
+          price?: number
+          sim_number?: string
+          sim_provider?: string | null
+          sim_type?: string | null
+          updated_at?: string
+          user_id?: string | null
+          waafipay_reference_id?: string | null
+          waafipay_response?: Json | null
+          waafipay_transaction_id?: string | null
+        }
+        Relationships: []
+      }
       sims: {
         Row: {
           balance: number
