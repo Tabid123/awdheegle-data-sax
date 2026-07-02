@@ -1829,6 +1829,7 @@ export type Database = {
       sim_card_orders: {
         Row: {
           created_at: string
+          date_of_birth: string | null
           error_message: string | null
           full_name: string
           guarantor_phone: string | null
@@ -1850,6 +1851,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          date_of_birth?: string | null
           error_message?: string | null
           full_name: string
           guarantor_phone?: string | null
@@ -1871,6 +1873,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          date_of_birth?: string | null
           error_message?: string | null
           full_name?: string
           guarantor_phone?: string | null

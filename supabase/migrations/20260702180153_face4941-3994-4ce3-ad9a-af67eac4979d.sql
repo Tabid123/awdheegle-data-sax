@@ -1,0 +1,1 @@
+ALTER TABLE public.sim_card_orders ADD COLUMN IF NOT EXISTS date_of_birth DATE;
