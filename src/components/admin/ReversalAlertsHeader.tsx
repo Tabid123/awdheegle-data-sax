@@ -48,7 +48,12 @@ export function ReversalAlertsHeader({ iconClassName, buttonClassName }: Props) 
       .channel('reversal-alerts-header')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'reversal_alerts' },
+        { event: 'INSERT', schema: 'public', table: 'reversal_alerts' },
+        () => queryClient.invalidateQueries({ queryKey: ['reversal-alerts-24h'] })
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'reversal_alerts', filter: 'dismissed_at=is.null' },
         () => queryClient.invalidateQueries({ queryKey: ['reversal-alerts-24h'] })
       )
       .subscribe();
