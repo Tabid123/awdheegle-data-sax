@@ -84,7 +84,8 @@ const typeBadgeClass = (type: SimType) => {
 const SimCards = () => {
   const navigate = useNavigate();
   const [selectedProvider, setSelectedProvider] = React.useState<Record<string, number>>({});
-  const [simList, setSimList] = React.useState<SimCard[]>(FALLBACK_SIMS);
+  const [simList, setSimList] = React.useState<SimCard[]>([]);
+  const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -95,7 +96,7 @@ const SimCards = () => {
         .eq('is_active', true)
         .order('sort_order', { ascending: true });
       if (cancelled) return;
-      if (!error && data && data.length > 0) {
+      if (!error && data) {
         setSimList(
           data.map((r: any) => ({
             id: r.id,
@@ -107,6 +108,7 @@ const SimCards = () => {
           })),
         );
       }
+      setLoading(false);
     };
     load();
     const channel = supabase
