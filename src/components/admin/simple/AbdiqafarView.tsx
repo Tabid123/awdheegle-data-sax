@@ -375,6 +375,14 @@ export const AbdiqafarView = ({ isSo }: { isSo: boolean }) => {
                                 </div>
                                 {dq.provider_response ? (
                                   <span>"{dq.provider_response}"</span>
+                                ) : dq.matchedSms ? (
+                                  <div className="space-y-1">
+                                    <div className="flex items-center gap-1">
+                                      <span className="px-1.5 py-0.5 rounded bg-blue-500 text-white text-[8px] font-bold">📥 SMS-ka la helay</span>
+                                      <span className="text-[9px] text-gray-500">{formatTime(dq.matchedSms.created_at)}</span>
+                                    </div>
+                                    <span>"{dq.matchedSms.message}"</span>
+                                  </div>
                                 ) : (
                                   <span className="italic text-gray-400">Jawaab lama helin</span>
                                 )}
