@@ -163,7 +163,7 @@ const SimCardRegistration = () => {
               <Calendar className="w-4 h-4 text-primary" />
               <h3 className="text-sm font-bold text-foreground">Taariikhda Dhalashada</h3>
             </div>
-            <label className="text-xs font-medium text-foreground">Taariikhda uu dhashay qofka</label>
+            <label className="text-xs font-medium text-foreground">Gali Taariikhdaa dhalatay</label>
             <input
               type="date"
               value={dob}

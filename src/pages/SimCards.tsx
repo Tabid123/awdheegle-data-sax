@@ -350,18 +350,6 @@ const SimCards = () => {
           })}
         </div>
 
-        {/* How it works */}
-        <div className="px-4 mt-5">
-          <div className="rounded-2xl bg-muted/60 border border-border/60 p-4 flex gap-3">
-            <Info className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-            <div>
-              <h4 className="text-sm font-bold text-foreground">How it works</h4>
-              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                After selection, your physical SIM will be delivered within 2 hours in Mogadishu. eSIM activation is instant.
-              </p>
-            </div>
-          </div>
-        </div>
       </div>
 
       <BottomNavigation />
