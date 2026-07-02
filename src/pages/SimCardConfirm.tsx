@@ -97,6 +97,7 @@ const SimCardConfirm = () => {
   const [payProvider, setPayProvider] = useState<string>('');
   const [payNumber, setPayNumber] = useState('');
   const [providers, setProviders] = useState<PayProviderRow[]>([]);
+  const [prefixError, setPrefixError] = useState<string>('');
 
   const selectedProvider = providers.find((p) => p.provider_name === payProvider);
   const activePrefixes = (selectedProvider?.prefixes || []).filter(Boolean);
@@ -106,12 +107,14 @@ const SimCardConfirm = () => {
   // Reset entered number whenever provider changes
   useEffect(() => {
     setPayNumber('');
+    setPrefixError('');
   }, [payProvider]);
 
   const handleNumberChange = (raw: string) => {
     const digits = raw.replace(/\D/g, '').slice(0, 9);
     if (!digits) {
       setPayNumber('');
+      setPrefixError('');
       return;
     }
     if (activePrefixes.length) {
@@ -120,11 +123,16 @@ const SimCardConfirm = () => {
         return digits.slice(0, len) === pfx.slice(0, len);
       });
       if (!matches) {
-        // Reject the typed digit entirely – keep prior value
+        // Reject the typed digit entirely – keep prior value, show clear error
+        const provName = selectedProvider?.display_name || payProvider || 'Shirkadda';
+        setPrefixError(
+          `❌ Lambarkani kuma habboona ${provName}. Waa inuu ku bilowdaa: ${activePrefixes.join(' ama ')}. Tusaale: ${activePrefixes[0]}xxxxxxx`
+        );
         return;
       }
     }
     setPayNumber(digits);
+    setPrefixError('');
   };
 
   useEffect(() => {
@@ -414,14 +422,26 @@ const SimCardConfirm = () => {
             maxLength={9}
             value={payNumber}
             onChange={(e) => handleNumberChange(e.target.value)}
-            className="w-full px-4 py-3.5 rounded-xl bg-muted/60 text-sm font-medium text-foreground placeholder:text-muted-foreground/70 outline-none focus:ring-2 focus:ring-primary/30"
+            className={`w-full px-4 py-3.5 rounded-xl bg-muted/60 text-sm font-medium text-foreground placeholder:text-muted-foreground/70 outline-none focus:ring-2 ${
+              prefixError ? 'ring-2 ring-destructive/60 focus:ring-destructive/60' : 'focus:ring-primary/30'
+            }`}
           />
-          {prefixHint && (
+          {prefixError ? (
+            <div className="mt-2 mb-4 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2">
+              <p className="text-[12px] font-semibold text-destructive leading-snug">
+                {prefixError}
+              </p>
+            </div>
+          ) : prefixHint ? (
             <p className="text-[11px] text-muted-foreground mt-1.5 mb-4">
               Waa inuu ku bilowdaa: <span className="font-bold text-primary">{prefixHint}</span>
+              {activePrefixes[0] && (
+                <span className="text-muted-foreground/70"> · Tusaale: {activePrefixes[0]}xxxxxxx</span>
+              )}
             </p>
+          ) : (
+            <div className="mb-5" />
           )}
-          {!prefixHint && <div className="mb-5" />}
 
           <button
             onClick={handleConfirm}
