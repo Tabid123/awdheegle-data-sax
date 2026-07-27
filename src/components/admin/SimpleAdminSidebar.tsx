@@ -19,7 +19,7 @@ import {
   XCircle, ListOrdered, History, Send, Megaphone, CreditCard,
   BarChart3, AlertTriangle, Wallet, Package, Briefcase, Grid3x3,
   Star, Layers, Zap, ImageIcon, WifiOff, ShieldCheck, FileText,
-  Receipt, Moon, Sun, Globe,
+  Receipt, Moon, Sun, Globe, Banknote,
 } from 'lucide-react';
 import najaxLogo from '@/assets/awdhegle-logo-new.png';
 
@@ -39,6 +39,7 @@ const menuGroups: MenuItem[] = [
       { label: 'Transactions', labelSo: 'Transactions', icon: Receipt, path: '/simple-admin/transactions' },
       { label: 'SMS Lacago', labelSo: 'SMS Lacago', icon: MessageSquare, path: '/simple-admin/sms-lacago' },
       { label: 'E-Voucher Rates', labelSo: 'E-Voucher Rates', icon: Wallet, path: '/simple-admin/evoucher-rates' },
+      { label: 'Bank Transactions', labelSo: 'Lacagaha Bank-ka', icon: Banknote, path: '/simple-admin/bank' },
     ],
   },
   {
