@@ -1,48 +1,82 @@
+# Bank Transactions Feature
 
-# Xal Bishaan — Ka fogow Supabase Upgrade (Realtime sida uu yahay)
+Add a full partner-bank integration: banks push credit transactions via an authenticated edge function, the system auto-matches them to `pending_online_payments`, triggers `activate-package`, and admins manage everything from a new "Lacagaha Bank-ka" screen.
 
-Database-ku 35MB oo kaliya yahay, markaa cidhiidhigu ma aha storage. Cidhiidhiga dhabta ah ee kugu keena upgrade waa **Egress (data-out)** iyo **DB rows** ee sii kordhaya. Realtime waan iska daynayaa sidii uu ahaa.
+## 1. Database migration (single migration)
 
-## Qorshaha (3 qeybood)
+Enable `pgcrypto` in `extensions` schema, then create three tables in the required order (CREATE → GRANT → RLS → POLICY):
 
-### 1) Auto-cleanup xogta duugoobtay
-Samee `cleanup_old_data()` DB function + `pg_cron` maalinle 2:00 subax:
-- `sms_logs` > 60 maalmood → tirtir (~5,700 saf hadda)
-- `payment_receipts` matched > 90 maalmood → tirtir (~2,700)
-- `delivery_queue` completed/cancelled > 30 maalmood → tirtir (~2,850)
-- `pending_online_payments` > 7 maalmood → tirtir (~1,970)
-- `bulk_sms_queue` sent > 30 maalmood → tirtir (~425)
-- `audit_logs` > 60 maalmood, `notifications` la aqriyay > 30 maalmood → tirtir
+- **`bank_credentials`** — `username` (unique), `password_hash` (bcrypt), `is_active`, `notes`, timestamps. Admin-only RLS via `is_admin(auth.uid())`. `updated_at` trigger.
+- **`bank_sessions`** — `credential_id` FK, `token` unique, `expires_at`, `last_used_at`. Admin SELECT only; writes only via service_role (edge functions).
+- **`bank_transactions`** — full column list from the spec including `tran_no` (unique index), `tran_amt`, `narration`, `dr_cr`, `parsed_sender_phone`, `parsed_receiver_phone`, `match_status` (default `unmatched`), `matched_payment_id` → `pending_online_payments`, `matched_order_id` → `orders`, `raw_payload jsonb`, `processed_at`. Composite index `(match_status, created_at desc)` + index on `parsed_sender_phone`. Admin-only RLS, added to `supabase_realtime` publication.
 
-Waxay yareyneysaa DB size ~50%, waxayna ilaalineysaa realtime-ka inuu si degdeg ah u shaqeeyo (rows yar).
+Two SECURITY DEFINER RPCs (`SET search_path = public, extensions`):
 
-### 2) Yaree egress polling-ka
-Realtime channel-ada waa la ilaalinayaa, laakiin polling-ka `setInterval` ee dashboard-yada waa in la yareeyo:
-- `SimpleAdminDashboard`: devices refresh 10s → 30s
-- `AbdiqafarView`: orders refresh 5s → 20s, `.limit(200)` + `created_at >= today`
-- `SimCardsManager` Orders tab: 10s → 30s
-- Ku beddel `select('*')` → columns gaar ah oo laga baahan yahay (yaree payload size)
+- `verify_bank_password(username, password) returns boolean` — compares `password_hash = crypt(password, password_hash)`. EXECUTE to `anon, authenticated, service_role`.
+- `set_bank_credential(p_username, p_password) returns void` — admin-guarded, deactivates existing rows, upserts with `crypt(p_password, gen_salt('bf', 10))`. EXECUTE to `authenticated`.
 
-### 3) Yaree query cost
-- Ku dar index-yo ku saabsan `created_at` (for cleanup DELETE speed)
-- Filter realtime channel-yada: e.g. `ReversalAlertsHeader` kaliya `is_read=eq.false`
-- Ka saar console.log-yada waaweyn ee production
+## 2. Secret
 
-## Faylasha la beddelaayo
+Add `BANK_JWT_SECRET` (64-char generated) — signs the HS256 JWT issued by `bank-login` and verified by `bank-push-transaction`.
 
-**Migration:**
-- `cleanup_old_data()` function + `pg_cron` schedule
-- Index-yo `created_at` haddii aan jirin
+## 3. Edge functions
 
-**Frontend:**
-- `src/pages/SimpleAdminDashboard.tsx` — interval + select columns
-- `src/components/admin/simple/AbdiqafarView.tsx` — interval + limit + date filter
-- `src/components/admin/SimCardsManager.tsx` — interval
-- `src/components/admin/ReversalAlertsHeader.tsx` — realtime filter
+Both listed in `supabase/config.toml` with `verify_jwt = false`. Full CORS on every response, Zod validation, service-role client used internally only.
 
-## Natiijada la filayo
-- DB rows hoos u dhac ~70% (35MB → ~15MB, sii joogtee dheer)
-- Egress hoos u dhac ~40–50% (payloads yaraaday + polling yaraaday)
-- Realtime side same — dhammaan features-ka sida ay yihiin
+**`bank-login`** — POST `{username, password}`:
+1. Zod validate.
+2. Call `verify_bank_password` RPC → 401 on false.
+3. Mint HS256 JWT via `djwt@v3.0.2`: `{sub: username, iss: 'najax-bank', iat, exp: +24h}`.
+4. Insert into `bank_sessions` (token + expiry) so legacy DB-token flow keeps working.
+5. Return `{token, token_type: 'JWT', expires_in: 86400}`.
 
-Ma sii wadaa oo aan implement-gareeyaa?
+**`bank-push-transaction`** — POST with `Authorization: Bearer <token>`:
+1. Try JWT `verify()`; fall back to `bank_sessions` lookup (`token=? AND expires_at>now()`), bump `last_used_at`. Both fail → 401.
+2. Zod validate body (`tran_no` required).
+3. If `dr_cr === 'dr'` → insert as `ignored_debit`, return 200.
+4. Regex `(?:\+?252)?[0-9]{9,12}` to extract `parsed_sender_phone` (first match) and `parsed_receiver_phone` (second match) from `narration`.
+5. Upsert on `tran_no` — duplicates return `{ok:true, duplicate:true}`.
+6. Auto-match: pick `pending_online_payments` with `status='pending'`, last-9-digit `sender_phone` equal, `abs(expected_amount - tran_amt) <= 0.01`, `created_at > now() - 48h`. On hit → mark payment `matched`, mark tx `matched` + `processed_at`, fire-and-forget invoke `activate-package` with `{pendingPaymentId, source:'bank_auto', tranNo}`.
+7. Return `{ok:true, tran_no, match_status}`.
+
+## 4. Frontend component
+
+`src/components/admin/BankTransactions.tsx` — mobile-first, `isSo` toggle. Sections:
+
+1. Header card: `Banknote` icon + title, right-side refresh + green `Bank Credentials` button.
+2. Stat grid (2 cols mobile / 4 desktop): **Wadarta**, **Match**, **Lama Helin**, **Lacagta** (sum of credit rows).
+3. Filters: period pills (Maanta/Shalay/Isbuucan/Bishaan/Dhammaan), status pills (all/matched/unmatched/ignored_debit/failed_parse), search input (tran_no, customer_name, both parsed phones, narration).
+4. API URLs card — copyable Login & Push URLs built from published custom domain or `https://xpqvfcmalgvrpoqwbqtv.supabase.co`.
+5. Transactions table (shadcn) with status badges and `Manual Match` action on unmatched.
+6. Credentials Dialog → `supabase.rpc('set_bank_credential', ...)`, toast on success.
+7. Manual Match Dialog → lists last-48h pending payments, `Match` button performs the two updates + fire-and-forget `activate-package` invoke with `source:'bank_manual'`.
+8. Realtime: single `useEffect`, `supabase.channel(...).on('postgres_changes', {table:'bank_transactions'}, load).subscribe()`, cleanup `removeChannel`.
+9. `useToast`, `date-fns`, lucide icons per spec.
+
+## 5. Wiring
+
+Add a new item to `SimpleAdminSidebar.tsx` under **Payments & Analytics**: label `Bank` (EN) / `Lacagaha Bank-ka` (SO), icon `Banknote`, path `/simple-admin/bank`. Register the route in `SimpleAdminDetail.tsx` rendering `<BankTransactions />`. Admin gating is inherited from the existing admin route guard.
+
+## 6. Verification
+
+After deploy: set credentials in UI → `curl` login → expect JWT. Push a credit tx → row shows within ~1s via realtime. Push same `tran_no` → still one row. Seed a matching `pending_online_payments`, push matching amount+phone → row flips to `matched` and `activate-package` runs.
+
+## Technical notes
+
+```text
+bank flow
+  bank -> POST /bank-login  ── verify_bank_password (bcrypt)
+       <- JWT (24h, HS256)                +  bank_sessions row
+  bank -> POST /bank-push-transaction (Bearer JWT)
+        │
+        ├─ dr  -> ignored_debit
+        └─ cr  -> parse phones -> upsert on tran_no
+                          └─ auto-match pending_online_payments (±$0.01, 48h)
+                                    └─ invoke activate-package
+```
+
+- `pgcrypto` in `extensions` schema; RPC search_path includes `extensions`.
+- All new tables + RPCs live in `public`; each `CREATE TABLE` immediately followed by GRANTs to `authenticated` + `service_role` (no `anon` — admin-only), then RLS enable + policies using `public.is_admin(auth.uid())`.
+- `bank_transactions` added to `supabase_realtime` publication so the dashboard updates live.
+- Component follows the project's Realtime rule: subscribe inside `useEffect`, always `removeChannel` on cleanup.
+- `service_role_key` is used only inside edge functions via `Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')`; frontend uses the existing anon client.
