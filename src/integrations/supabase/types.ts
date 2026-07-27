@@ -411,6 +411,170 @@ export type Database = {
         }
         Relationships: []
       }
+      bank_credentials: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          notes: string | null
+          password_hash: string
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          password_hash: string
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          password_hash?: string
+          updated_at?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      bank_sessions: {
+        Row: {
+          created_at: string
+          credential_id: string
+          expires_at: string
+          id: string
+          last_used_at: string | null
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          credential_id: string
+          expires_at: string
+          id?: string
+          last_used_at?: string | null
+          token: string
+        }
+        Update: {
+          created_at?: string
+          credential_id?: string
+          expires_at?: string
+          id?: string
+          last_used_at?: string | null
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_sessions_credential_id_fkey"
+            columns: ["credential_id"]
+            isOneToOne: false
+            referencedRelation: "bank_credentials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bank_transactions: {
+        Row: {
+          acc_no: string | null
+          charge_amt: number | null
+          created_at: string
+          currency_code: string | null
+          customer_name: string | null
+          dr_cr: string | null
+          id: string
+          match_notes: string | null
+          match_status: string
+          matched_order_id: string | null
+          matched_payment_id: string | null
+          narration: string | null
+          parsed_receiver_phone: string | null
+          parsed_sender_phone: string | null
+          processed_at: string | null
+          raw_payload: Json | null
+          rrp_no: string | null
+          tran_amt: number
+          tran_date: string | null
+          tran_date_time: string | null
+          tran_desc: string | null
+          tran_no: string
+          tran_type: string | null
+          user_id_field: string | null
+          uti: string | null
+        }
+        Insert: {
+          acc_no?: string | null
+          charge_amt?: number | null
+          created_at?: string
+          currency_code?: string | null
+          customer_name?: string | null
+          dr_cr?: string | null
+          id?: string
+          match_notes?: string | null
+          match_status?: string
+          matched_order_id?: string | null
+          matched_payment_id?: string | null
+          narration?: string | null
+          parsed_receiver_phone?: string | null
+          parsed_sender_phone?: string | null
+          processed_at?: string | null
+          raw_payload?: Json | null
+          rrp_no?: string | null
+          tran_amt: number
+          tran_date?: string | null
+          tran_date_time?: string | null
+          tran_desc?: string | null
+          tran_no: string
+          tran_type?: string | null
+          user_id_field?: string | null
+          uti?: string | null
+        }
+        Update: {
+          acc_no?: string | null
+          charge_amt?: number | null
+          created_at?: string
+          currency_code?: string | null
+          customer_name?: string | null
+          dr_cr?: string | null
+          id?: string
+          match_notes?: string | null
+          match_status?: string
+          matched_order_id?: string | null
+          matched_payment_id?: string | null
+          narration?: string | null
+          parsed_receiver_phone?: string | null
+          parsed_sender_phone?: string | null
+          processed_at?: string | null
+          raw_payload?: Json | null
+          rrp_no?: string | null
+          tran_amt?: number
+          tran_date?: string | null
+          tran_date_time?: string | null
+          tran_desc?: string | null
+          tran_no?: string
+          tran_type?: string | null
+          user_id_field?: string | null
+          uti?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_transactions_matched_order_id_fkey"
+            columns: ["matched_order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_transactions_matched_payment_id_fkey"
+            columns: ["matched_payment_id"]
+            isOneToOne: false
+            referencedRelation: "pending_online_payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       banners_config: {
         Row: {
           alt_text: string | null
@@ -2424,6 +2588,14 @@ export type Database = {
       retry_bulk_sms_campaign: {
         Args: { p_campaign_id: string }
         Returns: Json
+      }
+      set_bank_credential: {
+        Args: { p_password: string; p_username: string }
+        Returns: undefined
+      }
+      verify_bank_password: {
+        Args: { p_password: string; p_username: string }
+        Returns: boolean
       }
     }
     Enums: {

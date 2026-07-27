@@ -2,3 +2,9 @@ project_id = "xpqvfcmalgvrpoqwbqtv"
 
 [functions.waafipay-simcard-payment]
 verify_jwt = false
+
+[functions.bank-login]
+verify_jwt = false
+
+[functions.bank-push-transaction]
+verify_jwt = false
