@@ -145,8 +145,8 @@ export default function BankTransactions() {
     return { total, matched, unmatched, totalAmount };
   }, [filtered]);
 
-  const loginUrl = 'https://iftinbanks.site/functions/v1/bank-login';
-  const pushUrl = 'https://iftinbanks.site/functions/v1/bank-push-transaction';
+const loginUrl = 'https://awdheegle.iftinbanks.site/functions/v1/bank-login';
+const pushUrl = 'https://awdheegle.iftinbanks.site/functions/v1/bank-push-transaction';
   
   const copy = async (text: string) => {
     try {
