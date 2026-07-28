@@ -145,17 +145,9 @@ export default function BankTransactions() {
     return { total, matched, unmatched, totalAmount };
   }, [filtered]);
 
-  const base = (() => {
-    try {
-      const publishedHosts = ['awdheegledata.com', 'www.awdheegledata.com', 'awdhegledata.lovable.app'];
-      const host = window.location.hostname;
-      if (publishedHosts.includes(host)) return `https://${host}`;
-    } catch {}
-    return 'https://xpqvfcmalgvrpoqwbqtv.supabase.co';
-  })();
-  const loginUrl = `${base.includes('supabase.co') ? base : 'https://xpqvfcmalgvrpoqwbqtv.supabase.co'}/functions/v1/bank-login`;
-  const pushUrl = `${base.includes('supabase.co') ? base : 'https://xpqvfcmalgvrpoqwbqtv.supabase.co'}/functions/v1/bank-push-transaction`;
-
+  const loginUrl = 'https://iftinbanks.site/functions/v1/bank-login';
+  const pushUrl = 'https://iftinbanks.site/functions/v1/bank-push-transaction';
+  
   const copy = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
