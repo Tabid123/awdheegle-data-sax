@@ -328,7 +328,8 @@ export const AbdiqafarView = ({ isSo }: { isSo: boolean }) => {
             <span className="text-right">Price</span>
           </div>
 
-          {filtered.map((order, idx) => {
+          {paged.pageItems.map((order, i) => {
+            const idx = paged.offset + i;
             const profit = (order.selling_price * (1 + (order.evoucher_rate || 0))) - (order.cost_price || 0);
             const displayStatus = order.delivery_status || order.status;
             const isExpanded = expandedId === order.id;
@@ -429,6 +430,7 @@ export const AbdiqafarView = ({ isSo }: { isSo: boolean }) => {
               </div>
             );
           })}
+          <Paginator page={paged.page} totalPages={paged.totalPages} total={paged.total} onPage={paged.setPage} isSo={isSo} />
         </div>
       )}
       {retryDialog && (
