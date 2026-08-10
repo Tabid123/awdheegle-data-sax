@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useRealtimeRefresh } from '@/hooks/useRealtimeRefresh';
-import { LazyFallback, EmptyState, SearchInput, formatPhone, formatDate, formatTime } from './shared';
+import { LazyFallback, EmptyState, SearchInput, Paginator, usePagedList, formatPhone, formatDate, formatTime } from './shared';
 import { CheckCircle, XCircle, RotateCcw, Clock, ChevronDown, X } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -205,6 +205,8 @@ export const AbdiqafarView = ({ isSo }: { isSo: boolean }) => {
     o.package_name?.toLowerCase().includes(search.toLowerCase())
   );
 
+  const paged = usePagedList(filtered);
+
   const markDelivered = async (id: string) => {
     const now = new Date().toISOString();
     await supabase.from('orders').update({
@@ -326,7 +328,8 @@ export const AbdiqafarView = ({ isSo }: { isSo: boolean }) => {
             <span className="text-right">Price</span>
           </div>
 
-          {filtered.map((order, idx) => {
+          {paged.pageItems.map((order, i) => {
+            const idx = paged.offset + i;
             const profit = (order.selling_price * (1 + (order.evoucher_rate || 0))) - (order.cost_price || 0);
             const displayStatus = order.delivery_status || order.status;
             const isExpanded = expandedId === order.id;
@@ -427,6 +430,7 @@ export const AbdiqafarView = ({ isSo }: { isSo: boolean }) => {
               </div>
             );
           })}
+          <Paginator page={paged.page} totalPages={paged.totalPages} total={paged.total} onPage={paged.setPage} isSo={isSo} />
         </div>
       )}
       {retryDialog && (

@@ -7,6 +7,7 @@ import { useRealtimeRefresh } from '@/hooks/useRealtimeRefresh';
 import {
   StatCardsRow, FilterRow, SearchInput, InvoiceAccordionContent,
   ActionBtn, LazyFallback, EmptyState, useOrderActions,
+  Paginator, usePagedList,
   formatPhone, formatDate, formatTime,
   Package, DollarSign, CheckCircle, XCircle, Clock, Calendar, Phone, Hash, User, CreditCard, RotateCcw, ChevronDown, Code,
 } from './shared';
@@ -147,6 +148,7 @@ export const DailyOrdersCustomView = ({ isSo }: { isSo: boolean }) => {
   }).filter(o => !searchQuery || o.receiver_phone?.includes(searchQuery) || o.customer_phone?.includes(searchQuery) || o.package_name?.toLowerCase().includes(searchQuery.toLowerCase()));
 
   const deliveredCount = orders.filter(o => o.delivery_status === 'delivered').length;
+  const paged = usePagedList(filtered);
   const pendingCount = orders.filter(o => o.delivery_status === 'pending' && o.status === 'completed').length;
   const failedCount = orders.filter(o => o.delivery_status === 'failed').length;
   const totalRevenue = orders.filter(o => o.status === 'completed').reduce((s, o) => s + Number(o.selling_price || 0), 0);
@@ -180,7 +182,10 @@ export const DailyOrdersCustomView = ({ isSo }: { isSo: boolean }) => {
       ]} activeKey={statusFilter} onSelect={setStatusFilter} />
       <SearchInput value={searchQuery} onChange={setSearchQuery} placeholder={isSo ? 'Raadi...' : 'Search...'} />
       {loading ? <LazyFallback /> : filtered.length === 0 ? <EmptyState message={isSo ? 'Wax dalab ah lama helin' : 'No orders found'} /> : (
-        <div className="space-y-2">{filtered.map((item, idx) => <OrderAccordionItem key={item.id} item={item} idx={idx} expandedId={expandedId} setExpandedId={setExpandedId} isSo={isSo} actions={actions} />)}</div>
+        <>
+          <div className="space-y-2">{paged.pageItems.map((item, idx) => <OrderAccordionItem key={item.id} item={item} idx={paged.offset + idx} expandedId={expandedId} setExpandedId={setExpandedId} isSo={isSo} actions={actions} />)}</div>
+          <Paginator page={paged.page} totalPages={paged.totalPages} total={paged.total} onPage={paged.setPage} isSo={isSo} />
+        </>
       )}
     </div>
   );
@@ -230,6 +235,7 @@ export const OrdersListView = ({ isSo, type }: { isSo: boolean; type: string }) 
   const totalRev = orders.reduce((s, o) => s + Number(o.selling_price || 0), 0);
   const deliveredC = orders.filter(o => o.delivery_status === 'delivered').length;
   const failedC = orders.filter(o => o.delivery_status === 'failed').length;
+  const paged = usePagedList(filtered);
 
   return (
     <div className="space-y-3">
@@ -241,7 +247,10 @@ export const OrdersListView = ({ isSo, type }: { isSo: boolean; type: string }) 
       ]} />
       <SearchInput value={search} onChange={setSearch} placeholder={isSo ? 'Raadi lambarka ama package...' : 'Search phone or package...'} />
       {loading ? <LazyFallback /> : filtered.length === 0 ? <EmptyState message={isSo ? 'Wax dalab ah lama helin' : 'No orders found'} /> : (
-        <div className="space-y-2">{filtered.map((item, idx) => <OrderAccordionItem key={item.id} item={item} idx={idx} expandedId={expandedId} setExpandedId={setExpandedId} isSo={isSo} actions={actions} />)}</div>
+        <>
+          <div className="space-y-2">{paged.pageItems.map((item, idx) => <OrderAccordionItem key={item.id} item={item} idx={paged.offset + idx} expandedId={expandedId} setExpandedId={setExpandedId} isSo={isSo} actions={actions} />)}</div>
+          <Paginator page={paged.page} totalPages={paged.totalPages} total={paged.total} onPage={paged.setPage} isSo={isSo} />
+        </>
       )}
     </div>
   );
