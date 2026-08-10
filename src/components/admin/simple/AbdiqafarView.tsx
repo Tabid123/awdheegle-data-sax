@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useRealtimeRefresh } from '@/hooks/useRealtimeRefresh';
-import { LazyFallback, EmptyState, SearchInput, formatPhone, formatDate, formatTime } from './shared';
+import { LazyFallback, EmptyState, SearchInput, Paginator, usePagedList, formatPhone, formatDate, formatTime } from './shared';
 import { CheckCircle, XCircle, RotateCcw, Clock, ChevronDown, X } from 'lucide-react';
 import { toast } from 'sonner';
 
