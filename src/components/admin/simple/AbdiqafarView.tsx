@@ -123,7 +123,7 @@ export const AbdiqafarView = ({ isSo }: { isSo: boolean }) => {
             .from('sms_logs')
             .select('device_id, message, created_at, direction, phone_number, amount')
             .in('device_id', deviceUuids)
-            .eq('direction', 'inbound')
+            .not('direction', 'in', '("sms_out","outgoing")')
             .gte('created_at', new Date(earliestTs).toISOString())
             .order('created_at', { ascending: true })
             .limit(300);
