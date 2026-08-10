@@ -152,6 +152,50 @@ export const EmptyState = ({ message }: { message: string }) => (
 );
 
 // ========== IMAGE UPLOADER ==========
+export const PAGE_SIZE = 20;
+
+export const usePagedList = <T,>(items: T[], pageSize: number = PAGE_SIZE) => {
+  const [page, setPage] = React.useState(0);
+  const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
+  const safePage = Math.min(page, totalPages - 1);
+  React.useEffect(() => { setPage(0); }, [items.length]);
+  return {
+    page: safePage,
+    setPage,
+    totalPages,
+    total: items.length,
+    offset: safePage * pageSize,
+    pageItems: items.slice(safePage * pageSize, safePage * pageSize + pageSize),
+  };
+};
+
+export const Paginator = ({ page, totalPages, total, onPage, isSo }: {
+  page: number; totalPages: number; total: number; onPage: (p: number) => void; isSo: boolean;
+}) => {
+  if (total === 0) return null;
+  return (
+    <div className="flex items-center justify-between gap-2 pt-1">
+      <button
+        onClick={() => onPage(Math.max(0, page - 1))}
+        disabled={page === 0}
+        className="px-3 py-2 rounded-lg text-xs font-bold bg-accent text-foreground disabled:opacity-40"
+      >
+        ← {isSo ? 'Hore' : 'Prev'}
+      </button>
+      <span className="text-[11px] font-medium text-muted-foreground">
+        {isSo ? 'Bogga' : 'Page'} {page + 1}/{totalPages} · {total} {isSo ? 'dalab' : 'items'}
+      </span>
+      <button
+        onClick={() => onPage(Math.min(totalPages - 1, page + 1))}
+        disabled={page >= totalPages - 1}
+        className="px-3 py-2 rounded-lg text-xs font-bold bg-purple-600 text-white disabled:opacity-40"
+      >
+        {isSo ? 'Xiga' : 'Next'} →
+      </button>
+    </div>
+  );
+};
+
 export const ImageUploader = ({ value, onChange, bucket, label }: { value: string; onChange: (url: string) => void; bucket: string; label: string }) => {
   const [uploading, setUploading] = useState(false);
 
