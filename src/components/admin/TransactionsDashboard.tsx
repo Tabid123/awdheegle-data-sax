@@ -30,7 +30,7 @@ interface Transaction {
   paid_via_secret_price?: boolean;
 }
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 20;
 
 const calculateProfit = (sellingPrice: number, costPrice: number, evoucherRate: number): number => {
   const commission = sellingPrice * evoucherRate;
