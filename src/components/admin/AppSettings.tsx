@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import DataRetentionSettings from './DataRetentionSettings';
 
 interface AppSetting {
   id: string;
@@ -53,7 +54,9 @@ const AppSettings = () => {
       </div>
 
       <div className="space-y-4">
-        {settings.map((setting) => {
+        <DataRetentionSettings />
+
+        {settings.filter((s) => s.setting_key !== 'data_retention_days').map((setting) => {
           const isBool = typeof setting.setting_value === 'boolean';
           return (
             <Card key={setting.id} className="p-4">
