@@ -89,7 +89,10 @@ export const AbdiqafarView = ({ isSo }: { isSo: boolean }) => {
       const end = new Date(toDate + 'T23:59:59.999');
 
       const [ordersRes, deliveryRes, providersRes, devicesRes] = await Promise.all([
-        supabase.from('orders').select('*').gte('created_at', start.toISOString()).lte('created_at', end.toISOString()).order('created_at', { ascending: false }).limit(500),
+        supabase.from('orders')
+          .select('id, order_number, status, delivery_status, sender_phone, receiver_phone, customer_phone, package_name, data_amount, selling_price, cost_price, provider_id, created_at, delivered_at')
+          .gte('created_at', start.toISOString()).lte('created_at', end.toISOString())
+          .order('created_at', { ascending: false }).limit(200),
         supabase.from('delivery_queue').select('id, order_id, ussd_code, provider_response, sim_slot, android_device_id, status, created_at, dispatched_at').gte('created_at', start.toISOString()).lte('created_at', end.toISOString()),
         supabase.from('providers_config').select('id, provider_name, evoucher_rate'),
         supabase.from('android_devices').select('id, device_id, device_name, sim_number, sim2_number'),
@@ -120,9 +123,10 @@ export const AbdiqafarView = ({ isSo }: { isSo: boolean }) => {
             .from('sms_logs')
             .select('device_id, message, created_at, direction, phone_number, amount')
             .in('device_id', deviceUuids)
+            .not('direction', 'in', '("sms_out","outgoing")')
             .gte('created_at', new Date(earliestTs).toISOString())
             .order('created_at', { ascending: true })
-            .limit(2000);
+            .limit(300);
           smsLogs = smsRows || [];
           // Attach best match per delivery
           missingDeliveries.forEach(dq => {

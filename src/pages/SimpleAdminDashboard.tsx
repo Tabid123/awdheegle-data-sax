@@ -219,10 +219,20 @@ const SimpleAdminDashboard = () => {
         unmatchedQuery = unmatchedQuery.gte('created_at', periodStartISO);
       }
 
-      // Look back 2 days of SMS to recover the latest reported balance per SIM.
-      const smsLookbackISO = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
+      // Look back 12 hours of SMS to recover the latest reported balance per SIM
+      // (kept small on purpose: sms_body is the heaviest payload we transfer).
+      const smsLookbackISO = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString();
+      // Only fetch the orders we actually use (today + selected custom day),
+      // never the whole table.
+      const ordersFromISO = useCustomDate
+        ? (customStartISO < todayISO ? customStartISO : todayISO)
+        : todayISO;
       const [ordersRes, devicesRes, balancesRes, providersRes, deliveryRes, analyticsRes, unmatchedRes, smsRes] = await Promise.all([
-        supabase.from('orders').select('id, status, delivery_status, selling_price, cost_price, created_at, provider_id'),
+        supabase.from('orders')
+          .select('id, delivery_status, selling_price, cost_price, created_at, provider_id')
+          .gte('created_at', ordersFromISO)
+          .order('created_at', { ascending: false })
+          .limit(1000),
         supabase.from('android_devices').select('id, device_id, device_name, provider_name, sim1_provider, sim2_provider, sim_number, sim2_number, last_ping_at, is_active, battery_level, is_charging').eq('is_active', true),
         supabase.from('sim_balances').select('device_id, sim_slot, balance, balance_type, last_updated'),
         supabase.from('providers_config').select('id, evoucher_rate, provider_name, provider_logo'),
@@ -232,8 +242,9 @@ const SimpleAdminDashboard = () => {
         supabase.from('sms_logs')
           .select('device_id, sim_slot, tx_type, sms_body, created_at')
           .gte('created_at', smsLookbackISO)
+          .not('tx_type', 'is', null)
           .order('created_at', { ascending: false })
-          .limit(2000),
+          .limit(400),
       ]);
 
       const providerRates = providersRes.data || [];
