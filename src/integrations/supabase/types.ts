@@ -1345,6 +1345,51 @@ export type Database = {
           },
         ]
       }
+      order_stats_daily: {
+        Row: {
+          cancelled_orders: number
+          completed_orders: number
+          created_at: string
+          failed_orders: number
+          id: string
+          provider_name: string
+          stat_date: string
+          total_cost: number
+          total_orders: number
+          total_profit: number
+          total_revenue: number
+          updated_at: string
+        }
+        Insert: {
+          cancelled_orders?: number
+          completed_orders?: number
+          created_at?: string
+          failed_orders?: number
+          id?: string
+          provider_name?: string
+          stat_date: string
+          total_cost?: number
+          total_orders?: number
+          total_profit?: number
+          total_revenue?: number
+          updated_at?: string
+        }
+        Update: {
+          cancelled_orders?: number
+          completed_orders?: number
+          created_at?: string
+          failed_orders?: number
+          id?: string
+          provider_name?: string
+          stat_date?: string
+          total_cost?: number
+          total_orders?: number
+          total_profit?: number
+          total_revenue?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           amount: number
@@ -2588,6 +2633,10 @@ export type Database = {
       retry_bulk_sms_campaign: {
         Args: { p_campaign_id: string }
         Returns: Json
+      }
+      rollup_order_stats: {
+        Args: { p_older_than_days?: number }
+        Returns: number
       }
       set_bank_credential: {
         Args: { p_password: string; p_username: string }
