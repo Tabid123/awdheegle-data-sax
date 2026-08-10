@@ -205,6 +205,8 @@ export const AbdiqafarView = ({ isSo }: { isSo: boolean }) => {
     o.package_name?.toLowerCase().includes(search.toLowerCase())
   );
 
+  const paged = usePagedList(filtered);
+
   const markDelivered = async (id: string) => {
     const now = new Date().toISOString();
     await supabase.from('orders').update({
