@@ -2428,6 +2428,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_run_cleanup: { Args: never; Returns: Json }
       auto_recover_stuck_deliveries: {
         Args: { p_timeout_minutes?: number }
         Returns: Json
@@ -2550,6 +2551,7 @@ export type Database = {
           validity_days: number
         }[]
       }
+      get_data_retention_days: { Args: never; Returns: number }
       get_featured_packages: {
         Args: never
         Returns: {
@@ -2642,6 +2644,7 @@ export type Database = {
         Args: { p_password: string; p_username: string }
         Returns: undefined
       }
+      set_data_retention_days: { Args: { p_days: number }; Returns: number }
       verify_bank_password: {
         Args: { p_password: string; p_username: string }
         Returns: boolean
