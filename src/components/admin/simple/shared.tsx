@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Search, Loader2, Upload, DollarSign, Calendar, Phone, Hash, FileText, Clock,
