@@ -142,6 +142,36 @@ export const ProvidersCustomView = ({ isSo }: { isSo: boolean }) => {
 };
 
 // ========== PACKAGES ==========
+const EMPTY_PKG = {
+  package_name: '', data_amount: '', selling_price: '', cost_price: '', secret_price: '',
+  validity_days: '30', provider_id: '', category_id: '', ussd_code: '', connection_type_label: 'Data',
+  menu1: '', menu2: '', menu3: '', sim_password: '', is_ussd_only: false, is_discovery_root: false,
+};
+
+// USSD flow presets — the dial part only. Menus live in Menu1/2/3.
+const USSD_PRESETS = [
+  { label: '*870 Hormuud', dial: '*870*{receiver_phone}#' },
+  { label: '*866 Somnet', dial: '*866*{receiver_phone}#' },
+  { label: '*101 Somtel', dial: '*101#' },
+  { label: '*212 Maamuus (discovery)', dial: '*212*{receiver_phone}#' },
+];
+
+/** Builds `<dial>|<Menu1>,<Menu2>,<Menu3>` — nothing after `|` is ever dialed. */
+const composeUssdTemplate = (dial: string, menus: string[]) => {
+  const base = (dial || '').split('|')[0].trim();
+  const path = menus.map(m => (m || '').trim()).filter(Boolean);
+  if (!base) return null;
+  return path.length ? `${base}|${path.join(',')}` : base;
+};
+
+const splitUssdTemplate = (template?: string | null) => {
+  const raw = (template || '').trim();
+  const dial = raw.split('|')[0].trim();
+  const menus = raw.includes('|') ? raw.split('|')[1].split(',').map(s => s.trim()) : [];
+  return { dial, menu1: menus[0] || '', menu2: menus[1] || '', menu3: menus[2] || '' };
+};
+
+
 export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
   const [packages, setPackages] = useState<any[]>([]);
   const [providers, setProviders] = useState<any[]>([]);
@@ -152,7 +182,7 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
   const [providerFilter, setProviderFilter] = useState<string>('all');
   const [showAdd, setShowAdd] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [newPkg, setNewPkg] = useState({ package_name: '', data_amount: '', selling_price: '', cost_price: '', secret_price: '', validity_days: '30', provider_id: '', category_id: '', ussd_code: '', connection_type_label: 'Data' });
+  const [newPkg, setNewPkg] = useState({ ...EMPTY_PKG });
 
   const loadPackages = useCallback(async () => {
     const [pkgRes, provRes, catRes] = await Promise.all([
@@ -198,8 +228,11 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
       validity_days: newPkg.validity_days ? parseInt(String(newPkg.validity_days), 10) : null,
       provider_id: newPkg.provider_id,
       category_id: newPkg.category_id || null,
-      ussd_code: newPkg.ussd_code || null,
-      ussd_template: newPkg.ussd_code || null,
+      ussd_code: composeUssdTemplate(newPkg.ussd_code, [newPkg.menu1, newPkg.menu2, newPkg.menu3]),
+      ussd_template: composeUssdTemplate(newPkg.ussd_code, [newPkg.menu1, newPkg.menu2, newPkg.menu3]),
+      sim_password: newPkg.sim_password || null,
+      is_ussd_only: !!newPkg.is_ussd_only,
+      is_discovery_root: !!newPkg.is_discovery_root,
       connection_type_label: newPkg.connection_type_label,
     };
     if (editingId) {
@@ -213,21 +246,25 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
       setPackages(prev => [data, ...prev]);
       toast.success(isSo ? 'Waa lagu daray' : 'Added');
     }
-    setNewPkg({ package_name: '', data_amount: '', selling_price: '', cost_price: '', secret_price: '', validity_days: '30', provider_id: '', category_id: '', ussd_code: '', connection_type_label: 'Data' });
+    setNewPkg({ ...EMPTY_PKG });
     setShowAdd(false); setEditingId(null);
   };
 
   const startEditPkg = (item: any) => {
     setEditingId(item.id);
+    const parts = splitUssdTemplate(item.ussd_code || item.ussd_template);
     setNewPkg({
       package_name: item.package_name || '', data_amount: item.data_amount || '', selling_price: String(item.selling_price || ''),
       cost_price: String(item.cost_price || ''),
       secret_price: Array.isArray(item.secret_price) ? item.secret_price.join(', ') : (item.secret_price ?? ''),
       validity_days: item.validity_days || '30', provider_id: item.provider_id || '',
-      category_id: item.category_id || '', ussd_code: item.ussd_code || '', connection_type_label: item.connection_type_label || 'Data',
+      category_id: item.category_id || '', ussd_code: parts.dial, connection_type_label: item.connection_type_label || 'Data',
+      menu1: parts.menu1, menu2: parts.menu2, menu3: parts.menu3,
+      sim_password: item.sim_password || '', is_ussd_only: !!item.is_ussd_only, is_discovery_root: !!item.is_discovery_root,
     });
     setShowAdd(true); setExpandedId(null);
   };
+
 
   const providerFiltered = providerFilter === 'all' ? packages : packages.filter(p => p.provider_id === providerFilter);
   const activeCount = providerFiltered.filter(p => p.is_active).length;
@@ -334,7 +371,7 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
       <ProviderFilterRow providers={providers} activeId={providerFilter} onSelect={setProviderFilter}
         activeColor="bg-cyan-600" totalCount={packages.length} allLabel={isSo ? 'Dhammaan' : 'All'}
         countFn={id => packages.filter(p => p.provider_id === id).length} />
-      <button onClick={() => { setShowAdd(!showAdd); setEditingId(null); setNewPkg({ package_name: '', data_amount: '', selling_price: '', cost_price: '', secret_price: '', validity_days: '30', provider_id: '', category_id: '', ussd_code: '', connection_type_label: 'Data' }); }}
+      <button onClick={() => { setShowAdd(!showAdd); setEditingId(null); setNewPkg({ ...EMPTY_PKG }); }}
         className="w-full py-2.5 bg-gradient-to-r from-cyan-500 to-cyan-600 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-1.5 active:scale-[0.98]">
         <Plus className="w-4 h-4" /> {isSo ? 'Package Cusub Ku Dar' : 'Add New Package'}
       </button>
@@ -360,7 +397,41 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
             <input value={newPkg.selling_price} onChange={e => setNewPkg(p => ({...p, selling_price: e.target.value}))} placeholder="Sell Price *" type="number" className="px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none" />
             <input value={newPkg.cost_price} onChange={e => setNewPkg(p => ({...p, cost_price: e.target.value}))} placeholder="Cost Price" type="number" className="px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none" />
           </div>
-          <input value={newPkg.ussd_code} onChange={e => setNewPkg(p => ({...p, ussd_code: e.target.value}))} placeholder="USSD Code (optional)" className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none font-mono" />
+          {/* ---- USSD flow builder ---- */}
+          <div className="rounded-lg border border-indigo-200 dark:border-indigo-800 bg-indigo-50/60 dark:bg-indigo-900/20 p-2 space-y-2">
+            <div className="text-[11px] font-bold text-indigo-700 dark:text-indigo-300">
+              {isSo ? 'USSD Flow (dial + menu-yada)' : 'USSD Flow (dial + menus)'}
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {USSD_PRESETS.map(p => (
+                <button key={p.label} type="button"
+                  onClick={() => setNewPkg(s => ({ ...s, ussd_code: p.dial, is_discovery_root: p.dial.startsWith('*212') }))}
+                  className={`px-2 py-1 rounded-md text-[11px] font-semibold border ${newPkg.ussd_code === p.dial ? 'bg-indigo-600 text-primary-foreground border-indigo-600' : 'bg-background border-border'}`}>
+                  {p.label}
+                </button>
+              ))}
+            </div>
+            <input value={newPkg.ussd_code} onChange={e => setNewPkg(p => ({...p, ussd_code: e.target.value}))} placeholder="*870*{receiver_phone}#" className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none font-mono" />
+            <div className="grid grid-cols-3 gap-2">
+              <input value={newPkg.menu1} onChange={e => setNewPkg(p => ({...p, menu1: e.target.value}))} placeholder="Menu1" className="px-2 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-xs outline-none" />
+              <input value={newPkg.menu2} onChange={e => setNewPkg(p => ({...p, menu2: e.target.value}))} placeholder="Menu2" className="px-2 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-xs outline-none" />
+              <input value={newPkg.menu3} onChange={e => setNewPkg(p => ({...p, menu3: e.target.value}))} placeholder="Menu3" className="px-2 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-xs outline-none" />
+            </div>
+            <input value={newPkg.sim_password} onChange={e => setNewPkg(p => ({...p, sim_password: e.target.value}))} placeholder={isSo ? 'SIM PIN (4 lambar)' : 'SIM PIN (4 digits)'} className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none font-mono" />
+            <div className="flex flex-wrap gap-3 text-[11px]">
+              <label className="flex items-center gap-1.5">
+                <input type="checkbox" checked={newPkg.is_ussd_only} onChange={e => setNewPkg(p => ({...p, is_ussd_only: e.target.checked}))} />
+                {isSo ? 'USSD kaliya' : 'USSD only'}
+              </label>
+              <label className="flex items-center gap-1.5">
+                <input type="checkbox" checked={newPkg.is_discovery_root} onChange={e => setNewPkg(p => ({...p, is_discovery_root: e.target.checked}))} />
+                {isSo ? 'Discovery root (*212)' : 'Discovery root (*212)'}
+              </label>
+            </div>
+            <div className="text-[10px] font-mono text-muted-foreground break-all">
+              {composeUssdTemplate(newPkg.ussd_code, [newPkg.menu1, newPkg.menu2, newPkg.menu3]) || '—'}
+            </div>
+          </div>
           <div>
             <input value={newPkg.secret_price} onChange={e => setNewPkg(p => ({...p, secret_price: e.target.value}))} placeholder="🔒 Secret Prices (e.g. 0.01, 0.03, 0.04)" className="w-full px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-sm outline-none" />
             <p className="text-[10px] text-amber-700 dark:text-amber-400 mt-1">{isSo ? '🔒 Lama tusi doono macaamiisha. Kala saar comma (,).' : '🔒 Hidden from customers. Separate with commas (,).'}</p>

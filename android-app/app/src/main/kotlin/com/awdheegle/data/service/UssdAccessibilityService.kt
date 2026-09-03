@@ -232,7 +232,15 @@ class UssdAccessibilityService : AccessibilityService() {
                 Log.d(TAG, "🚫 Ignored non-USSD text (clock/home screen): ${dialogText.take(120)}")
             }
             
-            // CHECK FOR PIN INPUT DIALOG - only enter PIN once per USSD session
+            // ---- MULTI-STEP MENU FLOW (*870 / *866 / *101) --------------
+            // A step plan means this session must be walked step-by-step:
+            // menu label -> menu number, receiver phone, then PIN.
+            if (!dialogText.isNullOrBlank() && handleStepPlan(source, dialogText)) {
+                source.recycle()
+                return
+            }
+
+
             val isPinDialog = dialogText?.contains("PIN", ignoreCase = true) == true ||
                              dialogText?.contains("pin", ignoreCase = true) == true ||
                              dialogText?.contains("password", ignoreCase = true) == true ||
@@ -475,6 +483,74 @@ class UssdAccessibilityService : AccessibilityService() {
         Log.d(TAG, "⏳ Started multi-dialog listener for ${MULTI_DIALOG_TIMEOUT_MS/1000}s")
     }
     
+    /**
+     * Walks the step plan written by UssdDialerService for menu flows.
+     * Returns true when this dialog was consumed by a step (input written + sent).
+     */
+    private fun handleStepPlan(source: AccessibilityNodeInfo, dialogText: String): Boolean {
+        val plan = Ussd870Flow.loadPlan(this)
+        if (plan.isEmpty()) return false
+
+        val index = Ussd870Flow.currentIndex(this)
+        if (index >= plan.size) return false
+
+        val step = plan[index]
+
+        // Only act when the dialog actually has an input field.
+        val editTexts = mutableListOf<AccessibilityNodeInfo>()
+        findEditTexts(source, editTexts)
+        if (editTexts.isEmpty()) {
+            Log.d(TAG, "⏳ Step ${step.order} (${step.kind}) waiting for an input field")
+            return false
+        }
+        editTexts.forEach { it.recycle() }
+
+        val value: String? = when (step.kind) {
+            Ussd870Flow.KIND_MENU -> {
+                val label = step.label
+                if (label.isNullOrBlank()) null
+                else Ussd870Flow.matchMenuOption(dialogText, label).also {
+                    if (it == null) Log.w(TAG, "⚠️ No menu match for '${label}' in: ${dialogText.take(160)}")
+                }
+            }
+            Ussd870Flow.KIND_LITERAL -> step.literal?.filter { it.isDigit() }?.takeIf { it.isNotEmpty() }
+            Ussd870Flow.KIND_PIN -> {
+                if (pinSubmittedForSession) {
+                    Log.d(TAG, "⏭️ PIN already submitted for this session")
+                    return true
+                }
+                getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                    .getString("current_pin_code", null)
+                    ?.filter { it.isDigit() }
+                    ?.take(4)
+                    ?.takeIf { it.length == 4 }
+            }
+            else -> null
+        }
+
+        if (value.isNullOrBlank()) return false
+
+        val written = enterPinInDialog(source, value)
+        if (!written) {
+            Log.w(TAG, "⚠️ Could not write step ${step.order} value")
+            return false
+        }
+
+        if (step.kind == Ussd870Flow.KIND_PIN) pinSubmittedForSession = true
+        Ussd870Flow.advance(this)
+        lastClickTime = System.currentTimeMillis()
+        Log.d(TAG, "✅ Step ${step.order} (${step.kind}) sent -> '${if (step.kind == Ussd870Flow.KIND_PIN) "****" else value}'")
+
+        handler.postDelayed({
+            val root = rootInActiveWindow ?: return@postDelayed
+            clickSendOrOkButton(root)
+            root.recycle()
+        }, 300)
+
+        return true
+    }
+    
+
     /**
      * Enter PIN into an EditText/input field in the USSD dialog
      * Hormuud sends a PIN prompt after *712*phone*amount# - we auto-enter "5516"

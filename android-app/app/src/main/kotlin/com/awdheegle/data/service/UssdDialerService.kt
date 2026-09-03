@@ -1283,16 +1283,38 @@ class UssdDialerService : Service() {
             val curFailed = statsPrefs.getInt("failed_deliveries", 0)
             updateNotification("Processing order... ($curSuccessful successful, $curFailed failed)", curSuccessful, curFailed)
             
-            // Save PIN to SharedPreferences for AccessibilityService to use
-            val cleanedPin = order.pinCode.filter { it.isDigit() }.take(4)
-            val pinToUse = if (cleanedPin.length == 4) cleanedPin else "5516"
-            getSharedPreferences("najax_ussd_prefs", Context.MODE_PRIVATE)
-                .edit()
-                .putString("current_pin_code", pinToUse)
-                .apply()
-            android.util.Log.d("UssdDialer", "🔐 PIN saved to SharedPreferences: ${pinToUse.take(2)}***")
+            // Save PIN to SharedPreferences for AccessibilityService to use.
+            // INVARIANT: the PIN always comes from server config (sim_password);
+            // never invent one on the device.
+            val pinToUse = order.pinCode.filter { it.isDigit() }.take(4)
+            val ussdPrefsForPin = getSharedPreferences(UssdAccessibilityService.PREFS_NAME, Context.MODE_PRIVATE)
+            if (pinToUse.length == 4) {
+                ussdPrefsForPin.edit().putString("current_pin_code", pinToUse).apply()
+                getSharedPreferences("najax_ussd_prefs", Context.MODE_PRIVATE)
+                    .edit().putString("current_pin_code", pinToUse).apply()
+                android.util.Log.d("UssdDialer", "🔐 PIN saved from config: ${pinToUse.take(2)}***")
+            } else {
+                ussdPrefsForPin.edit().remove("current_pin_code").apply()
+                android.util.Log.w("UssdDialer", "⚠️ No valid PIN in config for queue ${order.id}")
+            }
+
+            // ===== MULTI-STEP MENU PLAN (*870 / *866 / *101) =====
+            val parsedTemplate = UssdTemplate.parse(order.ussdCode, order.receiverPhone)
+            if (parsedTemplate.isMenuFlow) {
+                val plan = Ussd870Flow.buildPlan(parsedTemplate, order.receiverPhone)
+                Ussd870Flow.savePlan(this, plan, System.currentTimeMillis())
+                android.util.Log.d(
+                    "UssdDialer",
+                    "🧭 Menu flow *${parsedTemplate.trigger}: dial='${parsedTemplate.dialCode}' steps=${plan.size} " +
+                        "path=${parsedTemplate.menuPath.joinToString(" > ")}"
+                )
+            } else {
+                Ussd870Flow.clearPlan(this)
+            }
             
             clearCapturedUssdResponse()
+
+
 
             // Quick 500ms settle time - lightning fast!
             android.util.Log.d("UssdDialer", "⚡ Quick 0.5s settle time before USSD...")
@@ -1318,7 +1340,9 @@ class UssdDialerService : Service() {
                 android.util.Log.w("UssdDialer", "⚠️ markDeliveryDispatched failed (continuing): ${e.message}")
             }
 
-            val success = dialUssdCode(order.ussdCode, order.receiverPhone, order.packageCode, orderProvider, order.simSlot)
+            // INVARIANT: for menu flows only the part before `|` is dialed.
+            val codeToDial = if (parsedTemplate.isMenuFlow) parsedTemplate.dialCode else order.ussdCode
+            val success = dialUssdCode(codeToDial, order.receiverPhone, order.packageCode, orderProvider, order.simSlot)
             
             if (success) {
                 // Get the captured USSD response from AccessibilityService
@@ -1348,20 +1372,28 @@ class UssdDialerService : Service() {
                         android.util.Log.d("UssdDialer", "✅ Success keywords detected in response")
                     }
                     hasFailure -> {
-                        detectedStatus = "timeout"
+                        // Explicit provider rejection => real failure.
+                        // Ambiguous noise (clock junk, MMI/connection problem) =>
+                        // verification_required: the USSD was already dispatched,
+                        // so never auto-retry it.
+                        val isMmiNoise = isClockJunk ||
+                            responseText.contains("mmi") ||
+                            responseText.contains("connection problem")
+                        detectedStatus = if (isMmiNoise) "verification_required" else "failed"
                         detectedError = if (isClockJunk) {
                             "Invalid USSD response captured (clock/system text)"
                         } else {
-                            "Provider error detected: ${responseText.take(100)}"
+                            "Provider response: ${responseText.take(100)}"
                         }
-                        android.util.Log.d("UssdDialer", "❌ Invalid/failed response detected - server can retry")
+                        android.util.Log.d("UssdDialer", "❌ Response problem -> $detectedStatus")
                     }
                     responseText.isEmpty() -> {
-                        // Late-capture: give Accessibility 4 more seconds to
-                        // deliver a delayed Hormuud popup before declaring timeout.
-                        android.util.Log.d("UssdDialer", "⏱ Empty response, polling 4s extra for late capture...")
+                        // Late-capture: give Accessibility a few more seconds to
+                        // deliver a delayed popup before declaring ambiguity.
+                        val extraPolls = if (parsedTemplate.isSlowNetwork) 24 else 8
+                        android.util.Log.d("UssdDialer", "⏱ Empty response, polling ${extraPolls / 2}s extra for late capture...")
                         var lateResp: String? = null
-                        repeat(8) {
+                        repeat(extraPolls) {
                             delay(500)
                             val r = getLastUssdResponse(order.id, clearAfter = false)
                             if (!r.isNullOrBlank() && hasSuccessfulDeliveryMarkers(r)) {
@@ -1376,17 +1408,18 @@ class UssdDialerService : Service() {
                             getLastUssdResponse(order.id, clearAfter = true)
                             android.util.Log.d("UssdDialer", "✅ Late-capture success: ${lateResp!!.take(100)}")
                         } else {
-                            detectedStatus = "timeout"
-                            detectedError = "No USSD response received"
-                            android.util.Log.d("UssdDialer", "⏱ No response after late capture - reporting timeout")
+                            detectedStatus = "verification_required"
+                            detectedError = "No USSD response received after dispatch"
+                            android.util.Log.d("UssdDialer", "⏱ No response - needs manual verification")
                         }
                     }
                     else -> {
-                        detectedStatus = "timeout"
+                        detectedStatus = "verification_required"
                         detectedError = "USSD response did not confirm delivery"
-                        android.util.Log.d("UssdDialer", "⚠️ Unknown response text - not treating as success")
+                        android.util.Log.d("UssdDialer", "⚠️ Unknown response text - needs verification")
                     }
                 }
+
                 
                 val statusUpdated = updateDeliveryStatusWithRetry(
                     queueId = order.id,
@@ -1429,6 +1462,7 @@ class UssdDialerService : Service() {
             )
         } finally {
             // ===== RELEASE SINGLE-FLIGHT LOCK + START COOLDOWN =====
+            Ussd870Flow.clearPlan(this)
             recentlyProcessedIds.remove(order.id) // allow scheduled retries for the same queue row
             android.util.Log.d("UssdDialer", "🔓 Order lock RELEASED: ${order.id} (cooldown ${ORDER_COOLDOWN_MS}ms)")
             lastOrderCompletedAt = System.currentTimeMillis()
@@ -1747,7 +1781,10 @@ class UssdDialerService : Service() {
             android.util.Log.d("UssdDialer", "🎯 Using subscriptionId: $subscriptionId")
             
             // 🔇 TRY SILENT USSD FIRST (Android 8.0+)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // Skipped for interactive menu flows (*870/*866/*101): silent USSD
+            // cannot walk multi-step menus — the accessibility flow must run.
+            val hasMenuPlan = Ussd870Flow.loadPlan(this).isNotEmpty()
+            if (!hasMenuPlan && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 android.util.Log.d("UssdDialer", "🔇 Trying SILENT USSD via TelephonyManager...")
                 
                 val silentSuccess = trySilentUssd(finalUssd, subscriptionId)
@@ -1922,13 +1959,30 @@ class UssdDialerService : Service() {
             ussdClickReceived = false
             ussdClickCount = 0
             
-            // Wait for completion
+            // Wait for completion. Menu flows (*870/*866/*101) need much longer:
+            // each menu step is a separate dialog walked by the accessibility service.
+            val menuPlan = Ussd870Flow.loadPlan(this)
+            val isSlow = UssdTemplate.triggerCode(finalUssd) == "866"
             var waitedMs = 0
-            val maxWaitMs = 15000
+            val maxWaitMs = when {
+                menuPlan.isNotEmpty() && isSlow -> 120000
+                menuPlan.isNotEmpty() -> 75000
+                else -> 15000
+            }
             
             while (waitedMs < maxWaitMs) {
                 delay(500)
                 waitedMs += 500
+                
+                if (menuPlan.isNotEmpty()) {
+                    // Flow watcher: done once every step has been sent.
+                    if (Ussd870Flow.currentIndex(this) >= menuPlan.size) {
+                        android.util.Log.d("UssdDialer", "✅ All ${menuPlan.size} menu steps sent - waiting for final response")
+                        delay(if (isSlow) 8000 else 5000)
+                        return true
+                    }
+                    continue
+                }
                 
                 if (ussdClickReceived) {
                     android.util.Log.d("UssdDialer", "✅ USSD completed via AccessibilityService")
