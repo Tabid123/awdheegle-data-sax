@@ -124,6 +124,36 @@ const DiscoverPackages: React.FC = () => {
 
       <div className="p-4 space-y-4">
         <Card className="p-4 space-y-3">
+          <label className="text-xs font-medium text-muted-foreground">Dooro shirkadda lacag bixinta</label>
+          <div className="grid grid-cols-2 gap-2">
+            {payProviders.map((pp: any) => {
+              const active = payProviderId === pp.id;
+              return (
+                <button
+                  key={pp.id}
+                  onClick={() => setPayProviderId(pp.id)}
+                  className={`rounded-xl border px-3 py-3 flex items-center gap-2 text-left transition-all ${
+                    active ? 'border-primary bg-primary/10 ring-2 ring-primary/30' : 'border-border bg-card'
+                  }`}
+                >
+                  {(pp.provider_logo || pp.logo_url) && (
+                    <img
+                      src={pp.provider_logo || pp.logo_url}
+                      alt={`${pp.display_name || pp.provider_name} logo`}
+                      className="w-7 h-7 rounded-md object-cover shrink-0"
+                      loading="lazy"
+                    />
+                  )}
+                  <span className="text-sm font-semibold truncate">
+                    {pp.display_name || pp.provider_name}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </Card>
+
+        <Card className="p-4 space-y-3">
           <label className="text-xs font-medium text-muted-foreground">Lambarka aad rabto in la baaro</label>
           <Input
             inputMode="numeric"
