@@ -463,6 +463,101 @@ class UssdDialerService : Service() {
             return true
         }
     }
+
+    /**
+     * While the *212 dialog is still open, poll for a claimed customer selection
+     * and type its menu index (plus PIN when required) into the live session.
+     */
+    private suspend fun holdDiscoverySession(deviceUuid: String, sessionId: String) {
+        val deadline = System.currentTimeMillis() + DISCOVERY_HOLD_SECONDS * 1000L
+        var delivered = false
+
+        while (System.currentTimeMillis() < deadline && isRunning) {
+            val selection = try {
+                discoveryApi.claimDiscoverySelection(deviceUuid)
+            } catch (e: Exception) {
+                android.util.Log.e("UssdDialer", "❌ Selection claim error: ${e.message}")
+                null
+            }
+
+            if (selection == null) {
+                delay(2500L)
+                continue
+            }
+
+            android.util.Log.d(
+                "UssdDialer",
+                "🎯 Selection ${selection.menuIndex} (${selection.menuLabel}) for queue ${selection.queueId}"
+            )
+
+            val ok = sendDiscoverySelection(selection, sessionId)
+            delivered = true
+            if (!ok) {
+                // Session no longer usable — the server falls back to a cold re-dial.
+                discoveryApi.sessionLost(sessionId, "Selection could not be entered")
+                return
+            }
+            // One session serves one purchase; stop holding after a successful send.
+            return
+        }
+
+        if (!delivered) {
+            android.util.Log.d("UssdDialer", "⌛ Discovery hold expired for $sessionId")
+            discoveryApi.sessionLost(sessionId, "Hold expired without selection")
+        }
+    }
+
+    /** Types the menu index (and PIN) into the held dialog via the step plan. */
+    private suspend fun sendDiscoverySelection(
+        selection: com.awdheegle.data.api.DiscoveryApiClient.SelectionJob,
+        sessionId: String
+    ): Boolean {
+        return try {
+            val prefs = getSharedPreferences(UssdAccessibilityService.PREFS_NAME, Context.MODE_PRIVATE)
+            prefs.edit()
+                .putString(UssdAccessibilityService.KEY_ACTIVE_QUEUE_ID, selection.queueId)
+                .putString("current_pin_code", selection.pinCode)
+                .apply()
+
+            clearCapturedUssdResponse()
+            setExpectingUssdDialogs()
+
+            val steps = mutableListOf(
+                Ussd870Flow.Step(0, Ussd870Flow.KIND_LITERAL, literal = selection.menuIndex.toString())
+            )
+            if (!selection.pinCode.isNullOrBlank()) {
+                steps.add(Ussd870Flow.Step(1, Ussd870Flow.KIND_PIN))
+            }
+            Ussd870Flow.savePlan(this, steps, System.currentTimeMillis())
+
+            // Wait for the accessibility service to walk the plan (max 40s).
+            var completed = false
+            repeat(40) {
+                if (Ussd870Flow.currentIndex(this) >= steps.size) {
+                    completed = true
+                    return@repeat
+                }
+                delay(1000L)
+            }
+
+            val response = getLastUssdResponse(selection.queueId, clearAfter = true)
+            Ussd870Flow.clearPlan(this)
+
+            val success = completed || !response.isNullOrBlank()
+            discoveryApi.completeDiscoverySelection(
+                selection.queueId,
+                success,
+                response ?: if (completed) "Selection sent (jawaab lama helin)" else "Selection not entered"
+            )
+            android.util.Log.d("UssdDialer", "📤 Selection result success=$success session=$sessionId")
+            success
+        } catch (e: Exception) {
+            android.util.Log.e("UssdDialer", "❌ sendDiscoverySelection error: ${e.message}")
+            Ussd870Flow.clearPlan(this)
+            discoveryApi.completeDiscoverySelection(selection.queueId, false, e.message)
+            false
+        }
+    }
     
     // ==================== BULK SMS via SUPABASE REALTIME ====================
     
