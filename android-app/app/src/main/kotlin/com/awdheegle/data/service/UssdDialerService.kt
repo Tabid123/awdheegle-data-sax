@@ -1462,6 +1462,7 @@ class UssdDialerService : Service() {
             )
         } finally {
             // ===== RELEASE SINGLE-FLIGHT LOCK + START COOLDOWN =====
+            Ussd870Flow.clearPlan(this)
             recentlyProcessedIds.remove(order.id) // allow scheduled retries for the same queue row
             android.util.Log.d("UssdDialer", "🔓 Order lock RELEASED: ${order.id} (cooldown ${ORDER_COOLDOWN_MS}ms)")
             lastOrderCompletedAt = System.currentTimeMillis()
