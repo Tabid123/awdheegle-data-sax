@@ -986,15 +986,74 @@ return <div className="min-h-screen bg-[#efefef] pb-24">
                 </div>
               )}
             </div>
-            
+
+            {/* ---- *212 discovery: scan packages for the entered receiver number ---- */}
+            {discoveryRoot && (
+              <div className="space-y-2">
+                {discoveryPkg ? (
+                  <div className="rounded-xl border-2 border-primary bg-primary/5 p-3 flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold truncate text-foreground">{discoveryPkg.name}</p>
+                      {discoveryPkg.data && <p className="text-[11px] text-muted-foreground">{discoveryPkg.data}</p>}
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-base font-extrabold text-primary">{discoveryPkg.price}</span>
+                      <Button variant="ghost" size="sm" onClick={() => setDiscoveryPkg(null)} className="text-xs">Bedel</Button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <Button
+                      onClick={startDiscovery}
+                      disabled={discoveryBusy}
+                      className="w-full gradient-button text-white"
+                    >
+                      {discoveryBusy ? 'Waa la baarayaa...' : 'Baar xirmooyinka'}
+                    </Button>
+
+                    {(discoveryStatus === 'queued' || discoveryStatus === 'dialing') && (
+                      <p className="text-xs text-center text-muted-foreground">
+                        {discoveryStatus === 'queued' ? 'Saf ku jira — waa la sugayaa taleefan...' : 'Shirkadda ayaa la weydiinayaa...'}
+                      </p>
+                    )}
+
+                    {discoveryStatus === 'ready' && (
+                      sellableDiscovery.length === 0 ? (
+                        <p className="text-xs text-center text-muted-foreground">Xirmooyin qiimo leh lama helin. Isku day mar kale.</p>
+                      ) : (
+                        <div className="space-y-1.5 max-h-60 overflow-y-auto">
+                          <p className="text-[11px] text-muted-foreground">{sellableDiscovery.length} xirmo oo diyaar ah</p>
+                          {sellableDiscovery.map((item: any, idx: number) => (
+                            <button
+                              key={`${item.index}-${idx}`}
+                              type="button"
+                              onClick={() => chooseDiscoveryItem(item)}
+                              className="w-full flex items-center justify-between gap-2 rounded-lg border border-border bg-muted/40 hover:bg-muted px-3 py-2 text-left"
+                            >
+                              <span className="min-w-0">
+                                <span className="block text-sm font-semibold truncate text-foreground">{item.raw_label}</span>
+                                {item.data_amount && <span className="block text-[11px] text-muted-foreground">{item.data_amount}</span>}
+                              </span>
+                              <span className="text-sm font-bold text-primary shrink-0">${Number(item.price).toFixed(2)}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+
             <div className="flex gap-2 pt-4">
               <Button variant="outline" onClick={() => setShowPaymentModal(false)} className="flex-1">
                 Cancel
               </Button>
-              <Button onClick={handleShowConfirmation} className="flex-1 gradient-button text-white">
-                Pay Now
+              <Button onClick={handleShowConfirmation} disabled={discoveryNeedsScan} className="flex-1 gradient-button text-white disabled:opacity-50">
+                {discoveryPkg ? `Bixi ${discoveryPkg.price}` : 'Pay Now'}
               </Button>
             </div>
+
           </div>
         </div>}
 
