@@ -642,7 +642,12 @@ const PaymentProviders = () => {
         package_id: packageData?.id,
         payment_provider: selectedPaymentProvider?.provider_name || '',
         expected_amount: parseFloat(amount),
-        status: 'pending'
+        status: 'pending',
+        ...(discoveryData ? {
+          discovery_menu_label: discoveryData.menuLabel,
+          discovery_menu_index: discoveryData.menuIndex,
+          discovery_session_id: discoveryData.sessionId,
+        } : {}),
       };
 
       // DEDUP CHECK: Skip if a pending payment already exists for same sender+package+amount (last 10 min)
