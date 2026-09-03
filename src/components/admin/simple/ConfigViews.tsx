@@ -171,6 +171,14 @@ const splitUssdTemplate = (template?: string | null) => {
   return { dial, menu1: menus[0] || '', menu2: menus[1] || '', menu3: menus[2] || '' };
 };
 
+/** Full flow presets used by System Codes (dial + suggested menu steps). */
+const FLOW_PRESETS = [
+  { id: '870', label: '*870* Flow (Menu1 → Xirmo → Menu2 → PIN) — Hormuud', dial: '*870*{receiver_phone}#', menu1: '1', menu2: '', menu3: '' },
+  { id: '866', label: '*866* Flow (Menu1 → Xirmo → Menu2 → PIN) — Somnet', dial: '*866*{receiver_phone}#', menu1: '1', menu2: '', menu3: '' },
+  { id: '101', label: '*101* Flow (Menu → Xirmo → Lambarka → PIN) — Somtel', dial: '*101#', menu1: '1', menu2: '', menu3: '' },
+  { id: '212', label: '*212* Flow (Discovery — xirmo la doorto) — Maamuus', dial: '*212*{receiver_phone}#', menu1: '', menu2: '', menu3: '' },
+];
+
 
 export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
   const [packages, setPackages] = useState<any[]>([]);
