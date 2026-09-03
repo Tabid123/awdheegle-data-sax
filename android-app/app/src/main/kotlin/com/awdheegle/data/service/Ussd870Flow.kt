@@ -141,9 +141,20 @@ object Ussd870Flow {
      * Returns the leading option digits (e.g. "3") or null when nothing matches.
      */
     fun matchMenuOption(dialogText: String, label: String): String? {
+        // A menu step may hold several synonyms separated by ';' or '|' -> try each.
+        val alternatives = label.split(';', '|').map { it.trim() }.filter { it.isNotEmpty() }
+        if (alternatives.size > 1) {
+            alternatives.forEach { alt -> matchSingle(dialogText, alt)?.let { return it } }
+            return null
+        }
+        return matchSingle(dialogText, label)
+    }
+
+    private fun matchSingle(dialogText: String, label: String): String? {
         val target = normalize(label)
         if (target.isBlank()) return null
         val targetDuration = durationKey(label)
+
 
         val lines = dialogText.split('\n', '\r').map { it.trim() }.filter { it.isNotEmpty() }
         var fallback: String? = null

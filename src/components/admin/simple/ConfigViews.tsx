@@ -413,18 +413,33 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
             <div className="flex flex-wrap gap-1.5">
               {USSD_PRESETS.map(p => (
                 <button key={p.label} type="button"
-                  onClick={() => setNewPkg(s => ({ ...s, ussd_code: p.dial, is_discovery_root: p.dial.startsWith('*212') }))}
+                  onClick={() => setNewPkg(s => ({ ...s, ussd_code: p.dial, is_discovery_root: p.dial.startsWith('*212'), ...(p.dial.startsWith('*212') ? { menu1: '', menu2: '', menu3: '' } : {}) }))}
                   className={`px-2 py-1 rounded-md text-[11px] font-semibold border ${newPkg.ussd_code === p.dial ? 'bg-indigo-600 text-primary-foreground border-indigo-600' : 'bg-background border-border'}`}>
                   {p.label}
                 </button>
               ))}
             </div>
             <input value={newPkg.ussd_code} onChange={e => setNewPkg(p => ({...p, ussd_code: e.target.value}))} placeholder="*870*{receiver_phone}#" className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none font-mono" />
-            <div className="grid grid-cols-3 gap-2">
-              <input value={newPkg.menu1} onChange={e => setNewPkg(p => ({...p, menu1: e.target.value}))} placeholder="Menu1" className="px-2 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-xs outline-none" />
-              <input value={newPkg.menu2} onChange={e => setNewPkg(p => ({...p, menu2: e.target.value}))} placeholder="Menu2" className="px-2 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-xs outline-none" />
-              <input value={newPkg.menu3} onChange={e => setNewPkg(p => ({...p, menu3: e.target.value}))} placeholder="Menu3" className="px-2 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-xs outline-none" />
-            </div>
+            {newPkg.ussd_code.trim().startsWith('*212') ? (
+              <p className="text-[10px] leading-snug text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 rounded-lg px-2 py-1.5">
+                {isSo ? '*212* discovery ah — MENU MA LAHAN.' : '*212* is discovery — NO menus.'}
+              </p>
+            ) : (
+              <div className="space-y-2">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-600 dark:text-gray-300">{isSo ? 'Menu 1 — lambar ama keywords (tus. "Data;Xogta")' : 'Menu 1 — number or keywords'}</label>
+                  <input value={newPkg.menu1} onChange={e => setNewPkg(p => ({...p, menu1: e.target.value}))} placeholder="e.g.  1   or   Data;Xogta" className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none font-mono" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-600 dark:text-gray-300">{isSo ? 'Menu 2 — lambar ama keywords (tus. "Mudnaan;Unlimited")' : 'Menu 2 — number or keywords'}</label>
+                  <input value={newPkg.menu2} onChange={e => setNewPkg(p => ({...p, menu2: e.target.value}))} placeholder="e.g.  1   or   Mudnaan;Unlimited" className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none font-mono" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-600 dark:text-gray-300 leading-snug block">{isSo ? 'Menu 3 (ikhtiyaari) — lambar ama keywords. Lambarka helaha ha qorin — wuu otomaatig yahay.' : 'Menu 3 (optional) — number or keywords. Receiver number is automatic.'}</label>
+                  <input value={newPkg.menu3} onChange={e => setNewPkg(p => ({...p, menu3: e.target.value}))} placeholder="e.g.  2   or   Data;Baal" className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none font-mono" />
+                </div>
+              </div>
+            )}
             <input value={newPkg.sim_password} onChange={e => setNewPkg(p => ({...p, sim_password: e.target.value}))} placeholder={isSo ? 'SIM PIN (4 lambar)' : 'SIM PIN (4 digits)'} className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none font-mono" />
             <div className="flex flex-wrap gap-3 text-[11px]">
               <label className="flex items-center gap-1.5">
@@ -1194,19 +1209,52 @@ export const SystemCodesCustomView = ({ isSo }: { isSo: boolean }) => {
               <option value="">{isSo ? '— Dooro USSD flow diyaar ah —' : '— Choose a ready USSD flow —'}</option>
               {FLOW_PRESETS.map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
             </select>
-            <p className="text-[10px] leading-snug text-gray-500 dark:text-gray-400">
-              {isSo
-                ? 'Menu-yada: geli LAMBAR (tusaale "1") ama KEYWORDS (tusaale "Data:Xogta"). Keyword-yada ayaa la scan gareynayaa dialog-ga. PIN-ka wuxuu ka imanayaa SIM Password.'
-                : 'Menus accept a NUMBER (e.g. "1") or KEYWORDS matched against the dialog text. The PIN comes from SIM Password.'}
-            </p>
-            <div className="grid grid-cols-3 gap-1.5">
-              <input value={newCode.menu1} onChange={e => setNewCode(p => ({...p, menu1: e.target.value}))} placeholder="Menu1" className="px-2 py-1.5 rounded-lg bg-white dark:bg-gray-700 border text-xs outline-none" />
-              <input value={newCode.menu2} onChange={e => setNewCode(p => ({...p, menu2: e.target.value}))} placeholder="Menu2" className="px-2 py-1.5 rounded-lg bg-white dark:bg-gray-700 border text-xs outline-none" />
-              <input value={newCode.menu3} onChange={e => setNewCode(p => ({...p, menu3: e.target.value}))} placeholder="Menu3" className="px-2 py-1.5 rounded-lg bg-white dark:bg-gray-700 border text-xs outline-none" />
-            </div>
+            {flowPreset === '212' ? (
+              <p className="text-[10px] leading-snug text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 rounded-lg px-2 py-1.5">
+                {isSo
+                  ? '*212* discovery ah — MENU MA LAHAN. Xirmooyinka waxaa laga soo scan gareynayaa menu-ga tooska ah, kadibna user-ka ayaa doorta.'
+                  : '*212* is discovery — NO menus. Packages are scraped live from the menu and picked by the user.'}
+              </p>
+            ) : (
+              <>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-600 dark:text-gray-300">
+                    {isSo ? 'Menu 1 — lambar ama keywords (tus. "Data;Xogta")' : 'Menu 1 — number or keywords (e.g. "Data;Xogta")'}
+                  </label>
+                  <input value={newCode.menu1} onChange={e => setNewCode(p => ({...p, menu1: e.target.value}))}
+                    placeholder="e.g.  1   or   Data;Xogta"
+                    className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none font-mono" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-600 dark:text-gray-300">
+                    {isSo ? 'Menu 2 — lambar ama keywords (tus. "Mudnaan;Unlimited")' : 'Menu 2 — number or keywords (e.g. "Mudnaan;Unlimited")'}
+                  </label>
+                  <input value={newCode.menu2} onChange={e => setNewCode(p => ({...p, menu2: e.target.value}))}
+                    placeholder="e.g.  1   or   Mudnaan;Unlimited"
+                    className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none font-mono" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-600 dark:text-gray-300 leading-snug block">
+                    {isSo
+                      ? 'Menu 3 (ikhtiyaari) — lambar ama keywords. Lambarka helaha ha qorin — wuu otomaatig yahay.'
+                      : 'Menu 3 (optional) — number or keywords. Never type the receiver number — it is automatic.'}
+                  </label>
+                  <input value={newCode.menu3} onChange={e => setNewCode(p => ({...p, menu3: e.target.value}))}
+                    placeholder="e.g.  2   or   Data;Baal"
+                    className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none font-mono" />
+                </div>
+              </>
+            )}
             {composeUssdTemplate(newCode.code_template, [newCode.menu1, newCode.menu2, newCode.menu3]) && (
               <div className="text-[10px] font-mono text-indigo-700 dark:text-indigo-300 break-all">
                 → {composeUssdTemplate(newCode.code_template, [newCode.menu1, newCode.menu2, newCode.menu3])}
+              </div>
+            )}
+            {flowPreset && flowPreset !== '212' && (
+              <div className="text-[11px] leading-snug rounded-lg border border-indigo-200 dark:border-indigo-900/40 px-2 py-1.5 text-gray-700 dark:text-gray-200">
+                {isSo
+                  ? 'Buuxi Menu 1 & Menu 2 hoos. Xirmada waxaa laga soo qaadayaa menu-ga, PIN-ka wuxuu ka imanayaa SIM Password.'
+                  : 'Fill Menu 1 & Menu 2 below. The package is matched in the menu; the PIN comes from SIM Password.'}
               </div>
             )}
           </div>
