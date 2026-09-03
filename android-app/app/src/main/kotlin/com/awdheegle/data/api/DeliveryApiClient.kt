@@ -101,7 +101,11 @@ class DeliveryApiClient {
                                 attempts = orderJson.getInt("attempts"),
                                 simSlot = orderJson.optInt("simSlot", 0),
                                 provider = orderJson.optString("provider", ""),
-                                pinCode = orderJson.optString("pinCode", "")
+                                pinCode = orderJson.optString("pinCode", ""),
+                                discoveryMenuIndex = if (orderJson.isNull("discoveryMenuIndex")) null
+                                    else orderJson.optInt("discoveryMenuIndex").takeIf { it > 0 },
+                                discoveryMenuLabel = if (orderJson.isNull("discoveryMenuLabel")) null
+                                    else orderJson.optString("discoveryMenuLabel").ifBlank { null }
                             )
                         )
                     }
