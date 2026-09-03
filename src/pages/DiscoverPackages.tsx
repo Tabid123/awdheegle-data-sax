@@ -107,6 +107,11 @@ const DiscoverPackagesInner: React.FC = () => {
       setTimedOut(true);
       return;
     }
+    if (res.status === 'failed') {
+      stopPolling();
+      setTimedOut(true);
+      return;
+    }
     // hard stop after 5 minutes
     if (beganAtRef.current && Date.now() - beganAtRef.current > 5 * 60 * 1000) {
       stopPolling();
