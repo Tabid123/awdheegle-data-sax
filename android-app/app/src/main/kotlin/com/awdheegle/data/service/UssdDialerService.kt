@@ -451,7 +451,11 @@ class UssdDialerService : Service() {
             }
 
             android.util.Log.d("UssdDialer", "✅ Discovery parsed ${items.size} items")
-            discoveryApi.completeDiscovery(job.sessionId, items, menuText)
+            discoveryApi.completeDiscovery(job.sessionId, items, menuText, holdSeconds = DISCOVERY_HOLD_SECONDS)
+
+            // Keep the dialog alive and wait for the customer's selection so we can
+            // type it into the SAME session instead of re-dialing cold.
+            holdDiscoverySession(deviceUuid, job.sessionId)
             return true
         } catch (e: Exception) {
             android.util.Log.e("UssdDialer", "❌ Discovery failed: ${e.message}")
