@@ -427,7 +427,7 @@ class UssdDialerService : Service() {
      * Returns true when a job was handled.
      */
     private suspend fun pollPackageDiscovery(): Boolean {
-        val prefs = getSharedPreferences("najax_data", Context.MODE_PRIVATE)
+        val prefs = getSharedPreferences(DEVICE_PREFS_NAME, Context.MODE_PRIVATE)
         val deviceUuid = prefs.getString(SERVER_DEVICE_UUID_KEY, null)
         if (deviceUuid.isNullOrBlank()) {
             android.util.Log.w("UssdDialer", "⚠️ Discovery skipped — device UUID not registered yet")
