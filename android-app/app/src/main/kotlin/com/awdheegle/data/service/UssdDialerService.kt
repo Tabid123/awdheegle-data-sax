@@ -529,6 +529,18 @@ class UssdDialerService : Service() {
         }
     }
 
+    /** True when two USSD dialogs carry the same menu text (ignoring noise). */
+    private fun sameMenu(a: String?, b: String?): Boolean {
+        if (a == null || b == null) return false
+        fun norm(s: String) = s.lowercase()
+            .replace(Regex("""[|\s]+"""), " ")
+            .replace(Regex("""\b(cancel|send|ok)\b"""), "")
+            .trim()
+        return norm(a) == norm(b)
+    }
+
+
+
     /**
      * While the *212 dialog is still open, poll for a claimed customer selection
      * and type its menu index (plus PIN when required) into the live session.
