@@ -765,80 +765,41 @@ const PaymentProviders = () => {
 
 
 
-  // ================= *212 discovery helpers =================
+  // ================= *212 discovery (scan happens on /discover page) =================
   const digits9 = (v: string) => (v || '').replace(/\D/g, '').slice(-9);
 
-  const stopDiscoveryPolling = () => {
-    if (discoveryPollRef.current) { clearInterval(discoveryPollRef.current); discoveryPollRef.current = null; }
-  };
-
-  React.useEffect(() => { discoverySessionRef.current = discoverySessionId; }, [discoverySessionId]);
-
-  React.useEffect(() => () => {
-    stopDiscoveryPolling();
-    const sid = discoverySessionRef.current;
-    if (sid) supabase.rpc('release_discovery_session', { p_session_id: sid });
+  // Coming back from the discovery page with a chosen bundle → reopen the payment modal
+  React.useEffect(() => {
+    const st: any = location.state || {};
+    if (!st.discovery || !st.package) return;
+    setDiscoveryPkg(st.package);
+    setDiscoveryData(st.discovery);
+    if (st.paymentNumber) setPaymentNumber(digits9(st.paymentNumber));
+    if (st.discovery.receiverPhone) setReceiverNumber(digits9(st.discovery.receiverPhone));
+    if (st.preselectedPaymentProviderId) setSelectedProvider(st.preselectedPaymentProviderId);
+    if (st.autoConfirm) setShowPaymentModal(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const pollDiscovery = useCallback(async (p: string) => {
-    const { data, error } = await supabase.rpc('get_package_discovery', { p_phone: p, p_max_age_seconds: 1800 });
-    if (error) return;
-    const res: any = data || {};
-    if (res.session_id) setDiscoverySessionId(res.session_id);
-    setDiscoveryStatus(res.status || 'none');
-    if (res.status === 'ready') {
-      setDiscoveryItems(Array.isArray(res.items) ? res.items : []);
-      stopDiscoveryPolling();
-    }
-  }, []);
-
-  const startDiscovery = async () => {
-    // numbers must be valid before scanning
+  const goToDiscovery = () => {
     if (paymentNumber.length !== 9) { setPaymentNumberError('Fadlan gali lambarka oo dhan (9 digits)'); return; }
     const p = digits9(receiverNumber);
     if (p.length !== 9) { setReceiverNumberError('Fadlan gali lambarka oo dhan (9 digits)'); return; }
     if (!discoveryRoot?.id) return;
-    setDiscoveryBusy(true);
-    setDiscoveryItems([]);
-    setDiscoveryPkg(null);
-    const { data, error } = await supabase.rpc('request_package_discovery', { p_root_id: discoveryRoot.id, p_phone: p });
-    setDiscoveryBusy(false);
-    if (error) {
-      toast({ title: 'Khalad', description: error.message, variant: 'destructive' as any });
-      return;
-    }
-    const res: any = data || {};
-    if (res.status === 'error') {
-      toast({ title: 'Khalad', description: res.message || 'Isku day mar kale', variant: 'destructive' as any });
-      return;
-    }
-    setDiscoverySessionId(res.session_id || null);
-    setDiscoveryStatus(res.status === 'ready' ? 'ready' : 'queued');
-    await pollDiscovery(p);
-    stopDiscoveryPolling();
-    discoveryPollRef.current = setInterval(() => pollDiscovery(p), 3000);
-  };
-
-  const chooseDiscoveryItem = (item: any) => {
-    if (!item?.sellable || item.price == null) return;
-    setDiscoveryPkg({
-      id: discoveryRoot?.id,
-      providerId: provider,
-      name: item.raw_label,
-      price: `$${Number(item.price).toFixed(2)}`,
-      data: item.data_amount || '',
-      validity: null,
-    });
-    setDiscoveryData({
-      sessionId: discoverySessionId,
-      menuLabel: item.raw_label,
-      menuIndex: item.index ?? null,
-      receiverPhone: digits9(receiverNumber),
+    navigate(`/discover/${provider}`, {
+      state: {
+        rootId: discoveryRoot.id,
+        rootName: discoveryRoot.name,
+        providerName,
+        phone: p,
+        paymentNumber,
+        paymentProviderId: selectedProvider,
+      },
     });
   };
 
-  const sellableDiscovery = discoveryItems.filter((i: any) => i.sellable && i.price != null);
   const discoveryNeedsScan = !!discoveryRoot && !discoveryPkg;
+
 
 return <div className="min-h-screen bg-[#efefef] pb-24">
 
