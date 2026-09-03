@@ -509,10 +509,14 @@ class UssdDialerService : Service() {
             // Samsung reuses the same dialog window, so the submenu can land a few
             // seconds later. Keep re-reading until the text is no longer the root menu.
             var menuText: String? = null
+            var lastPriced: String? = null
             var attempts = 0
             while (attempts < 4) {
                 val captured = getLastUssdResponse(job.sessionId, clearAfter = true)
-                if (captured != null && !sameMenu(captured, rootText)) {
+                if (captured != null && looksLikePriceList(captured)) {
+                    lastPriced = captured
+                }
+                if (captured != null && (looksLikePriceList(captured) || !sameMenu(captured, rootText))) {
                     menuText = captured
                     break
                 }
@@ -523,7 +527,10 @@ class UssdDialerService : Service() {
             }
             Ussd870Flow.clearPlan(this)
 
-            if (menuText == null || sameMenu(menuText, rootText)) {
+            // Timeout but a priced list was seen → publish it instead of failing.
+            if (menuText == null && lastPriced != null) menuText = lastPriced
+
+            if (menuText == null || (!looksLikePriceList(menuText) && sameMenu(menuText, rootText))) {
                 android.util.Log.w("UssdDialer", "⚠️ Category '$categoryLabel' lama dooran")
                 discoveryApi.sessionLost(job.sessionId, "Category '$categoryLabel' lama dooran")
                 return true
