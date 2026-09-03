@@ -1111,10 +1111,13 @@ export const SystemCodesCustomView = ({ isSo }: { isSo: boolean }) => {
   const filteredProvPackages = newCode.provider_id ? pkgs.filter(p => p.provider_id === newCode.provider_id) : pkgs;
   const filtered = providerFilter === 'all' ? instructions : instructions.filter(i => i.provider_id === providerFilter);
 
+  const EMPTY_CODE = { provider_id: '', code_template: '', sim_password: '', notes: '', category_id: '', package_id: '', menu1: '', menu2: '', menu3: '' };
+
   const saveCode = async () => {
     if (!newCode.provider_id || !newCode.code_template) { toast.error('Fill provider and code template'); return; }
+    const template = composeUssdTemplate(newCode.code_template, [newCode.menu1, newCode.menu2, newCode.menu3]) || newCode.code_template;
     const payload = {
-      provider_id: newCode.provider_id, code_template: newCode.code_template, sim_password: newCode.sim_password || null,
+      provider_id: newCode.provider_id, code_template: template, sim_password: newCode.sim_password || null,
       notes: newCode.notes || null, category_id: newCode.category_id || null, package_id: newCode.package_id || null, instruction_template: '',
     };
     if (editingId) {
@@ -1124,7 +1127,7 @@ export const SystemCodesCustomView = ({ isSo }: { isSo: boolean }) => {
     }
     const { data: fresh } = await supabase.from('delivery_instructions').select('*').order('created_at', { ascending: false });
     setInstructions(fresh || []);
-    setNewCode({ provider_id: '', code_template: '', sim_password: '', notes: '', category_id: '', package_id: '' });
+    setNewCode(EMPTY_CODE); setFlowPreset('');
     setShowAdd(false); setEditingId(null);
     toast.success(editingId ? 'Updated' : 'Added');
   };
@@ -1138,7 +1141,9 @@ export const SystemCodesCustomView = ({ isSo }: { isSo: boolean }) => {
 
   const startEdit = (item: any) => {
     setEditingId(item.id);
-    setNewCode({ provider_id: item.provider_id || '', code_template: item.code_template || '', sim_password: item.sim_password || '', notes: item.notes || '', category_id: item.category_id || '', package_id: item.package_id || '' });
+    const parts = splitUssdTemplate(item.code_template);
+    setNewCode({ provider_id: item.provider_id || '', code_template: parts.dial, sim_password: item.sim_password || '', notes: item.notes || '', category_id: item.category_id || '', package_id: item.package_id || '', menu1: parts.menu1, menu2: parts.menu2, menu3: parts.menu3 });
+    setFlowPreset(FLOW_PRESETS.find(f => parts.dial.startsWith(`*${f.id}`))?.id || '');
     setShowAdd(true);
   };
 
