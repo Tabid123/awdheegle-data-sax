@@ -48,6 +48,8 @@ class UssdDialerService : Service() {
         private const val SMS_PREFS_NAME = "sms_inbox_prefs"
         private const val PROCESSED_SMS_IDS_KEY = "processed_sms_ids"
         private const val SMS_POLL_INTERVAL_MS = 5000L // 5 seconds
+        /** How long the device keeps a *212 dialog open waiting for a selection. */
+        private const val DISCOVERY_HOLD_SECONDS = 120
         private const val SMS_MAX_LOOKBACK_MS = 30 * 60 * 1000L // 30 minutes max lookback for offline recovery
         private const val SMS_DEFAULT_LOOKBACK_MS = 60000L // 1 minute for normal polling
         private const val SMS_COUNT_KEY = "last_sms_count" // Smart SMS polling
