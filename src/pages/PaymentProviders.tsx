@@ -43,10 +43,22 @@ const PaymentProviders = () => {
     provider: string;
   }>();
   const location = useLocation();
-  const packageData = location.state?.package;
   const providerName = location.state?.providerName;
   const categoryName = location.state?.categoryName || '';
-  const discoveryData = location.state?.discovery || null;
+
+  // ---- *212 discovery mode (package is chosen after the numbers are entered) ----
+  const discoveryRoot = location.state?.discoveryRoot || null;
+  const [discoveryPkg, setDiscoveryPkg] = useState<any>(null);
+  const [discoveryData, setDiscoveryData] = useState<any>(location.state?.discovery || null);
+  const [discoveryStatus, setDiscoveryStatus] = useState<'idle' | 'queued' | 'dialing' | 'ready' | 'none'>('idle');
+  const [discoveryItems, setDiscoveryItems] = useState<any[]>([]);
+  const [discoverySessionId, setDiscoverySessionId] = useState<string | null>(null);
+  const [discoveryBusy, setDiscoveryBusy] = useState(false);
+  const discoveryPollRef = React.useRef<any>(null);
+  const discoverySessionRef = React.useRef<string | null>(null);
+
+  const packageData = discoveryPkg || location.state?.package;
+
   
   // Helper function to detect ADSL packages
   const isADSLPackage = (catName: string) => {
