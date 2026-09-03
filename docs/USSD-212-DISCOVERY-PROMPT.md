@@ -170,7 +170,58 @@ plus `session_device_id`, `session_expires_at`, `selected_label`, `selected_inde
 
 ---
 
-## 9. Schema + RPC contract + frontend spec
+## 9. Full UI/UX spec (how it behaves today)
+
+### 9.1 Page journey
+
+```text
+Hormuud → Categories → "XIRMO ADIGA KUU GAAR AH" (*212*)
+   → PAYMENT PAGE (direct): choose payment provider
+       + sender number (money is deducted from)
+       + receiver number (gets the bundle)
+   → button "Baar xirmooyinka"
+   → DISCOVERY PAGE (DiscoverPackages): queue → scan → results
+   → pick a bundle (IIBSO) → back to payment (autoConfirm) → confirm
+```
+
+The *212* category shows **no** bundles up front: numbers first, then the bundles of that
+specific receiver number are scanned live.
+
+### 9.2 Discovery page — three states
+
+- `input`: card "Lambarka la siinayo", 9-digit digits-only input, clear error
+  ("Fadlan gali lambarka oo dhan"), button "Soo baar xirmooyinka". If the number
+  already came from the payment page, the scan **auto-starts**.
+- `searching`: spinner plus two distinct messages:
+  - **queued**: "Waxaad ku jirtaa safka — adigu waa #2 (1 qof hor kaaga jira)",
+    plus "Lacag weli lama bixin — waad joojin kartaa" and a **Jooji** button.
+  - **scanning**: "Waa la baarayaa… Fadlan sug 10–40 ilbiriqsi" with a seconds
+    counter that starts at `claimed_at`, not at enqueue time.
+  - Updates: Supabase broadcast (`discovery:<id>`, `discovery_queue`) with a 2.5s
+    poll fallback; after 5 minutes show "isku day mar kale".
+  - `no_device_available` → "Xiriirada shirkadda way mashquul yihiin, daqiiqad kadib isku day."
+- `results`: countdown bar on top "Xiriirka shirkadda waa furan yahay — bixi lacagta gudaha **Xs**"
+  (green); at 0 it turns destructive with "Waqtigii wuu dhamaaday" and a **Dib u baar**
+  button. The countdown comes from the server field `session_seconds_left`.
+
+### 9.3 Bundle card
+
+Bundle name (Riyokaab label) left, `$X.XX` in large primary type right, primary border,
+two info lines (Smartphone icon = `info_line1`, Clock icon = `info_line2`), full-width
+**IIBSO** button. When `price_missing`: price renders `—` and the button reads
+"Qiimo lama helin" and is disabled. All buy buttons disable once the countdown hits 0.
+
+### 9.4 UX rules
+
+- The carrier price (`$0.15=`) is never shown — only the Riyokaab sell price.
+- Leaving the page (unmount) without buying calls `release_discovery_session`.
+- A `PageErrorBoundary` wraps the page so a network error never yields a blank page.
+- All copy is Somali; colors are semantic tokens (primary/destructive/muted), never hardcoded.
+
+---
+
+## 10. Schema + RPC contract + frontend spec
+
 
 Tables: `ussd_package_discoveries`, `ussd_price_catalog`, `discovery_unmatched_labels`;
 columns `orders.discovery_menu_label`, `orders.discovery_root_id`,
