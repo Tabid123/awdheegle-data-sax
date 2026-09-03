@@ -1283,16 +1283,38 @@ class UssdDialerService : Service() {
             val curFailed = statsPrefs.getInt("failed_deliveries", 0)
             updateNotification("Processing order... ($curSuccessful successful, $curFailed failed)", curSuccessful, curFailed)
             
-            // Save PIN to SharedPreferences for AccessibilityService to use
-            val cleanedPin = order.pinCode.filter { it.isDigit() }.take(4)
-            val pinToUse = if (cleanedPin.length == 4) cleanedPin else "5516"
-            getSharedPreferences("najax_ussd_prefs", Context.MODE_PRIVATE)
-                .edit()
-                .putString("current_pin_code", pinToUse)
-                .apply()
-            android.util.Log.d("UssdDialer", "🔐 PIN saved to SharedPreferences: ${pinToUse.take(2)}***")
+            // Save PIN to SharedPreferences for AccessibilityService to use.
+            // INVARIANT: the PIN always comes from server config (sim_password);
+            // never invent one on the device.
+            val pinToUse = order.pinCode.filter { it.isDigit() }.take(4)
+            val ussdPrefsForPin = getSharedPreferences(UssdAccessibilityService.PREFS_NAME, Context.MODE_PRIVATE)
+            if (pinToUse.length == 4) {
+                ussdPrefsForPin.edit().putString("current_pin_code", pinToUse).apply()
+                getSharedPreferences("najax_ussd_prefs", Context.MODE_PRIVATE)
+                    .edit().putString("current_pin_code", pinToUse).apply()
+                android.util.Log.d("UssdDialer", "🔐 PIN saved from config: ${pinToUse.take(2)}***")
+            } else {
+                ussdPrefsForPin.edit().remove("current_pin_code").apply()
+                android.util.Log.w("UssdDialer", "⚠️ No valid PIN in config for queue ${order.id}")
+            }
+
+            // ===== MULTI-STEP MENU PLAN (*870 / *866 / *101) =====
+            val parsedTemplate = UssdTemplate.parse(order.ussdCode, order.receiverPhone)
+            if (parsedTemplate.isMenuFlow) {
+                val plan = Ussd870Flow.buildPlan(parsedTemplate, order.receiverPhone)
+                Ussd870Flow.savePlan(this, plan, System.currentTimeMillis())
+                android.util.Log.d(
+                    "UssdDialer",
+                    "🧭 Menu flow *${parsedTemplate.trigger}: dial='${parsedTemplate.dialCode}' steps=${plan.size} " +
+                        "path=${parsedTemplate.menuPath.joinToString(" > ")}"
+                )
+            } else {
+                Ussd870Flow.clearPlan(this)
+            }
             
             clearCapturedUssdResponse()
+
+
 
             // Quick 500ms settle time - lightning fast!
             android.util.Log.d("UssdDialer", "⚡ Quick 0.5s settle time before USSD...")
