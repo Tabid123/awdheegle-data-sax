@@ -2659,6 +2659,15 @@ export type Database = {
         Args: { p_reason?: string; p_session_id: string }
         Returns: undefined
       }
+      enqueue_discovery_delivery: {
+        Args: {
+          p_menu_index?: number
+          p_menu_label: string
+          p_order_id: string
+          p_session_id?: string
+        }
+        Returns: string
+      }
       get_active_categories: {
         Args: { p_provider_id: string }
         Returns: {
