@@ -19,6 +19,7 @@ import Index from "./pages/Index";
 import ProviderSelection from "./pages/ProviderSelection";
 import CategorySelection from "./pages/CategorySelection";
 import DataPackages from "./pages/DataPackages";
+import DiscoverPackages from "./pages/DiscoverPackages";
 import PaymentProviders from "./pages/PaymentProviders";
 import OfflineMode from "./pages/OfflineMode";
 import PaymentSuccess from "./pages/PaymentSuccess";
