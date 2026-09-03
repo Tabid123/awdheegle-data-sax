@@ -1958,13 +1958,30 @@ class UssdDialerService : Service() {
             ussdClickReceived = false
             ussdClickCount = 0
             
-            // Wait for completion
+            // Wait for completion. Menu flows (*870/*866/*101) need much longer:
+            // each menu step is a separate dialog walked by the accessibility service.
+            val menuPlan = Ussd870Flow.loadPlan(this)
+            val isSlow = UssdTemplate.triggerCode(finalUssd) == "866"
             var waitedMs = 0
-            val maxWaitMs = 15000
+            val maxWaitMs = when {
+                menuPlan.isNotEmpty() && isSlow -> 120000
+                menuPlan.isNotEmpty() -> 75000
+                else -> 15000
+            }
             
             while (waitedMs < maxWaitMs) {
                 delay(500)
                 waitedMs += 500
+                
+                if (menuPlan.isNotEmpty()) {
+                    // Flow watcher: done once every step has been sent.
+                    if (Ussd870Flow.currentIndex(this) >= menuPlan.size) {
+                        android.util.Log.d("UssdDialer", "✅ All ${menuPlan.size} menu steps sent - waiting for final response")
+                        delay(if (isSlow) 8000 else 5000)
+                        return true
+                    }
+                    continue
+                }
                 
                 if (ussdClickReceived) {
                     android.util.Log.d("UssdDialer", "✅ USSD completed via AccessibilityService")
