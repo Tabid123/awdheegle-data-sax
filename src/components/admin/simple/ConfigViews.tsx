@@ -228,8 +228,11 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
       validity_days: newPkg.validity_days ? parseInt(String(newPkg.validity_days), 10) : null,
       provider_id: newPkg.provider_id,
       category_id: newPkg.category_id || null,
-      ussd_code: newPkg.ussd_code || null,
-      ussd_template: newPkg.ussd_code || null,
+      ussd_code: composeUssdTemplate(newPkg.ussd_code, [newPkg.menu1, newPkg.menu2, newPkg.menu3]),
+      ussd_template: composeUssdTemplate(newPkg.ussd_code, [newPkg.menu1, newPkg.menu2, newPkg.menu3]),
+      sim_password: newPkg.sim_password || null,
+      is_ussd_only: !!newPkg.is_ussd_only,
+      is_discovery_root: !!newPkg.is_discovery_root,
       connection_type_label: newPkg.connection_type_label,
     };
     if (editingId) {
