@@ -185,6 +185,17 @@ export const UssdDiscoveryManager: React.FC = () => {
               <p className="text-xs font-semibold">{draft.id ? 'Tafatir xirmo' : 'Xirmo cusub'}</p>
               <div className="grid grid-cols-2 gap-2">
                 <div className="col-span-2">
+                  <label className="text-[10px] text-muted-foreground">Category (xirmada root)</label>
+                  <select
+                    value={draft.root_package_id || ''}
+                    onChange={(e) => setDraft({ ...draft, root_package_id: e.target.value })}
+                    className="w-full h-9 px-2 rounded-md border bg-background text-sm"
+                  >
+                    <option value="">— Category la'aan —</option>
+                    {roots.map((root) => <option key={root.id} value={root.id}>{root.package_name}</option>)}
+                  </select>
+                </div>
+                <div className="col-span-2">
                   <label className="text-[10px] text-muted-foreground">Label (sida menu-ga *212 ka muuqdo)</label>
                   <Input value={draft.normalized_label} onChange={(e) => setDraft({ ...draft, normalized_label: e.target.value })} placeholder="100mb maalin" className="h-9 text-sm" />
                 </div>
