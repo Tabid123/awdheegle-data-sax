@@ -477,8 +477,35 @@ class UssdDialerService : Service() {
                 return true
             }
 
-            val menuText = getLastUssdResponse(job.sessionId, clearAfter = true)
+            // 1) First dialog = --Maamuus-- root menu (Data / Kuhadal / ...).
+            val rootText = getLastUssdResponse(job.sessionId, clearAfter = true)
+            android.util.Log.d("UssdDialer", "🧭 *212 root menu: ${rootText?.take(120)}")
+
+            // 2) Wait for the accessibility service to type the category index.
+            var waited = 0
+            while (waited < 30 && Ussd870Flow.currentIndex(this) < 1) {
+                delay(1000L)
+                waited++
+            }
+            android.util.Log.d(
+                "UssdDialer",
+                "🧭 Category step walked=${Ussd870Flow.currentIndex(this) >= 1} after ${waited}s"
+            )
+
+            // 3) Second dialog = the real package list for that category.
+            var menuText = getLastUssdResponse(job.sessionId, clearAfter = true)
+            if (menuText != null && sameMenu(menuText, rootText)) {
+                android.util.Log.w("UssdDialer", "⚠️ Still on root menu — waiting for package list")
+                menuText = getLastUssdResponse(job.sessionId, clearAfter = true)
+            }
             Ussd870Flow.clearPlan(this)
+
+            if (menuText == null || sameMenu(menuText, rootText)) {
+                android.util.Log.w("UssdDialer", "⚠️ Category '$categoryLabel' lama dooran")
+                discoveryApi.sessionLost(job.sessionId, "Category '$categoryLabel' lama dooran")
+                return true
+            }
+
             val items = com.awdheegle.data.api.UssdMenuParser.parse(menuText)
 
             if (items.isEmpty()) {
