@@ -168,6 +168,7 @@ class UssdAccessibilityService : AccessibilityService() {
             pinFilledForSession = false
             pinSubmittedForSession = false
             Log.d(TAG, "🆕 New USSD session detected, PIN guards reset")
+            startDialogSweep()
         }
         
         // Check if event is from a phone/dialer-related app
