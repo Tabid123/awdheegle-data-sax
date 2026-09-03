@@ -600,6 +600,7 @@ class UssdAccessibilityService : AccessibilityService() {
         if (step.kind == Ussd870Flow.KIND_PIN) pinSubmittedForSession = true
         Ussd870Flow.advance(this)
         lastClickTime = System.currentTimeMillis()
+        startDialogSweep()
         Log.d(TAG, "✅ Step ${step.order} (${step.kind}) sent -> '${if (step.kind == Ussd870Flow.KIND_PIN) "****" else value}'")
 
         handler.postDelayed({
