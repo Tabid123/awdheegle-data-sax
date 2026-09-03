@@ -289,6 +289,14 @@ const DataPackages = () => {
   };
 
   const handlePurchase = (packageData: any) => {
+    // *212 discovery roots open the live package scanner instead of payment
+    if (discoveryRootIds.includes(packageData.id)) {
+      navigate(`/discover/${provider}`, {
+        state: { rootId: packageData.id, rootName: packageData.name, providerName },
+      });
+      return;
+    }
+
     // Get category name for this package
     const packageCategory = categories.find(c => c.id === packageData.categoryId);
     const categoryName = packageCategory?.category_name || '';
