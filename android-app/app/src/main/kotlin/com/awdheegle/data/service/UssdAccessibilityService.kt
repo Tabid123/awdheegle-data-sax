@@ -232,7 +232,15 @@ class UssdAccessibilityService : AccessibilityService() {
                 Log.d(TAG, "🚫 Ignored non-USSD text (clock/home screen): ${dialogText.take(120)}")
             }
             
-            // CHECK FOR PIN INPUT DIALOG - only enter PIN once per USSD session
+            // ---- MULTI-STEP MENU FLOW (*870 / *866 / *101) --------------
+            // A step plan means this session must be walked step-by-step:
+            // menu label -> menu number, receiver phone, then PIN.
+            if (!dialogText.isNullOrBlank() && handleStepPlan(source, dialogText)) {
+                source.recycle()
+                return
+            }
+
+
             val isPinDialog = dialogText?.contains("PIN", ignoreCase = true) == true ||
                              dialogText?.contains("pin", ignoreCase = true) == true ||
                              dialogText?.contains("password", ignoreCase = true) == true ||
