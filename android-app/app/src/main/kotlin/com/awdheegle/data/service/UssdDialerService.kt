@@ -534,12 +534,14 @@ class UssdDialerService : Service() {
 
             // Wait for the accessibility service to walk the plan (max 40s).
             var completed = false
-            repeat(40) {
+            var waited = 0
+            while (waited < 40) {
                 if (Ussd870Flow.currentIndex(this) >= steps.size) {
                     completed = true
-                    return@repeat
+                    break
                 }
                 delay(1000L)
+                waited++
             }
 
             val response = getLastUssdResponse(selection.queueId, clearAfter = true)
