@@ -32,7 +32,13 @@ object UssdMenuParser {
         rawText.split('\n', '\r').forEach { line ->
             val match = LINE_ITEM.find(line) ?: return@forEach
             val index = match.groupValues[1].toIntOrNull() ?: return@forEach
-            val label = match.groupValues[2].trim()
+            // Dialer UI noise ("... | 1 | Cancel | Send") is glued onto the last
+            // line of the dialog — cut everything from the first pipe.
+            val label = match.groupValues[2]
+                .substringBefore('|')
+                .replace(Regex("""\b(cancel|send|ok)\b""", RegexOption.IGNORE_CASE), "")
+                .replace(Regex("""\s{2,}"""), " ")
+                .trim()
             if (label.isBlank()) return@forEach
             if (index == 0) return@forEach
             if (IGNORED_LABEL.containsMatchIn(label)) return@forEach
