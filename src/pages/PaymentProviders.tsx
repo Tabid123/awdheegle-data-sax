@@ -761,6 +761,9 @@ const PaymentProviders = () => {
         setShowErrorModal(true);
       }, 100);
     }
+  };
+
+
 
   // ================= *212 discovery helpers =================
   const digits9 = (v: string) => (v || '').replace(/\D/g, '').slice(-9);
