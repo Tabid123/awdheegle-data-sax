@@ -165,6 +165,21 @@ const DataPackages = () => {
     return [];
   };
 
+  const { data: discoveryRootIds = [] } = useQuery({
+    queryKey: ['discoveryRoots', provider],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('data_packages_config')
+        .select('id')
+        .eq('is_discovery_root', true)
+        .eq('is_active', true);
+      if (error) return [];
+      return (data || []).map((r: any) => r.id as string);
+    },
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
+
   const { data: packages = [] } = useQuery({
     queryKey: ['packages', provider],
     queryFn: async () => {
