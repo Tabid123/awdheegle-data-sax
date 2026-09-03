@@ -20,6 +20,17 @@ const DiscoverPackages: React.FC = () => {
   const providerName: string = state?.providerName || '';
 
   const [phone, setPhone] = useState<string>(() => digits9(localStorage.getItem('verifiedPhone') || ''));
+  const [payProviders, setPayProviders] = useState<any[]>([]);
+  const [payProviderId, setPayProviderId] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.rpc('get_active_payment_providers');
+      const list = Array.isArray(data) ? data : [];
+      setPayProviders(list);
+      if (list.length === 1) setPayProviderId(list[0].id);
+    })();
+  }, []);
   const [status, setStatus] = useState<'idle' | 'queued' | 'dialing' | 'ready' | 'none'>('idle');
   const [items, setItems] = useState<any[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
