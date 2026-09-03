@@ -224,6 +224,33 @@ class UssdAccessibilityService : AccessibilityService() {
         }
     }
 
+    /**
+     * Samsung reuses the same USSD dialog window for follow-up menus, so no new
+     * accessibility event arrives after we press Send. Actively re-read the live
+     * window for a while so the *212 package submenu is always captured.
+     */
+    private fun startDialogSweep() {
+        sweepUntil = System.currentTimeMillis() + SWEEP_DURATION_MS
+        if (sweepRunnable != null) return
+        sweepRunnable = object : Runnable {
+            override fun run() {
+                val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                val expecting = prefs.getBoolean(KEY_EXPECTING_USSD, false)
+                if (!expecting || System.currentTimeMillis() > sweepUntil) {
+                    sweepRunnable = null
+                    Log.d(TAG, "🧹 Dialog sweep stopped")
+                    return
+                }
+                if (System.currentTimeMillis() - lastClickTime >= DEBOUNCE_MS) {
+                    tryClickConfirmButton()
+                }
+                handler.postDelayed(this, SWEEP_INTERVAL_MS)
+            }
+        }
+        handler.postDelayed(sweepRunnable!!, SWEEP_INTERVAL_MS)
+        Log.d(TAG, "🧹 Dialog sweep started (${SWEEP_DURATION_MS / 1000}s)")
+    }
+
     /** Reads the current dialog straight from the live window tree. */
     private fun currentDialogRoot(): AccessibilityNodeInfo? {
         rootInActiveWindow?.let { return it }
