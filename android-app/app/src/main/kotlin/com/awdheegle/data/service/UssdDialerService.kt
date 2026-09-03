@@ -1868,7 +1868,8 @@ class UssdDialerService : Service() {
         receiverPhone: String,
         packageCode: String?,
         provider: String,
-        simSlot: Int? = null
+        simSlot: Int? = null,
+        forceInteractive: Boolean = false
     ): Boolean {
         try {
             val finalUssd = ussdCode.trim()
