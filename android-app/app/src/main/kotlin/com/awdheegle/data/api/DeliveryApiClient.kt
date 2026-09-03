@@ -56,10 +56,7 @@ class DeliveryApiClient {
         val attempts: Int,
         val simSlot: Int = 0,
         val provider: String = "",
-        val pinCode: String = "",
-        /** *212 cold fallback: menu index of the package the customer paid for. */
-        val discoveryMenuIndex: Int? = null,
-        val discoveryMenuLabel: String? = null
+        val pinCode: String = ""
     )
     
     // OTP Task data class - includes provider for SIM slot selection
@@ -101,11 +98,7 @@ class DeliveryApiClient {
                                 attempts = orderJson.getInt("attempts"),
                                 simSlot = orderJson.optInt("simSlot", 0),
                                 provider = orderJson.optString("provider", ""),
-                                pinCode = orderJson.optString("pinCode", ""),
-                                discoveryMenuIndex = if (orderJson.isNull("discoveryMenuIndex")) null
-                                    else orderJson.optInt("discoveryMenuIndex").takeIf { it > 0 },
-                                discoveryMenuLabel = if (orderJson.isNull("discoveryMenuLabel")) null
-                                    else orderJson.optString("discoveryMenuLabel").ifBlank { null }
+                                pinCode = orderJson.optString("pinCode", "")
                             )
                         )
                     }
