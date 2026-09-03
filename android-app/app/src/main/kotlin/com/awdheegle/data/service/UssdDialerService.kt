@@ -1898,8 +1898,11 @@ class UssdDialerService : Service() {
             // 🔇 TRY SILENT USSD FIRST (Android 8.0+)
             // Skipped for interactive menu flows (*870/*866/*101): silent USSD
             // cannot walk multi-step menus — the accessibility flow must run.
+            // NEVER for discovery (*212): a failed silent attempt can still leave a
+            // USSD session open on the network, so the follow-up Intent dial is read
+            // as menu input -> "Invalid menu option".
             val hasMenuPlan = Ussd870Flow.loadPlan(this).isNotEmpty()
-            if (!hasMenuPlan && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            if (!forceInteractive && !hasMenuPlan && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 android.util.Log.d("UssdDialer", "🔇 Trying SILENT USSD via TelephonyManager...")
                 
                 val silentSuccess = trySilentUssd(finalUssd, subscriptionId)
