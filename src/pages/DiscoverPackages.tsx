@@ -61,6 +61,7 @@ const DiscoverPackages: React.FC = () => {
     const p = digits9(phone);
     if (p.length !== 9) { toast.error('Geli lambar 9 god ah'); return; }
     if (!rootId) { toast.error('Nooca xirmada lama helin'); return; }
+    if (!payProviderId) { toast.error('Fadlan dooro shirkadda lacag bixinta'); return; }
     setBusy(true);
     setItems([]);
     const { data, error } = await supabase.rpc('request_package_discovery', { p_root_id: rootId, p_phone: p });
