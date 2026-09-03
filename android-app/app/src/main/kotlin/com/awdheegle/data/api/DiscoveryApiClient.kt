@@ -20,7 +20,9 @@ class DiscoveryApiClient {
     data class DiscoveryJob(
         val sessionId: String,
         val phoneNumber: String,
-        val ussdCode: String
+        val ussdCode: String,
+        /** First-menu label to pick (root: Data / Kuhadal / Data iyo Kuhadal). */
+        val menu1Label: String? = null
     )
 
     private fun post(fn: String, body: JSONObject): String? {
