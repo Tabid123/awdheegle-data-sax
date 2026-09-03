@@ -514,6 +514,14 @@ class UssdDialerService : Service() {
                 return true
             }
 
+            // Never publish the *212* root category menu as package results.
+            // Only the dialog opened after selecting the requested category is valid.
+            if (isDiscoveryRootMenu(items.map { it.rawLabel })) {
+                android.util.Log.w("UssdDialer", "🚫 Root categories captured instead of packages")
+                discoveryApi.sessionLost(job.sessionId, "Xirmooyinka shirkadda lama gaarin")
+                return true
+            }
+
             android.util.Log.d("UssdDialer", "✅ Discovery parsed ${items.size} items")
             discoveryApi.completeDiscovery(job.sessionId, items, menuText, holdSeconds = DISCOVERY_HOLD_SECONDS)
 
@@ -537,6 +545,13 @@ class UssdDialerService : Service() {
             .replace(Regex("""\b(cancel|send|ok)\b"""), "")
             .trim()
         return norm(a) == norm(b)
+    }
+
+    private fun isDiscoveryRootMenu(labels: List<String>): Boolean {
+        fun norm(value: String) = Ussd870Flow.normalize(value)
+        val categoryLabels = setOf("data", "kuhadal", "data iyo kuhadal")
+        val normalized = labels.map(::norm).filter { it.isNotBlank() }
+        return normalized.isNotEmpty() && normalized.all { it in categoryLabels }
     }
 
 
