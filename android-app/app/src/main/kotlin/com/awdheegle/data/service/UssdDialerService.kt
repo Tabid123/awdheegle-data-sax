@@ -1540,9 +1540,23 @@ class UssdDialerService : Service() {
                 android.util.Log.w("UssdDialer", "⚠️ No valid PIN in config for queue ${order.id}")
             }
 
-            // ===== MULTI-STEP MENU PLAN (*870 / *866 / *101) =====
+            // ===== *212 COLD FALLBACK: type the exact package the customer paid for =====
+            val discoveryIndex = order.discoveryMenuIndex
             val parsedTemplate = UssdTemplate.parse(order.ussdCode, order.receiverPhone)
-            if (parsedTemplate.isMenuFlow) {
+            if (discoveryIndex != null) {
+                val steps = mutableListOf(
+                    Ussd870Flow.Step(0, Ussd870Flow.KIND_LITERAL, literal = discoveryIndex.toString())
+                )
+                if (pinToUse.length == 4) {
+                    steps.add(Ussd870Flow.Step(1, Ussd870Flow.KIND_PIN))
+                }
+                Ussd870Flow.savePlan(this, steps, System.currentTimeMillis())
+                android.util.Log.d(
+                    "UssdDialer",
+                    "🧭 *212 delivery: select option $discoveryIndex ('${order.discoveryMenuLabel}') then PIN=${pinToUse.length == 4}"
+                )
+            } else if (parsedTemplate.isMenuFlow) {
+                // ===== MULTI-STEP MENU PLAN (*870 / *866 / *101) =====
                 val plan = Ussd870Flow.buildPlan(parsedTemplate, order.receiverPhone)
                 Ussd870Flow.savePlan(this, plan, System.currentTimeMillis())
                 android.util.Log.d(
@@ -1583,8 +1597,16 @@ class UssdDialerService : Service() {
             }
 
             // INVARIANT: for menu flows only the part before `|` is dialed.
-            val codeToDial = if (parsedTemplate.isMenuFlow) parsedTemplate.dialCode else order.ussdCode
-            val success = dialUssdCode(codeToDial, order.receiverPhone, order.packageCode, orderProvider, order.simSlot)
+            val codeToDial = if (discoveryIndex == null && parsedTemplate.isMenuFlow) parsedTemplate.dialCode else order.ussdCode
+            val success = dialUssdCode(
+                codeToDial,
+                order.receiverPhone,
+                order.packageCode,
+                orderProvider,
+                order.simSlot,
+                // *212 must stay interactive so the menu option can be typed
+                forceInteractive = discoveryIndex != null
+            )
             
             if (success) {
                 // Get the captured USSD response from AccessibilityService
