@@ -1076,7 +1076,8 @@ export const SystemCodesCustomView = ({ isSo }: { isSo: boolean }) => {
   const [providerFilter, setProviderFilter] = useState<string>('all');
   const [showAdd, setShowAdd] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [newCode, setNewCode] = useState({ provider_id: '', code_template: '', sim_password: '', notes: '', category_id: '', package_id: '' });
+  const [newCode, setNewCode] = useState({ provider_id: '', code_template: '', sim_password: '', notes: '', category_id: '', package_id: '', menu1: '', menu2: '', menu3: '' });
+  const [flowPreset, setFlowPreset] = useState('');
 
   const loadCodes = useCallback(async () => {
     const [instRes, provRes, catRes, pkgRes] = await Promise.all([
