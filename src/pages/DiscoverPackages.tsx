@@ -15,6 +15,11 @@ const normalizeLabel = (value: unknown) => String(value || '')
   .replace(/[^a-z0-9]+/g, ' ')
   .trim();
 const ROOT_CATEGORY_LABELS = new Set(['data', 'kuhadal', 'data iyo kuhadal']);
+const packageDisplayLabel = (value: unknown) => String(value || '')
+  .substringBefore?.('|') ?? String(value || '').split('|')[0];
+const stripProviderPrice = (value: unknown) => packageDisplayLabel(value)
+  .replace(/^\s*\$?\s*\d+(?:[.,]\d+)?\s*(?:=|[-:])\s*/i, '')
+  .trim();
 // Keep every real package row. Rows without a catalog price are shown dimmed
 // ("Qiimo lama helin") instead of producing an empty page.
 const visiblePackages = (value: unknown) => (Array.isArray(value) ? value : []).filter((item: any) => {
@@ -78,8 +83,14 @@ const DiscoverPackagesInner: React.FC = () => {
 
   const stopPolling = () => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } };
 
-  const poll = useCallback(async (p: string) => {
-    const { data, error } = await supabase.rpc('get_package_discovery', { p_phone: p, p_max_age_seconds: 1800 });
+  const poll = useCallback(async (p: string, requestedSessionId?: string | null) => {
+    const sid = requestedSessionId || sessionRef.current;
+    if (!sid) return;
+    const { data, error } = await supabase.rpc('get_package_discovery_session', {
+      p_phone: p,
+      p_session_id: sid,
+      p_max_age_seconds: 1800,
+    });
     if (error) return;
     const res: any = data || {};
     if (res.session_id) setSessionId(res.session_id);
@@ -139,11 +150,13 @@ const DiscoverPackagesInner: React.FC = () => {
     const res: any = data || {};
     if (res.status === 'error') { toast.error(res.message || 'Khalad'); setView('input'); return; }
 
-    setSessionId(res.session_id || null);
+    const newSessionId = res.session_id || null;
+    setSessionId(newSessionId);
+    sessionRef.current = newSessionId;
     setStatus(res.status || 'queued');
-    await poll(p);
+    await poll(p, newSessionId);
     stopPolling();
-    pollRef.current = setInterval(() => poll(p), 2500);
+    pollRef.current = setInterval(() => poll(p, newSessionId), 2500);
   }, [phone, rootId, poll]);
 
   // auto-start when the number came from the payment page
@@ -162,7 +175,7 @@ const DiscoverPackagesInner: React.FC = () => {
     if (!p) return;
     const channel = supabase
       .channel('discovery_queue_client')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'ussd_package_discoveries', filter: `phone_number=eq.${p}` }, () => poll(p))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ussd_package_discoveries', filter: `phone_number=eq.${p}` }, () => poll(p, sessionRef.current))
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [phone, poll]);
@@ -213,7 +226,7 @@ const DiscoverPackagesInner: React.FC = () => {
         package: {
           id: rootId,
           providerId: provider,
-          name: item.raw_label,
+           name: stripProviderPrice(item.raw_label),
           price: `$${Number(item.price).toFixed(2)}`,
           data: item.data_amount || '',
           validity: null,
@@ -322,7 +335,7 @@ const DiscoverPackagesInner: React.FC = () => {
               return (
                 <Card key={`${item.index}-${idx}`} className="p-4 border-primary/40 space-y-3">
                   <div className="flex items-start justify-between gap-3">
-                    <p className="text-sm font-semibold text-foreground min-w-0">{item.raw_label}</p>
+                     <p className="text-sm font-semibold text-foreground min-w-0">{stripProviderPrice(item.raw_label)}</p>
                     <span className="text-xl font-extrabold text-primary shrink-0">
                       {missing ? '—' : `$${Number(item.price).toFixed(2)}`}
                     </span>
