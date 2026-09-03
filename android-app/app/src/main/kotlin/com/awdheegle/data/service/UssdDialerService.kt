@@ -568,6 +568,25 @@ class UssdDialerService : Service() {
     }
 
     /** True when two USSD dialogs carry the same menu text (ignoring noise). */
+    /**
+     * True when the dialog text already IS the package list: at least two
+     * numbered lines and at least one of them carries a price ($ or =).
+     */
+    private fun looksLikePriceList(text: String?): Boolean {
+        if (text.isNullOrBlank()) return false
+        val line = Regex("""^\s*(\d{1,2})\s*[.)\-:]\s*(.+)$""")
+        var numbered = 0
+        var priced = 0
+        text.split('\n', '\r').forEach { raw ->
+            val m = line.find(raw.substringBefore('|')) ?: return@forEach
+            val label = m.groupValues[2].trim()
+            if (label.isBlank()) return@forEach
+            numbered++
+            if (label.contains('$') || label.contains('=')) priced++
+        }
+        return numbered >= 2 && priced >= 1
+    }
+
     private fun sameMenu(a: String?, b: String?): Boolean {
         if (a == null || b == null) return false
         fun norm(s: String) = s.lowercase()
