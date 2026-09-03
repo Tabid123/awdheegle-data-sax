@@ -792,6 +792,8 @@ class UssdAccessibilityService : AccessibilityService() {
     override fun onDestroy() {
         super.onDestroy()
         multiDialogRunnable?.let { handler.removeCallbacks(it) }
+        sweepRunnable?.let { handler.removeCallbacks(it) }
+        sweepRunnable = null
         Log.d(TAG, "UssdAccessibilityService destroyed")
     }
 }
