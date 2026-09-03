@@ -246,21 +246,25 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
       setPackages(prev => [data, ...prev]);
       toast.success(isSo ? 'Waa lagu daray' : 'Added');
     }
-    setNewPkg({ package_name: '', data_amount: '', selling_price: '', cost_price: '', secret_price: '', validity_days: '30', provider_id: '', category_id: '', ussd_code: '', connection_type_label: 'Data' });
+    setNewPkg({ ...EMPTY_PKG });
     setShowAdd(false); setEditingId(null);
   };
 
   const startEditPkg = (item: any) => {
     setEditingId(item.id);
+    const parts = splitUssdTemplate(item.ussd_code || item.ussd_template);
     setNewPkg({
       package_name: item.package_name || '', data_amount: item.data_amount || '', selling_price: String(item.selling_price || ''),
       cost_price: String(item.cost_price || ''),
       secret_price: Array.isArray(item.secret_price) ? item.secret_price.join(', ') : (item.secret_price ?? ''),
       validity_days: item.validity_days || '30', provider_id: item.provider_id || '',
-      category_id: item.category_id || '', ussd_code: item.ussd_code || '', connection_type_label: item.connection_type_label || 'Data',
+      category_id: item.category_id || '', ussd_code: parts.dial, connection_type_label: item.connection_type_label || 'Data',
+      menu1: parts.menu1, menu2: parts.menu2, menu3: parts.menu3,
+      sim_password: item.sim_password || '', is_ussd_only: !!item.is_ussd_only, is_discovery_root: !!item.is_discovery_root,
     });
     setShowAdd(true); setExpandedId(null);
   };
+
 
   const providerFiltered = providerFilter === 'all' ? packages : packages.filter(p => p.provider_id === providerFilter);
   const activeCount = providerFiltered.filter(p => p.is_active).length;
