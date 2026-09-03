@@ -1381,7 +1381,8 @@ serve(async (req) => {
             receiver_phone: pendingOnline.receiver_phone,
             provider_id: pendingOnline.provider_id,
             package_id: pendingOnline.package_id,
-            package_name: packageData?.package_name || "Data Package",
+            // *212 discovery: the customer's chosen live menu label drives the delivery
+            package_name: pendingOnline.discovery_menu_label || packageData?.package_name || "Data Package",
             data_amount: packageData?.data_amount || "",
             selling_price: smsAmount,
             payment_provider_id: paymentProvider?.id,
