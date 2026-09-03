@@ -1440,6 +1440,49 @@ serve(async (req) => {
           })
           .eq("id", receipt.id);
 
+        // ===== *212 discovery: deliver EXACTLY the bundle the customer picked =====
+        const discMenuIndex = pendingOnline.discovery_menu_index ?? null;
+        const discSessionId = pendingOnline.discovery_session_id ?? null;
+        const discMenuLabel = pendingOnline.discovery_menu_label ?? null;
+
+        if (discMenuIndex !== null || discSessionId) {
+          console.log(
+            `🎯 *212 discovery delivery → order=${newOrder.id} index=${discMenuIndex} session=${discSessionId} label=${discMenuLabel}`,
+          );
+          const { data: discQueueId, error: discErr } = await supabase.rpc("enqueue_discovery_delivery", {
+            p_order_id: newOrder.id,
+            p_menu_label: discMenuLabel,
+            p_menu_index: discMenuIndex,
+            p_session_id: discSessionId,
+          });
+
+          if (discErr) {
+            console.error("❌ enqueue_discovery_delivery failed:", discErr);
+            await supabase
+              .from("orders")
+              .update({
+                delivery_status: "failed",
+                delivery_notes: `Discovery enqueue failed: ${discErr.message}`,
+              })
+              .eq("id", newOrder.id);
+          } else {
+            console.log(`📬 Discovery delivery queued: ${discQueueId}`);
+          }
+
+          return new Response(
+            JSON.stringify({
+              success: true,
+              message: "Pending online payment matched (*212 discovery)",
+              order_id: newOrder.id,
+              delivery_queue_id: discQueueId ?? null,
+              matching_strategy: "pending_online_payment_discovery",
+              route,
+            }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
+          );
+        }
+
+
         const instruction = await getDeliveryInstruction(
           supabase,
           pendingOnline.provider_id,
