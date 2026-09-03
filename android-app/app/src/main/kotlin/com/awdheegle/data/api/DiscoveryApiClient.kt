@@ -91,6 +91,60 @@ class DiscoveryApiClient {
         }
     }
 
+    data class SelectionJob(
+        val queueId: String,
+        val sessionId: String,
+        val menuIndex: Int,
+        val menuLabel: String?,
+        val pinCode: String?
+    )
+
+    /**
+     * Claim a customer selection that must be typed into the *212 dialog this
+     * device is still holding. Returns null when nothing is waiting.
+     */
+    suspend fun claimDiscoverySelection(deviceUuid: String): SelectionJob? = withContext(Dispatchers.IO) {
+        try {
+            val body = post("claim_discovery_selection", JSONObject().put("p_device_id", deviceUuid))
+                ?: return@withContext null
+            val arr = JSONArray(body)
+            if (arr.length() == 0) return@withContext null
+            val row = arr.getJSONObject(0)
+            val queueId = row.optString("queue_id", "")
+            if (queueId.isBlank() || queueId == "null") return@withContext null
+            SelectionJob(
+                queueId = queueId,
+                sessionId = row.optString("session_id", ""),
+                menuIndex = row.optInt("menu_index", 0),
+                menuLabel = row.optString("discovery_menu_label", "").ifBlank { null },
+                pinCode = row.optString("pin_code", "").ifBlank { null }
+            )
+        } catch (e: Exception) {
+            android.util.Log.e("DiscoveryApi", "claimDiscoverySelection error: ${e.message}")
+            null
+        }
+    }
+
+    /** Report the outcome of typing the selection into the held session. */
+    suspend fun completeDiscoverySelection(
+        queueId: String,
+        success: Boolean,
+        response: String?
+    ): Boolean = withContext(Dispatchers.IO) {
+        try {
+            post(
+                "complete_discovery_selection",
+                JSONObject()
+                    .put("p_queue_id", queueId)
+                    .put("p_success", success)
+                    .put("p_response", response ?: JSONObject.NULL)
+            ) != null
+        } catch (e: Exception) {
+            android.util.Log.e("DiscoveryApi", "completeDiscoverySelection error: ${e.message}")
+            false
+        }
+    }
+
     /** Tell the server the USSD session is gone so pending selections re-dial cold. */
     suspend fun sessionLost(sessionId: String, reason: String?): Boolean = withContext(Dispatchers.IO) {
         try {
