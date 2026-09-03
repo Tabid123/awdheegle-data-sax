@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 
 const DURATIONS = ['', 'hourly', 'daily', '3days', 'weekly', 'monthly'];
 
-const emptyRow = () => ({
+const emptyRow = (rootId = '') => ({
   id: null,
   normalized_label: '',
   duration_key: '',
@@ -21,23 +21,37 @@ const emptyRow = () => ({
   cost_price: 0,
   selling_price: 0,
   is_active: true,
+  root_package_id: rootId,
 });
+
+const UNGROUPED = '__none__';
 
 export const UssdDiscoveryManager: React.FC = () => {
   const [tab, setTab] = useState('catalog');
 
   // ---- Price catalog ----
   const [rows, setRows] = useState<any[]>([]);
+  const [roots, setRoots] = useState<any[]>([]);
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState('');
   const [draft, setDraft] = useState<any>(null);
   const [saving, setSaving] = useState(false);
 
+  const loadRoots = useCallback(async () => {
+    const { data } = await supabase
+      .from('data_packages_config')
+      .select('id, package_name, sort_order')
+      .eq('is_discovery_root', true)
+      .order('sort_order');
+    setRoots(data || []);
+  }, []);
+
   const loadCatalog = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from('ussd_price_catalog')
-      .select('id, normalized_label, duration_key, data_amount, display_name, cost_price, selling_price, is_active')
+      .select('id, normalized_label, duration_key, data_amount, display_name, cost_price, selling_price, is_active, root_package_id')
       .order('normalized_label')
       .limit(500);
     if (error) toast.error(error.message);
