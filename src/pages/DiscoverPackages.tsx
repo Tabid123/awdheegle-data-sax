@@ -9,6 +9,16 @@ import { ArrowLeft, Clock, Loader2, RefreshCw, Search, Smartphone } from 'lucide
 import { toast } from 'sonner';
 
 const digits9 = (v: string) => (v || '').replace(/\D/g, '').slice(-9);
+const normalizeLabel = (value: unknown) => String(value || '')
+  .toLowerCase()
+  .replace(/\|.*$/, '')
+  .replace(/[^a-z0-9]+/g, ' ')
+  .trim();
+const ROOT_CATEGORY_LABELS = new Set(['data', 'kuhadal', 'data iyo kuhadal']);
+const visiblePackages = (value: unknown) => (Array.isArray(value) ? value : []).filter((item: any) => {
+  const label = normalizeLabel(item?.raw_label);
+  return label && !ROOT_CATEGORY_LABELS.has(label) && item?.sellable === true && item?.price != null;
+});
 
 class PageErrorBoundary extends React.Component<any, { hasError: boolean }> {
   constructor(props: any) { super(props); this.state = { hasError: false }; }
@@ -77,7 +87,16 @@ const DiscoverPackagesInner: React.FC = () => {
     setClaimedAt(res.claimed_at || null);
 
     if (res.status === 'ready') {
-      setItems(Array.isArray(res.items) ? res.items : []);
+      const packages = visiblePackages(res.items);
+      // A root category menu is not a valid result. Keep it completely hidden.
+      if (packages.length === 0) {
+        setItems([]);
+        setTimedOut(true);
+        setView('searching');
+        stopPolling();
+        return;
+      }
+      setItems(packages);
       setSecondsLeft(res.session_seconds_left != null ? Number(res.session_seconds_left) : null);
       setView('results');
       stopPolling();
