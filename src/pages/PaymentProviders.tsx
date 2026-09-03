@@ -46,6 +46,7 @@ const PaymentProviders = () => {
   const packageData = location.state?.package;
   const providerName = location.state?.providerName;
   const categoryName = location.state?.categoryName || '';
+  const discoveryData = location.state?.discovery || null;
   
   // Helper function to detect ADSL packages
   const isADSLPackage = (catName: string) => {
