@@ -245,7 +245,7 @@ Frontend: `DiscoverPackages.tsx` (queue + live list + selection),
 
 ---
 
-## 10. Acceptance tests
+## 11. Acceptance tests
 
 1. Successful discovery: root → phone → menu scraped → priced list shown.
 2. New carrier label → `discovery_unmatched_labels` row with `hits = 1`.
