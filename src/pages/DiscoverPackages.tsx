@@ -15,8 +15,7 @@ const normalizeLabel = (value: unknown) => String(value || '')
   .replace(/[^a-z0-9]+/g, ' ')
   .trim();
 const ROOT_CATEGORY_LABELS = new Set(['data', 'kuhadal', 'data iyo kuhadal']);
-const packageDisplayLabel = (value: unknown) => String(value || '')
-  .substringBefore?.('|') ?? String(value || '').split('|')[0];
+const packageDisplayLabel = (value: unknown) => String(value || '').split('|')[0];
 const stripProviderPrice = (value: unknown) => packageDisplayLabel(value)
   .replace(/^\s*\$?\s*\d+(?:[.,]\d+)?\s*(?:=|[-:])\s*/i, '')
   .trim();
