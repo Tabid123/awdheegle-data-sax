@@ -413,18 +413,33 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
             <div className="flex flex-wrap gap-1.5">
               {USSD_PRESETS.map(p => (
                 <button key={p.label} type="button"
-                  onClick={() => setNewPkg(s => ({ ...s, ussd_code: p.dial, is_discovery_root: p.dial.startsWith('*212') }))}
+                  onClick={() => setNewPkg(s => ({ ...s, ussd_code: p.dial, is_discovery_root: p.dial.startsWith('*212'), ...(p.dial.startsWith('*212') ? { menu1: '', menu2: '', menu3: '' } : {}) }))}
                   className={`px-2 py-1 rounded-md text-[11px] font-semibold border ${newPkg.ussd_code === p.dial ? 'bg-indigo-600 text-primary-foreground border-indigo-600' : 'bg-background border-border'}`}>
                   {p.label}
                 </button>
               ))}
             </div>
             <input value={newPkg.ussd_code} onChange={e => setNewPkg(p => ({...p, ussd_code: e.target.value}))} placeholder="*870*{receiver_phone}#" className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none font-mono" />
-            <div className="grid grid-cols-3 gap-2">
-              <input value={newPkg.menu1} onChange={e => setNewPkg(p => ({...p, menu1: e.target.value}))} placeholder="Menu1" className="px-2 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-xs outline-none" />
-              <input value={newPkg.menu2} onChange={e => setNewPkg(p => ({...p, menu2: e.target.value}))} placeholder="Menu2" className="px-2 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-xs outline-none" />
-              <input value={newPkg.menu3} onChange={e => setNewPkg(p => ({...p, menu3: e.target.value}))} placeholder="Menu3" className="px-2 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-xs outline-none" />
-            </div>
+            {newPkg.ussd_code.trim().startsWith('*212') ? (
+              <p className="text-[10px] leading-snug text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 rounded-lg px-2 py-1.5">
+                {isSo ? '*212* discovery ah — MENU MA LAHAN.' : '*212* is discovery — NO menus.'}
+              </p>
+            ) : (
+              <div className="space-y-2">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-600 dark:text-gray-300">{isSo ? 'Menu 1 — lambar ama keywords (tus. "Data;Xogta")' : 'Menu 1 — number or keywords'}</label>
+                  <input value={newPkg.menu1} onChange={e => setNewPkg(p => ({...p, menu1: e.target.value}))} placeholder="e.g.  1   or   Data;Xogta" className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none font-mono" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-600 dark:text-gray-300">{isSo ? 'Menu 2 — lambar ama keywords (tus. "Mudnaan;Unlimited")' : 'Menu 2 — number or keywords'}</label>
+                  <input value={newPkg.menu2} onChange={e => setNewPkg(p => ({...p, menu2: e.target.value}))} placeholder="e.g.  1   or   Mudnaan;Unlimited" className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none font-mono" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-600 dark:text-gray-300 leading-snug block">{isSo ? 'Menu 3 (ikhtiyaari) — lambar ama keywords. Lambarka helaha ha qorin — wuu otomaatig yahay.' : 'Menu 3 (optional) — number or keywords. Receiver number is automatic.'}</label>
+                  <input value={newPkg.menu3} onChange={e => setNewPkg(p => ({...p, menu3: e.target.value}))} placeholder="e.g.  2   or   Data;Baal" className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none font-mono" />
+                </div>
+              </div>
+            )}
             <input value={newPkg.sim_password} onChange={e => setNewPkg(p => ({...p, sim_password: e.target.value}))} placeholder={isSo ? 'SIM PIN (4 lambar)' : 'SIM PIN (4 digits)'} className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none font-mono" />
             <div className="flex flex-wrap gap-3 text-[11px]">
               <label className="flex items-center gap-1.5">
