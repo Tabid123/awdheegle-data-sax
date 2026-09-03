@@ -154,8 +154,8 @@ export const UssdDiscoveryManager: React.FC = () => {
     },
   ].filter((g) => g.items.length > 0 || g.key !== UNGROUPED);
 
-  const isOpen = (key: string) => openGroups[key] !== false;
-  const toggleGroup = (key: string) => setOpenGroups((p) => ({ ...p, [key]: isOpen(key) ? false : true }));
+  const isOpen = (key: string) => openGroups[key] === true;
+  const toggleGroup = (key: string) => setOpenGroups((p) => ({ ...p, [key]: !isOpen(key) }));
 
 
   return (
