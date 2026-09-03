@@ -1147,6 +1147,7 @@ serve(async (req) => {
             attempts: order.attempts,
             simSlot: order.sim_slot ?? 0,
             provider: order.provider_name,
+            pinCode: order.pin_code ?? '',
             // *212 cold fallback: the exact package the customer paid for
             discoveryMenuIndex: order.discovery_menu_index ?? null,
             discoveryMenuLabel: order.discovery_menu_label ?? null,
