@@ -540,6 +540,7 @@ class UssdAccessibilityService : AccessibilityService() {
             })
         }
         
+        startDialogSweep()
         handler.postDelayed(multiDialogRunnable!!, MULTI_DIALOG_TIMEOUT_MS)
         Log.d(TAG, "⏳ Started multi-dialog listener for ${MULTI_DIALOG_TIMEOUT_MS/1000}s")
     }
