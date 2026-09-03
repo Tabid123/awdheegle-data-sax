@@ -99,16 +99,21 @@ class UssdAccessibilityService : AccessibilityService() {
         )
         
         // Timeout for expecting USSD flag (30 seconds - INCREASED from 15s)
-        private const val EXPECTING_USSD_TIMEOUT_MS = 30000L
+        private const val EXPECTING_USSD_TIMEOUT_MS = 60000L
         private const val DEBOUNCE_MS = 800L
         private const val CLICK_DELAY_MS = 350L
-        private const val MULTI_DIALOG_TIMEOUT_MS = 10000L
+        private const val MULTI_DIALOG_TIMEOUT_MS = 20000L
+        /** Active re-read of the live dialog: Samsung stops firing events on menu reuse. */
+        private const val SWEEP_INTERVAL_MS = 900L
+        private const val SWEEP_DURATION_MS = 30000L
     }
     
     private val handler = Handler(Looper.getMainLooper())
     private var clickCount = 0
     private var lastClickTime = 0L
     private var multiDialogRunnable: Runnable? = null
+    private var sweepRunnable: Runnable? = null
+    private var sweepUntil = 0L
 
     // Session guards to prevent duplicate PIN entry
     private var ussdSessionToken = 0L
@@ -163,6 +168,7 @@ class UssdAccessibilityService : AccessibilityService() {
             pinFilledForSession = false
             pinSubmittedForSession = false
             Log.d(TAG, "🆕 New USSD session detected, PIN guards reset")
+            startDialogSweep()
         }
         
         // Check if event is from a phone/dialer-related app
@@ -216,6 +222,33 @@ class UssdAccessibilityService : AccessibilityService() {
                 }, CLICK_DELAY_MS)
             }
         }
+    }
+
+    /**
+     * Samsung reuses the same USSD dialog window for follow-up menus, so no new
+     * accessibility event arrives after we press Send. Actively re-read the live
+     * window for a while so the *212 package submenu is always captured.
+     */
+    private fun startDialogSweep() {
+        sweepUntil = System.currentTimeMillis() + SWEEP_DURATION_MS
+        if (sweepRunnable != null) return
+        sweepRunnable = object : Runnable {
+            override fun run() {
+                val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                val expecting = prefs.getBoolean(KEY_EXPECTING_USSD, false)
+                if (!expecting || System.currentTimeMillis() > sweepUntil) {
+                    sweepRunnable = null
+                    Log.d(TAG, "🧹 Dialog sweep stopped")
+                    return
+                }
+                if (System.currentTimeMillis() - lastClickTime >= DEBOUNCE_MS) {
+                    tryClickConfirmButton()
+                }
+                handler.postDelayed(this, SWEEP_INTERVAL_MS)
+            }
+        }
+        handler.postDelayed(sweepRunnable!!, SWEEP_INTERVAL_MS)
+        Log.d(TAG, "🧹 Dialog sweep started (${SWEEP_DURATION_MS / 1000}s)")
     }
 
     /** Reads the current dialog straight from the live window tree. */
@@ -507,6 +540,7 @@ class UssdAccessibilityService : AccessibilityService() {
             })
         }
         
+        startDialogSweep()
         handler.postDelayed(multiDialogRunnable!!, MULTI_DIALOG_TIMEOUT_MS)
         Log.d(TAG, "⏳ Started multi-dialog listener for ${MULTI_DIALOG_TIMEOUT_MS/1000}s")
     }
@@ -567,6 +601,7 @@ class UssdAccessibilityService : AccessibilityService() {
         if (step.kind == Ussd870Flow.KIND_PIN) pinSubmittedForSession = true
         Ussd870Flow.advance(this)
         lastClickTime = System.currentTimeMillis()
+        startDialogSweep()
         Log.d(TAG, "✅ Step ${step.order} (${step.kind}) sent -> '${if (step.kind == Ussd870Flow.KIND_PIN) "****" else value}'")
 
         handler.postDelayed({
@@ -757,6 +792,8 @@ class UssdAccessibilityService : AccessibilityService() {
     override fun onDestroy() {
         super.onDestroy()
         multiDialogRunnable?.let { handler.removeCallbacks(it) }
+        sweepRunnable?.let { handler.removeCallbacks(it) }
+        sweepRunnable = null
         Log.d(TAG, "UssdAccessibilityService destroyed")
     }
 }
