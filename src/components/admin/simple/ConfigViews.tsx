@@ -142,6 +142,36 @@ export const ProvidersCustomView = ({ isSo }: { isSo: boolean }) => {
 };
 
 // ========== PACKAGES ==========
+const EMPTY_PKG = {
+  package_name: '', data_amount: '', selling_price: '', cost_price: '', secret_price: '',
+  validity_days: '30', provider_id: '', category_id: '', ussd_code: '', connection_type_label: 'Data',
+  menu1: '', menu2: '', menu3: '', sim_password: '', is_ussd_only: false, is_discovery_root: false,
+};
+
+// USSD flow presets — the dial part only. Menus live in Menu1/2/3.
+const USSD_PRESETS = [
+  { label: '*870 Hormuud', dial: '*870*{receiver_phone}#' },
+  { label: '*866 Somnet', dial: '*866*{receiver_phone}#' },
+  { label: '*101 Somtel', dial: '*101#' },
+  { label: '*212 Maamuus (discovery)', dial: '*212*{receiver_phone}#' },
+];
+
+/** Builds `<dial>|<Menu1>,<Menu2>,<Menu3>` — nothing after `|` is ever dialed. */
+const composeUssdTemplate = (dial: string, menus: string[]) => {
+  const base = (dial || '').split('|')[0].trim();
+  const path = menus.map(m => (m || '').trim()).filter(Boolean);
+  if (!base) return null;
+  return path.length ? `${base}|${path.join(',')}` : base;
+};
+
+const splitUssdTemplate = (template?: string | null) => {
+  const raw = (template || '').trim();
+  const dial = raw.split('|')[0].trim();
+  const menus = raw.includes('|') ? raw.split('|')[1].split(',').map(s => s.trim()) : [];
+  return { dial, menu1: menus[0] || '', menu2: menus[1] || '', menu3: menus[2] || '' };
+};
+
+
 export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
   const [packages, setPackages] = useState<any[]>([]);
   const [providers, setProviders] = useState<any[]>([]);
