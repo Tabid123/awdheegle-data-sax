@@ -397,7 +397,41 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
             <input value={newPkg.selling_price} onChange={e => setNewPkg(p => ({...p, selling_price: e.target.value}))} placeholder="Sell Price *" type="number" className="px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none" />
             <input value={newPkg.cost_price} onChange={e => setNewPkg(p => ({...p, cost_price: e.target.value}))} placeholder="Cost Price" type="number" className="px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none" />
           </div>
-          <input value={newPkg.ussd_code} onChange={e => setNewPkg(p => ({...p, ussd_code: e.target.value}))} placeholder="USSD Code (optional)" className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none font-mono" />
+          {/* ---- USSD flow builder ---- */}
+          <div className="rounded-lg border border-indigo-200 dark:border-indigo-800 bg-indigo-50/60 dark:bg-indigo-900/20 p-2 space-y-2">
+            <div className="text-[11px] font-bold text-indigo-700 dark:text-indigo-300">
+              {isSo ? 'USSD Flow (dial + menu-yada)' : 'USSD Flow (dial + menus)'}
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {USSD_PRESETS.map(p => (
+                <button key={p.label} type="button"
+                  onClick={() => setNewPkg(s => ({ ...s, ussd_code: p.dial, is_discovery_root: p.dial.startsWith('*212') }))}
+                  className={`px-2 py-1 rounded-md text-[11px] font-semibold border ${newPkg.ussd_code === p.dial ? 'bg-indigo-600 text-primary-foreground border-indigo-600' : 'bg-background border-border'}`}>
+                  {p.label}
+                </button>
+              ))}
+            </div>
+            <input value={newPkg.ussd_code} onChange={e => setNewPkg(p => ({...p, ussd_code: e.target.value}))} placeholder="*870*{receiver_phone}#" className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none font-mono" />
+            <div className="grid grid-cols-3 gap-2">
+              <input value={newPkg.menu1} onChange={e => setNewPkg(p => ({...p, menu1: e.target.value}))} placeholder="Menu1" className="px-2 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-xs outline-none" />
+              <input value={newPkg.menu2} onChange={e => setNewPkg(p => ({...p, menu2: e.target.value}))} placeholder="Menu2" className="px-2 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-xs outline-none" />
+              <input value={newPkg.menu3} onChange={e => setNewPkg(p => ({...p, menu3: e.target.value}))} placeholder="Menu3" className="px-2 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-xs outline-none" />
+            </div>
+            <input value={newPkg.sim_password} onChange={e => setNewPkg(p => ({...p, sim_password: e.target.value}))} placeholder={isSo ? 'SIM PIN (4 lambar)' : 'SIM PIN (4 digits)'} className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none font-mono" />
+            <div className="flex flex-wrap gap-3 text-[11px]">
+              <label className="flex items-center gap-1.5">
+                <input type="checkbox" checked={newPkg.is_ussd_only} onChange={e => setNewPkg(p => ({...p, is_ussd_only: e.target.checked}))} />
+                {isSo ? 'USSD kaliya' : 'USSD only'}
+              </label>
+              <label className="flex items-center gap-1.5">
+                <input type="checkbox" checked={newPkg.is_discovery_root} onChange={e => setNewPkg(p => ({...p, is_discovery_root: e.target.checked}))} />
+                {isSo ? 'Discovery root (*212)' : 'Discovery root (*212)'}
+              </label>
+            </div>
+            <div className="text-[10px] font-mono text-muted-foreground break-all">
+              {composeUssdTemplate(newPkg.ussd_code, [newPkg.menu1, newPkg.menu2, newPkg.menu3]) || '—'}
+            </div>
+          </div>
           <div>
             <input value={newPkg.secret_price} onChange={e => setNewPkg(p => ({...p, secret_price: e.target.value}))} placeholder="🔒 Secret Prices (e.g. 0.01, 0.03, 0.04)" className="w-full px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-sm outline-none" />
             <p className="text-[10px] text-amber-700 dark:text-amber-400 mt-1">{isSo ? '🔒 Lama tusi doono macaamiisha. Kala saar comma (,).' : '🔒 Hidden from customers. Separate with commas (,).'}</p>
