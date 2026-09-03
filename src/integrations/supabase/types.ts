@@ -53,11 +53,16 @@ export type Database = {
           last_ping_at: string | null
           model: string | null
           notes: string | null
+          primary_for_provider: string | null
           provider_name: string | null
           sim_number: string | null
+          sim1_iccid: string | null
           sim1_provider: string | null
+          sim1_subscription_id: number | null
+          sim2_iccid: string | null
           sim2_number: string | null
           sim2_provider: string | null
+          sim2_subscription_id: number | null
           status: Database["public"]["Enums"]["device_status"]
           total_deliveries: number
           updated_at: string
@@ -79,11 +84,16 @@ export type Database = {
           last_ping_at?: string | null
           model?: string | null
           notes?: string | null
+          primary_for_provider?: string | null
           provider_name?: string | null
           sim_number?: string | null
+          sim1_iccid?: string | null
           sim1_provider?: string | null
+          sim1_subscription_id?: number | null
+          sim2_iccid?: string | null
           sim2_number?: string | null
           sim2_provider?: string | null
+          sim2_subscription_id?: number | null
           status?: Database["public"]["Enums"]["device_status"]
           total_deliveries?: number
           updated_at?: string
@@ -105,11 +115,16 @@ export type Database = {
           last_ping_at?: string | null
           model?: string | null
           notes?: string | null
+          primary_for_provider?: string | null
           provider_name?: string | null
           sim_number?: string | null
+          sim1_iccid?: string | null
           sim1_provider?: string | null
+          sim1_subscription_id?: number | null
+          sim2_iccid?: string | null
           sim2_number?: string | null
           sim2_provider?: string | null
+          sim2_subscription_id?: number | null
           status?: Database["public"]["Enums"]["device_status"]
           total_deliveries?: number
           updated_at?: string
@@ -826,7 +841,9 @@ export type Database = {
           display_order: number | null
           id: string
           is_active: boolean
+          is_discovery_root: boolean
           is_featured: boolean
+          is_ussd_only: boolean
           package_name: string
           price: number
           profit_margin: number
@@ -834,6 +851,7 @@ export type Database = {
           purchase_count: number
           secret_price: number[] | null
           selling_price: number | null
+          sim_password: string | null
           sort_order: number
           updated_at: string
           ussd_code: string | null
@@ -851,7 +869,9 @@ export type Database = {
           display_order?: number | null
           id?: string
           is_active?: boolean
+          is_discovery_root?: boolean
           is_featured?: boolean
+          is_ussd_only?: boolean
           package_name: string
           price: number
           profit_margin?: number
@@ -859,6 +879,7 @@ export type Database = {
           purchase_count?: number
           secret_price?: number[] | null
           selling_price?: number | null
+          sim_password?: string | null
           sort_order?: number
           updated_at?: string
           ussd_code?: string | null
@@ -876,7 +897,9 @@ export type Database = {
           display_order?: number | null
           id?: string
           is_active?: boolean
+          is_discovery_root?: boolean
           is_featured?: boolean
+          is_ussd_only?: boolean
           package_name?: string
           price?: number
           profit_margin?: number
@@ -884,6 +907,7 @@ export type Database = {
           purchase_count?: number
           secret_price?: number[] | null
           selling_price?: number | null
+          sim_password?: string | null
           sort_order?: number
           updated_at?: string
           ussd_code?: string | null
@@ -965,6 +989,9 @@ export type Database = {
           created_at: string
           delay_seconds: number
           delivery_count: number | null
+          discovery_menu_index: number | null
+          discovery_menu_label: string | null
+          discovery_session_id: string | null
           dispatch_device_id: string | null
           dispatched_at: string | null
           error_message: string | null
@@ -994,6 +1021,9 @@ export type Database = {
           created_at?: string
           delay_seconds?: number
           delivery_count?: number | null
+          discovery_menu_index?: number | null
+          discovery_menu_label?: string | null
+          discovery_session_id?: string | null
           dispatch_device_id?: string | null
           dispatched_at?: string | null
           error_message?: string | null
@@ -1023,6 +1053,9 @@ export type Database = {
           created_at?: string
           delay_seconds?: number
           delivery_count?: number | null
+          discovery_menu_index?: number | null
+          discovery_menu_label?: string | null
+          discovery_session_id?: string | null
           dispatch_device_id?: string | null
           dispatched_at?: string | null
           error_message?: string | null
@@ -1101,6 +1134,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      discovery_unmatched_labels: {
+        Row: {
+          created_at: string
+          duration_key: string | null
+          id: string
+          last_seen_at: string
+          normalized_label: string
+          raw_label: string
+          seen_count: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          duration_key?: string | null
+          id?: string
+          last_seen_at?: string
+          normalized_label: string
+          raw_label: string
+          seen_count?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          duration_key?: string | null
+          id?: string
+          last_seen_at?: string
+          normalized_label?: string
+          raw_label?: string
+          seen_count?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       error_messages: {
         Row: {
@@ -2399,6 +2465,96 @@ export type Database = {
         }
         Relationships: []
       }
+      ussd_package_discoveries: {
+        Row: {
+          claimed_at: string | null
+          claimed_by: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          items: Json
+          phone_number: string
+          provider_name: string
+          raw_menu_text: string | null
+          session_expires_at: string | null
+          session_state: string
+          status: string
+          updated_at: string
+          ussd_code: string | null
+        }
+        Insert: {
+          claimed_at?: string | null
+          claimed_by?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          items?: Json
+          phone_number: string
+          provider_name?: string
+          raw_menu_text?: string | null
+          session_expires_at?: string | null
+          session_state?: string
+          status?: string
+          updated_at?: string
+          ussd_code?: string | null
+        }
+        Update: {
+          claimed_at?: string | null
+          claimed_by?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          items?: Json
+          phone_number?: string
+          provider_name?: string
+          raw_menu_text?: string | null
+          session_expires_at?: string | null
+          session_state?: string
+          status?: string
+          updated_at?: string
+          ussd_code?: string | null
+        }
+        Relationships: []
+      }
+      ussd_price_catalog: {
+        Row: {
+          cost_price: number
+          created_at: string
+          data_amount: string | null
+          display_name: string | null
+          duration_key: string | null
+          id: string
+          is_active: boolean
+          normalized_label: string
+          selling_price: number
+          updated_at: string
+        }
+        Insert: {
+          cost_price?: number
+          created_at?: string
+          data_amount?: string | null
+          display_name?: string | null
+          duration_key?: string | null
+          id?: string
+          is_active?: boolean
+          normalized_label: string
+          selling_price?: number
+          updated_at?: string
+        }
+        Update: {
+          cost_price?: number
+          created_at?: string
+          data_amount?: string | null
+          display_name?: string | null
+          duration_key?: string | null
+          id?: string
+          is_active?: boolean
+          normalized_label?: string
+          selling_price?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       verified_phones: {
         Row: {
           created_at: string
@@ -2433,6 +2589,16 @@ export type Database = {
         Args: { p_timeout_minutes?: number }
         Returns: Json
       }
+      claim_discovery_selection: {
+        Args: { p_device_id: string }
+        Returns: {
+          discovery_menu_label: string
+          menu_index: number
+          pin_code: string
+          queue_id: string
+          session_id: string
+        }[]
+      }
       claim_next_bulk_sms: {
         Args: { p_device_id?: string; p_sim_slot?: number }
         Returns: {
@@ -2463,7 +2629,36 @@ export type Database = {
           ussd_command: string
         }[]
       }
+      claim_next_discovery: {
+        Args: { p_device_id: string }
+        Returns: {
+          phone_number: string
+          session_id: string
+          ussd_code: string
+        }[]
+      }
       cleanup_old_data: { Args: never; Returns: Json }
+      complete_discovery: {
+        Args: {
+          p_hold_seconds?: number
+          p_items: Json
+          p_raw_text?: string
+          p_session_id: string
+        }
+        Returns: undefined
+      }
+      complete_discovery_selection: {
+        Args: { p_queue_id: string; p_response?: string; p_success: boolean }
+        Returns: undefined
+      }
+      discovery_delivery_fallback: {
+        Args: { p_queue_id: string }
+        Returns: undefined
+      }
+      discovery_session_lost: {
+        Args: { p_reason?: string; p_session_id: string }
+        Returns: undefined
+      }
       get_active_categories: {
         Args: { p_provider_id: string }
         Returns: {
@@ -2552,6 +2747,7 @@ export type Database = {
         }[]
       }
       get_data_retention_days: { Args: never; Returns: number }
+      get_discovery_queue_status: { Args: { p_phone: string }; Returns: Json }
       get_featured_packages: {
         Args: never
         Returns: {
@@ -2576,6 +2772,10 @@ export type Database = {
           provider_name: string
           purchase_count: number
         }[]
+      }
+      get_package_discovery: {
+        Args: { p_max_age_seconds?: number; p_phone: string }
+        Returns: Json
       }
       get_public_packages: {
         Args: { p_provider_id: string }
@@ -2632,9 +2832,22 @@ export type Database = {
         Args: { p_device_id: string; p_queue_id: string }
         Returns: boolean
       }
+      mark_delivery_status: {
+        Args: {
+          p_device_id: string
+          p_queue_id: string
+          p_response?: string
+          p_status: string
+        }
+        Returns: boolean
+      }
       retry_bulk_sms_campaign: {
         Args: { p_campaign_id: string }
         Returns: Json
+      }
+      retry_delivery: {
+        Args: { p_force?: boolean; p_queue_id: string }
+        Returns: boolean
       }
       rollup_order_stats: {
         Args: { p_older_than_days?: number }
@@ -2645,6 +2858,9 @@ export type Database = {
         Returns: undefined
       }
       set_data_retention_days: { Args: { p_days: number }; Returns: number }
+      ussd_duration_key: { Args: { p_text: string }; Returns: string }
+      ussd_normalize_label: { Args: { p_text: string }; Returns: string }
+      ussd_strip_price_prefix: { Args: { p_text: string }; Returns: string }
       verify_bank_password: {
         Args: { p_password: string; p_username: string }
         Returns: boolean

@@ -393,6 +393,71 @@ class UssdDialerService : Service() {
                 }
             }
         }
+
+        // *212 PACKAGE DISCOVERY - dial the menu on demand and report it back
+        serviceScope.launch {
+            android.util.Log.d("UssdDialer", "🔍 Starting *212 discovery poller (4s)")
+            while (isRunning) {
+                try {
+                    val handled = pollPackageDiscovery()
+                    delay(if (handled) 1500L else 4000L)
+                } catch (e: Exception) {
+                    android.util.Log.e("UssdDialer", "❌ Discovery poll error: ${e.message}")
+                    delay(6000L)
+                }
+            }
+        }
+    }
+
+    // ==================== *212 PACKAGE DISCOVERY ====================
+
+    private val discoveryApi by lazy { com.awdheegle.data.api.DiscoveryApiClient() }
+
+    /**
+     * Claims one queued discovery job, dials *212*<phone>#, captures the menu
+     * from the accessibility service, parses it and reports it to the server.
+     * Returns true when a job was handled.
+     */
+    private suspend fun pollPackageDiscovery(): Boolean {
+        val prefs = getSharedPreferences("najax_data", Context.MODE_PRIVATE)
+        val deviceUuid = prefs.getString(SERVER_DEVICE_UUID_KEY, null) ?: return false
+
+        val job = discoveryApi.claimNextDiscovery(deviceUuid) ?: return false
+        android.util.Log.d("UssdDialer", "🔍 Discovery job ${job.sessionId} → ${job.ussdCode}")
+
+        try {
+            clearCapturedUssdResponse()
+            setExpectingUssdDialogs()
+
+            val dialed = dialUssdCode(
+                ussdCode = job.ussdCode,
+                receiverPhone = job.phoneNumber,
+                packageCode = null,
+                provider = "hormuud",
+                simSlot = null
+            )
+            if (!dialed) {
+                discoveryApi.sessionLost(job.sessionId, "Dial failed")
+                return true
+            }
+
+            val menuText = getLastUssdResponse(job.sessionId, clearAfter = true)
+            val items = com.awdheegle.data.api.UssdMenuParser.parse(menuText)
+
+            if (items.isEmpty()) {
+                android.util.Log.w("UssdDialer", "⚠️ Discovery menu empty for ${job.phoneNumber}")
+                discoveryApi.sessionLost(job.sessionId, "Jawaab lama helin (menu empty)")
+                return true
+            }
+
+            android.util.Log.d("UssdDialer", "✅ Discovery parsed ${items.size} items")
+            discoveryApi.completeDiscovery(job.sessionId, items, menuText)
+            return true
+        } catch (e: Exception) {
+            android.util.Log.e("UssdDialer", "❌ Discovery failed: ${e.message}")
+            discoveryApi.sessionLost(job.sessionId, e.message)
+            return true
+        }
     }
     
     // ==================== BULK SMS via SUPABASE REALTIME ====================

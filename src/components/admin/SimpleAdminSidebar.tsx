@@ -92,6 +92,7 @@ const menuGroups: MenuItem[] = [
     label: 'SIM Cards', labelSo: 'SIM Cards', icon: CreditCard,
     children: [
       { label: 'SIM Cards', labelSo: 'SIM Cards', icon: CreditCard, path: '/simple-admin/sim-cards' },
+      { label: 'USSD Discovery (*212)', labelSo: 'Qiimaha *212', icon: CreditCard, path: '/simple-admin/ussd-discovery' },
     ],
   },
   {

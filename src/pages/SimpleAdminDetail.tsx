@@ -51,6 +51,7 @@ const SmsLogsViewer = lazy(() => import('@/components/admin/SmsLogsViewer'));
 const DeliveryTracker = lazy(() => import('@/components/admin/DeliveryTracker').then(m => ({ default: m.DeliveryTracker })));
 const SimCardsManager = lazy(() => import('@/components/admin/SimCardsManager').then(m => ({ default: m.SimCardsManager })));
 const BankTransactions = lazy(() => import('@/components/admin/BankTransactions'));
+const UssdDiscoveryManager = lazy(() => import('@/components/admin/UssdDiscoveryManager').then(m => ({ default: m.UssdDiscoveryManager })));
 
 interface DetailConfig {
   title: string;
@@ -94,6 +95,7 @@ const DETAIL_CONFIGS: Record<string, DetailConfig> = {
   'sms-logs': { title: 'SMS Logs', titleSo: 'SMS', headerBg: 'from-indigo-600 to-indigo-800' },
   'sim-cards': { title: 'SIM Cards', titleSo: 'SIM Cards', headerBg: 'from-fuchsia-600 to-fuchsia-800' },
   'bank': { title: 'Bank Transactions', titleSo: 'Lacagaha Bank-ka', headerBg: 'from-blue-700 to-indigo-800' },
+  'ussd-discovery': { title: 'USSD Discovery', titleSo: 'Qiimaha *212', headerBg: 'from-purple-700 to-fuchsia-800' },
 };
 
 const LazyFallback = () => (
@@ -160,6 +162,7 @@ const SimpleAdminDetail = () => {
       case 'sms-logs': return <SmsLogsViewer />;
       case 'sim-cards': return <SimCardsManager />;
       case 'bank': return <BankTransactions />;
+      case 'ussd-discovery': return <UssdDiscoveryManager />;
       default: return <LazyFallback />;
     }
   };
