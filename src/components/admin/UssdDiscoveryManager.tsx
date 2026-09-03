@@ -82,10 +82,11 @@ export const UssdDiscoveryManager: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    loadRoots();
     loadCatalog();
     loadUnmatched();
     loadSessions();
-  }, [loadCatalog, loadUnmatched, loadSessions]);
+  }, [loadRoots, loadCatalog, loadUnmatched, loadSessions]);
 
   useEffect(() => {
     if (tab !== 'sessions') return;
