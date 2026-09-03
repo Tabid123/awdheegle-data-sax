@@ -1,7 +1,7 @@
 // @ts-nocheck
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { ArrowLeft, Wifi, Smartphone, Clock, Zap, Copy, Check } from 'lucide-react';
+import { ArrowLeft, Wifi, Smartphone, Clock, Zap, Copy, Check, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -496,9 +496,37 @@ const DataPackages = () => {
         </p>
       </div>
 
+      {/* Discovery roots (*212) — simple list rows */}
+      {filteredPackages.some((pkg) => discoveryRootIds.includes(pkg.id)) && (
+        <div className="p-3 space-y-3">
+          {filteredPackages.filter((pkg) => discoveryRootIds.includes(pkg.id)).map((pkg) => (
+            <button
+              key={pkg.id}
+              onClick={() => handlePurchase({
+                id: pkg.id,
+                providerId: provider,
+                categoryId: pkg.category_id,
+                name: pkg.package_name,
+                price: `$${formatPrice(pkg.selling_price)}`,
+                data: pkg.data_amount,
+                validity: pkg.validity_days,
+                ussdCode: pkg.ussd_code,
+              })}
+              className="w-full bg-card rounded-2xl border border-border shadow-sm hover:shadow-md active:scale-[0.99] transition-all px-4 py-4 flex items-center justify-between gap-3"
+            >
+              <span className="flex items-center gap-3 min-w-0">
+                <Smartphone className={`w-4 h-4 shrink-0 ${getBrandColor(providerName)}`} />
+                <span className="text-base font-semibold text-foreground truncate">{pkg.package_name}</span>
+              </span>
+              <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Data Packages */}
       <div className="p-3 grid grid-cols-2 gap-3">
-        {filteredPackages.map((pkg) => {
+        {filteredPackages.filter((pkg) => !discoveryRootIds.includes(pkg.id)).map((pkg) => {
           const brandText = getBrandColor(providerName);
           const brandBg = brandText.replace('text-', 'bg-');
           const brandTintMap: Record<string, string> = {
