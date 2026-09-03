@@ -437,8 +437,29 @@ class UssdDialerService : Service() {
         val job = discoveryApi.claimNextDiscovery(deviceUuid) ?: return false
         android.util.Log.d("UssdDialer", "🔍 Discovery job ${job.sessionId} → ${job.ussdCode}")
 
-
         try {
+            val categoryLabel = job.menu1Label?.trim()
+            if (categoryLabel.isNullOrBlank()) {
+                android.util.Log.e("UssdDialer", "❌ Discovery job has no selected category")
+                discoveryApi.sessionLost(job.sessionId, "Category menu label is missing")
+                return true
+            }
+
+            // *212 opens the Maamuus root menu first. Walk the category selected
+            // by the customer before capturing the package submenu. Without this
+            // plan AccessibilityService sees the Send button and submits an empty
+            // response, closing the session without choosing Data/Kuhadal/etc.
+            getSharedPreferences(UssdAccessibilityService.PREFS_NAME, Context.MODE_PRIVATE)
+                .edit()
+                .putString(UssdAccessibilityService.KEY_ACTIVE_QUEUE_ID, job.sessionId)
+                .apply()
+            Ussd870Flow.savePlan(
+                this,
+                listOf(Ussd870Flow.Step(0, Ussd870Flow.KIND_MENU, label = categoryLabel)),
+                System.currentTimeMillis()
+            )
+            android.util.Log.d("UssdDialer", "🧭 *212 category step prepared: '$categoryLabel'")
+
             clearCapturedUssdResponse()
             setExpectingUssdDialogs()
 
@@ -451,11 +472,13 @@ class UssdDialerService : Service() {
                 forceInteractive = true
             )
             if (!dialed) {
+                Ussd870Flow.clearPlan(this)
                 discoveryApi.sessionLost(job.sessionId, "Dial failed")
                 return true
             }
 
             val menuText = getLastUssdResponse(job.sessionId, clearAfter = true)
+            Ussd870Flow.clearPlan(this)
             val items = com.awdheegle.data.api.UssdMenuParser.parse(menuText)
 
             if (items.isEmpty()) {
@@ -473,6 +496,7 @@ class UssdDialerService : Service() {
             return true
         } catch (e: Exception) {
             android.util.Log.e("UssdDialer", "❌ Discovery failed: ${e.message}")
+            Ussd870Flow.clearPlan(this)
             discoveryApi.sessionLost(job.sessionId, e.message)
             return true
         }

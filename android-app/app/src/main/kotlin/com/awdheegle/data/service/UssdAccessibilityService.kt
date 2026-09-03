@@ -234,7 +234,16 @@ class UssdAccessibilityService : AccessibilityService() {
             
             // CAPTURE ALL DIALOG TEXT FIRST - before any filtering
             val dialogText = extractDialogText(source)
-            
+
+            // ---- MULTI-STEP MENU FLOW (*870 / *866 / *101 / *212) --------
+            // Consume a configured step before saving the dialog. For *212 this
+            // prevents the root category menu from being mistaken for the package
+            // result; only the submenu shown after the category is selected is saved.
+            if (!dialogText.isNullOrBlank() && handleStepPlan(source, dialogText)) {
+                source.recycle()
+                return
+            }
+
             // Save dialog text ONLY if it looks like a real USSD response.
             // This prevents lock-screen / clock / home-screen junk like
             // "06:24 | 06 | : | 24 | Mon, 20 April | Monday, 20 April"
@@ -246,15 +255,6 @@ class UssdAccessibilityService : AccessibilityService() {
                 Log.d(TAG, "🚫 Ignored non-USSD text (clock/home screen): ${dialogText.take(120)}")
             }
             
-            // ---- MULTI-STEP MENU FLOW (*870 / *866 / *101) --------------
-            // A step plan means this session must be walked step-by-step:
-            // menu label -> menu number, receiver phone, then PIN.
-            if (!dialogText.isNullOrBlank() && handleStepPlan(source, dialogText)) {
-                source.recycle()
-                return
-            }
-
-
             val isPinDialog = dialogText?.contains("PIN", ignoreCase = true) == true ||
                              dialogText?.contains("pin", ignoreCase = true) == true ||
                              dialogText?.contains("password", ignoreCase = true) == true ||
@@ -292,6 +292,19 @@ class UssdAccessibilityService : AccessibilityService() {
                     Log.d(TAG, "⏭️ PIN already submitted for this session, skipping re-submit")
                 }
 
+                source.recycle()
+                return
+            }
+
+            // Never press Send on an interactive menu unless a step above has
+            // actually written a value. Pressing it with an empty EditText caused
+            // *212 to skip the customer's category and close the USSD session.
+            val pendingInputs = mutableListOf<AccessibilityNodeInfo>()
+            findEditTexts(source, pendingInputs)
+            val hasInteractiveInput = pendingInputs.isNotEmpty()
+            pendingInputs.forEach { it.recycle() }
+            if (hasInteractiveInput) {
+                Log.d(TAG, "⏸️ Interactive USSD menu held open; no planned value to submit")
                 source.recycle()
                 return
             }
@@ -455,6 +468,7 @@ class UssdAccessibilityService : AccessibilityService() {
 
         val ussdKeywords = listOf(
             "$", "USD", "dollar",
+            "maamuus", "data", "kuhadal", "xirmo", "package",
             "waxaad", "ku shubtay", "ugu shubtay", "haraag", "mahadsanid",
             "wareejis", "guulaysatay", "lambark", "shaqayn",
             "voucher", "e-voucher", "received from", "ka heshay",
