@@ -1340,7 +1340,9 @@ class UssdDialerService : Service() {
                 android.util.Log.w("UssdDialer", "⚠️ markDeliveryDispatched failed (continuing): ${e.message}")
             }
 
-            val success = dialUssdCode(order.ussdCode, order.receiverPhone, order.packageCode, orderProvider, order.simSlot)
+            // INVARIANT: for menu flows only the part before `|` is dialed.
+            val codeToDial = if (parsedTemplate.isMenuFlow) parsedTemplate.dialCode else order.ussdCode
+            val success = dialUssdCode(codeToDial, order.receiverPhone, order.packageCode, orderProvider, order.simSlot)
             
             if (success) {
                 // Get the captured USSD response from AccessibilityService
