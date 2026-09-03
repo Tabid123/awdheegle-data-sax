@@ -2473,9 +2473,11 @@ export type Database = {
           error_message: string | null
           id: string
           items: Json
+          menu1_label: string | null
           phone_number: string
           provider_name: string
           raw_menu_text: string | null
+          root_package_id: string | null
           session_expires_at: string | null
           session_state: string
           status: string
@@ -2489,9 +2491,11 @@ export type Database = {
           error_message?: string | null
           id?: string
           items?: Json
+          menu1_label?: string | null
           phone_number: string
           provider_name?: string
           raw_menu_text?: string | null
+          root_package_id?: string | null
           session_expires_at?: string | null
           session_state?: string
           status?: string
@@ -2505,16 +2509,26 @@ export type Database = {
           error_message?: string | null
           id?: string
           items?: Json
+          menu1_label?: string | null
           phone_number?: string
           provider_name?: string
           raw_menu_text?: string | null
+          root_package_id?: string | null
           session_expires_at?: string | null
           session_state?: string
           status?: string
           updated_at?: string
           ussd_code?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ussd_package_discoveries_root_package_id_fkey"
+            columns: ["root_package_id"]
+            isOneToOne: false
+            referencedRelation: "data_packages_config"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ussd_price_catalog: {
         Row: {
@@ -2632,6 +2646,7 @@ export type Database = {
       claim_next_discovery: {
         Args: { p_device_id: string }
         Returns: {
+          menu1_label: string
           phone_number: string
           session_id: string
           ussd_code: string
@@ -2849,6 +2864,14 @@ export type Database = {
           p_status: string
         }
         Returns: boolean
+      }
+      release_discovery_session: {
+        Args: { p_session_id: string }
+        Returns: undefined
+      }
+      request_package_discovery: {
+        Args: { p_phone: string; p_root_id: string }
+        Returns: Json
       }
       retry_bulk_sms_campaign: {
         Args: { p_campaign_id: string }
