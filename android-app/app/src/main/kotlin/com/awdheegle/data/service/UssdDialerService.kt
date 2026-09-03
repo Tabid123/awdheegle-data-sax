@@ -477,9 +477,22 @@ class UssdDialerService : Service() {
                 return true
             }
 
-            // 1) First dialog = --Maamuus-- root menu (Data / Kuhadal / ...).
+            // 1) First dialog. Some SIMs/providers answer *212*<phone># with the
+            // package list directly (e.g. "--Maamuus--\n1. $0.25=Internet ...").
+            // In that case there is NO category menu to walk — publish it now.
             val rootText = getLastUssdResponse(job.sessionId, clearAfter = true)
-            android.util.Log.d("UssdDialer", "🧭 *212 root menu: ${rootText?.take(120)}")
+            android.util.Log.d("UssdDialer", "🧭 *212 first dialog: ${rootText?.take(120)}")
+
+            if (looksLikePriceList(rootText)) {
+                Ussd870Flow.clearPlan(this)
+                val direct = com.awdheegle.data.api.UssdMenuParser.parse(rootText)
+                android.util.Log.d("UssdDialer", "✅ Package list arrived directly (${direct.size} items)")
+                discoveryApi.completeDiscovery(
+                    job.sessionId, direct, rootText, holdSeconds = DISCOVERY_HOLD_SECONDS
+                )
+                holdDiscoverySession(deviceUuid, job.sessionId)
+                return true
+            }
 
             // 2) Wait for the accessibility service to type the category index.
             var waited = 0
