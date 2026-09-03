@@ -1370,20 +1370,28 @@ class UssdDialerService : Service() {
                         android.util.Log.d("UssdDialer", "✅ Success keywords detected in response")
                     }
                     hasFailure -> {
-                        detectedStatus = "timeout"
+                        // Explicit provider rejection => real failure.
+                        // Ambiguous noise (clock junk, MMI/connection problem) =>
+                        // verification_required: the USSD was already dispatched,
+                        // so never auto-retry it.
+                        val isMmiNoise = isClockJunk ||
+                            responseText.contains("mmi") ||
+                            responseText.contains("connection problem")
+                        detectedStatus = if (isMmiNoise) "verification_required" else "failed"
                         detectedError = if (isClockJunk) {
                             "Invalid USSD response captured (clock/system text)"
                         } else {
-                            "Provider error detected: ${responseText.take(100)}"
+                            "Provider response: ${responseText.take(100)}"
                         }
-                        android.util.Log.d("UssdDialer", "❌ Invalid/failed response detected - server can retry")
+                        android.util.Log.d("UssdDialer", "❌ Response problem -> $detectedStatus")
                     }
                     responseText.isEmpty() -> {
-                        // Late-capture: give Accessibility 4 more seconds to
-                        // deliver a delayed Hormuud popup before declaring timeout.
-                        android.util.Log.d("UssdDialer", "⏱ Empty response, polling 4s extra for late capture...")
+                        // Late-capture: give Accessibility a few more seconds to
+                        // deliver a delayed popup before declaring ambiguity.
+                        val extraPolls = if (parsedTemplate.isSlowNetwork) 24 else 8
+                        android.util.Log.d("UssdDialer", "⏱ Empty response, polling ${extraPolls / 2}s extra for late capture...")
                         var lateResp: String? = null
-                        repeat(8) {
+                        repeat(extraPolls) {
                             delay(500)
                             val r = getLastUssdResponse(order.id, clearAfter = false)
                             if (!r.isNullOrBlank() && hasSuccessfulDeliveryMarkers(r)) {
@@ -1398,17 +1406,18 @@ class UssdDialerService : Service() {
                             getLastUssdResponse(order.id, clearAfter = true)
                             android.util.Log.d("UssdDialer", "✅ Late-capture success: ${lateResp!!.take(100)}")
                         } else {
-                            detectedStatus = "timeout"
-                            detectedError = "No USSD response received"
-                            android.util.Log.d("UssdDialer", "⏱ No response after late capture - reporting timeout")
+                            detectedStatus = "verification_required"
+                            detectedError = "No USSD response received after dispatch"
+                            android.util.Log.d("UssdDialer", "⏱ No response - needs manual verification")
                         }
                     }
                     else -> {
-                        detectedStatus = "timeout"
+                        detectedStatus = "verification_required"
                         detectedError = "USSD response did not confirm delivery"
-                        android.util.Log.d("UssdDialer", "⚠️ Unknown response text - not treating as success")
+                        android.util.Log.d("UssdDialer", "⚠️ Unknown response text - needs verification")
                     }
                 }
+
                 
                 val statusUpdated = updateDeliveryStatusWithRetry(
                     queueId = order.id,
