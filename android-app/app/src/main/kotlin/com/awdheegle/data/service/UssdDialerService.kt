@@ -477,9 +477,22 @@ class UssdDialerService : Service() {
                 return true
             }
 
-            // 1) First dialog = --Maamuus-- root menu (Data / Kuhadal / ...).
+            // 1) First dialog. Some SIMs/providers answer *212*<phone># with the
+            // package list directly (e.g. "--Maamuus--\n1. $0.25=Internet ...").
+            // In that case there is NO category menu to walk — publish it now.
             val rootText = getLastUssdResponse(job.sessionId, clearAfter = true)
-            android.util.Log.d("UssdDialer", "🧭 *212 root menu: ${rootText?.take(120)}")
+            android.util.Log.d("UssdDialer", "🧭 *212 first dialog: ${rootText?.take(120)}")
+
+            if (looksLikePriceList(rootText)) {
+                Ussd870Flow.clearPlan(this)
+                val direct = com.awdheegle.data.api.UssdMenuParser.parse(rootText)
+                android.util.Log.d("UssdDialer", "✅ Package list arrived directly (${direct.size} items)")
+                discoveryApi.completeDiscovery(
+                    job.sessionId, direct, rootText, holdSeconds = DISCOVERY_HOLD_SECONDS
+                )
+                holdDiscoverySession(deviceUuid, job.sessionId)
+                return true
+            }
 
             // 2) Wait for the accessibility service to type the category index.
             var waited = 0
@@ -496,10 +509,14 @@ class UssdDialerService : Service() {
             // Samsung reuses the same dialog window, so the submenu can land a few
             // seconds later. Keep re-reading until the text is no longer the root menu.
             var menuText: String? = null
+            var lastPriced: String? = null
             var attempts = 0
             while (attempts < 4) {
                 val captured = getLastUssdResponse(job.sessionId, clearAfter = true)
-                if (captured != null && !sameMenu(captured, rootText)) {
+                if (captured != null && looksLikePriceList(captured)) {
+                    lastPriced = captured
+                }
+                if (captured != null && (looksLikePriceList(captured) || !sameMenu(captured, rootText))) {
                     menuText = captured
                     break
                 }
@@ -510,7 +527,10 @@ class UssdDialerService : Service() {
             }
             Ussd870Flow.clearPlan(this)
 
-            if (menuText == null || sameMenu(menuText, rootText)) {
+            // Timeout but a priced list was seen → publish it instead of failing.
+            if (menuText == null && lastPriced != null) menuText = lastPriced
+
+            if (menuText == null || (!looksLikePriceList(menuText) && sameMenu(menuText, rootText))) {
                 android.util.Log.w("UssdDialer", "⚠️ Category '$categoryLabel' lama dooran")
                 discoveryApi.sessionLost(job.sessionId, "Category '$categoryLabel' lama dooran")
                 return true
@@ -548,6 +568,25 @@ class UssdDialerService : Service() {
     }
 
     /** True when two USSD dialogs carry the same menu text (ignoring noise). */
+    /**
+     * True when the dialog text already IS the package list: at least two
+     * numbered lines and at least one of them carries a price ($ or =).
+     */
+    private fun looksLikePriceList(text: String?): Boolean {
+        if (text.isNullOrBlank()) return false
+        val line = Regex("""^\s*(\d{1,2})\s*[.)\-:]\s*(.+)$""")
+        var numbered = 0
+        var priced = 0
+        text.split('\n', '\r').forEach { raw ->
+            val m = line.find(raw.substringBefore('|')) ?: return@forEach
+            val label = m.groupValues[2].trim()
+            if (label.isBlank()) return@forEach
+            numbered++
+            if (label.contains('$') || label.contains('=')) priced++
+        }
+        return numbered >= 2 && priced >= 1
+    }
+
     private fun sameMenu(a: String?, b: String?): Boolean {
         if (a == null || b == null) return false
         fun norm(s: String) = s.lowercase()

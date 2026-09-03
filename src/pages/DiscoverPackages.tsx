@@ -15,9 +15,11 @@ const normalizeLabel = (value: unknown) => String(value || '')
   .replace(/[^a-z0-9]+/g, ' ')
   .trim();
 const ROOT_CATEGORY_LABELS = new Set(['data', 'kuhadal', 'data iyo kuhadal']);
+// Keep every real package row. Rows without a catalog price are shown dimmed
+// ("Qiimo lama helin") instead of producing an empty page.
 const visiblePackages = (value: unknown) => (Array.isArray(value) ? value : []).filter((item: any) => {
   const label = normalizeLabel(item?.raw_label);
-  return label && !ROOT_CATEGORY_LABELS.has(label) && item?.sellable === true && item?.price != null;
+  return !!label && !ROOT_CATEGORY_LABELS.has(label);
 });
 
 class PageErrorBoundary extends React.Component<any, { hasError: boolean }> {
