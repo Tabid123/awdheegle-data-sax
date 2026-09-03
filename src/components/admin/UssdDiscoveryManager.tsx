@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, Plus, RefreshCw, Save, Trash2, Search, Radio, ChevronDown, ChevronRight } from 'lucide-react';
+import { Loader2, Plus, RefreshCw, Save, Trash2, Search, Radio, ChevronDown, ChevronRight, Smartphone } from 'lucide-react';
 import { toast } from 'sonner';
 
 const DURATIONS = ['', 'hourly', 'daily', '3days', 'weekly', 'monthly'];
