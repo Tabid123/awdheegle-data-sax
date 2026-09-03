@@ -99,16 +99,21 @@ class UssdAccessibilityService : AccessibilityService() {
         )
         
         // Timeout for expecting USSD flag (30 seconds - INCREASED from 15s)
-        private const val EXPECTING_USSD_TIMEOUT_MS = 30000L
+        private const val EXPECTING_USSD_TIMEOUT_MS = 60000L
         private const val DEBOUNCE_MS = 800L
         private const val CLICK_DELAY_MS = 350L
-        private const val MULTI_DIALOG_TIMEOUT_MS = 10000L
+        private const val MULTI_DIALOG_TIMEOUT_MS = 20000L
+        /** Active re-read of the live dialog: Samsung stops firing events on menu reuse. */
+        private const val SWEEP_INTERVAL_MS = 900L
+        private const val SWEEP_DURATION_MS = 30000L
     }
     
     private val handler = Handler(Looper.getMainLooper())
     private var clickCount = 0
     private var lastClickTime = 0L
     private var multiDialogRunnable: Runnable? = null
+    private var sweepRunnable: Runnable? = null
+    private var sweepUntil = 0L
 
     // Session guards to prevent duplicate PIN entry
     private var ussdSessionToken = 0L
