@@ -1159,7 +1159,7 @@ export const SystemCodesCustomView = ({ isSo }: { isSo: boolean }) => {
       <ProviderFilterRow providers={providers} activeId={providerFilter} onSelect={setProviderFilter}
         activeColor="bg-purple-600" totalCount={instructions.length} allLabel={isSo ? 'Dhammaan' : 'All'}
         countFn={id => instructions.filter(i => i.provider_id === id).length} />
-      <button onClick={() => { setShowAdd(!showAdd); setEditingId(null); setNewCode({ provider_id: '', code_template: '', sim_password: '', notes: '', category_id: '', package_id: '' }); }}
+      <button onClick={() => { setShowAdd(!showAdd); setEditingId(null); setFlowPreset(''); setNewCode({ provider_id: '', code_template: '', sim_password: '', notes: '', category_id: '', package_id: '', menu1: '', menu2: '', menu3: '' }); }}
         className="w-full py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-1.5 active:scale-[0.98]">
         <Plus className="w-4 h-4" /> {isSo ? 'Code Cusub' : 'Add System Code'}
       </button>
@@ -1178,8 +1178,41 @@ export const SystemCodesCustomView = ({ isSo }: { isSo: boolean }) => {
             <option value="">Package (optional)</option>
             {filteredProvPackages.map(p => <option key={p.id} value={p.id}>{p.package_name}</option>)}
           </select>
-          <input value={newCode.code_template} onChange={e => setNewCode(p => ({...p, code_template: e.target.value}))} placeholder="e.g. *729{receiver_phone}*{cost_price}*{sim_password}#" className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none font-mono" />
-          <input value={newCode.sim_password} onChange={e => setNewCode(p => ({...p, sim_password: e.target.value}))} placeholder="SIM Password (optional)" className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none" />
+
+          {/* USSD flow preset picker */}
+          <div className="rounded-lg border border-indigo-200 dark:border-indigo-900/40 bg-indigo-50/60 dark:bg-indigo-950/20 p-2.5 space-y-2">
+            <div className="text-[11px] font-bold text-indigo-700 dark:text-indigo-300 flex items-center gap-1">
+              ⚡ {isSo ? 'Doorasho Preset (USSD Flow)' : 'Flow preset (USSD)'}
+            </div>
+            <select value={flowPreset}
+              onChange={e => {
+                const f = FLOW_PRESETS.find(x => x.id === e.target.value);
+                setFlowPreset(e.target.value);
+                if (f) setNewCode(p => ({ ...p, code_template: f.dial, menu1: f.menu1, menu2: f.menu2, menu3: f.menu3 }));
+              }}
+              className="w-full px-3 py-2 rounded-lg bg-white dark:bg-gray-700 border text-sm outline-none">
+              <option value="">{isSo ? '— Dooro USSD flow diyaar ah —' : '— Choose a ready USSD flow —'}</option>
+              {FLOW_PRESETS.map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
+            </select>
+            <p className="text-[10px] leading-snug text-gray-500 dark:text-gray-400">
+              {isSo
+                ? 'Menu-yada: geli LAMBAR (tusaale "1") ama KEYWORDS (tusaale "Data:Xogta"). Keyword-yada ayaa la scan gareynayaa dialog-ga. PIN-ka wuxuu ka imanayaa SIM Password.'
+                : 'Menus accept a NUMBER (e.g. "1") or KEYWORDS matched against the dialog text. The PIN comes from SIM Password.'}
+            </p>
+            <div className="grid grid-cols-3 gap-1.5">
+              <input value={newCode.menu1} onChange={e => setNewCode(p => ({...p, menu1: e.target.value}))} placeholder="Menu1" className="px-2 py-1.5 rounded-lg bg-white dark:bg-gray-700 border text-xs outline-none" />
+              <input value={newCode.menu2} onChange={e => setNewCode(p => ({...p, menu2: e.target.value}))} placeholder="Menu2" className="px-2 py-1.5 rounded-lg bg-white dark:bg-gray-700 border text-xs outline-none" />
+              <input value={newCode.menu3} onChange={e => setNewCode(p => ({...p, menu3: e.target.value}))} placeholder="Menu3" className="px-2 py-1.5 rounded-lg bg-white dark:bg-gray-700 border text-xs outline-none" />
+            </div>
+            {composeUssdTemplate(newCode.code_template, [newCode.menu1, newCode.menu2, newCode.menu3]) && (
+              <div className="text-[10px] font-mono text-indigo-700 dark:text-indigo-300 break-all">
+                → {composeUssdTemplate(newCode.code_template, [newCode.menu1, newCode.menu2, newCode.menu3])}
+              </div>
+            )}
+          </div>
+
+          <input value={newCode.code_template} onChange={e => setNewCode(p => ({...p, code_template: e.target.value}))} placeholder="e.g. *870*{receiver_phone}#" className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none font-mono" />
+          <input value={newCode.sim_password} onChange={e => setNewCode(p => ({...p, sim_password: e.target.value}))} placeholder="SIM Password (PIN)" className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none" />
           <input value={newCode.notes} onChange={e => setNewCode(p => ({...p, notes: e.target.value}))} placeholder="Notes (optional)" className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none" />
           <div className="flex gap-2">
             <button onClick={saveCode} className="flex-1 py-2 bg-green-500 text-white rounded-lg text-sm font-medium">{editingId ? '💾 Save' : '➕ Add'}</button>
