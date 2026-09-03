@@ -108,6 +108,7 @@ export const UssdDiscoveryManager: React.FC = () => {
       cost_price: Number(draft.cost_price) || 0,
       selling_price: Number(draft.selling_price) || 0,
       is_active: !!draft.is_active,
+      root_package_id: draft.root_package_id || null,
     };
     const res = draft.id
       ? await supabase.from('ussd_price_catalog').update(payload).eq('id', draft.id)
@@ -138,6 +139,24 @@ export const UssdDiscoveryManager: React.FC = () => {
   const filtered = rows.filter((r) =>
     !q.trim() || `${r.normalized_label} ${r.display_name || ''}`.toLowerCase().includes(q.toLowerCase())
   );
+
+  // group the catalog by category (discovery root)
+  const groups = [
+    ...roots.map((root) => ({
+      key: root.id,
+      name: root.package_name,
+      items: filtered.filter((r) => r.root_package_id === root.id),
+    })),
+    {
+      key: UNGROUPED,
+      name: 'Category la\'aan',
+      items: filtered.filter((r) => !r.root_package_id || !roots.some((x) => x.id === r.root_package_id)),
+    },
+  ].filter((g) => g.items.length > 0 || g.key !== UNGROUPED);
+
+  const isOpen = (key: string) => openGroups[key] !== false;
+  const toggleGroup = (key: string) => setOpenGroups((p) => ({ ...p, [key]: isOpen(key) ? false : true }));
+
 
   return (
     <div className="space-y-3">
