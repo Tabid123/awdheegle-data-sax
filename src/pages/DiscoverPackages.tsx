@@ -99,6 +99,7 @@ const DiscoverPackages: React.FC = () => {
           data: item.data_amount || '',
           validity: null,
         },
+        preselectedPaymentProviderId: payProviderId,
         discovery: {
           sessionId,
           menuLabel: item.raw_label,
