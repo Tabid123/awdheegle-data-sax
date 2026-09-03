@@ -152,7 +152,7 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
   const [providerFilter, setProviderFilter] = useState<string>('all');
   const [showAdd, setShowAdd] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [newPkg, setNewPkg] = useState({ package_name: '', data_amount: '', selling_price: '', cost_price: '', secret_price: '', validity_days: '30', provider_id: '', category_id: '', ussd_code: '', connection_type_label: 'Data' });
+  const [newPkg, setNewPkg] = useState({ ...EMPTY_PKG });
 
   const loadPackages = useCallback(async () => {
     const [pkgRes, provRes, catRes] = await Promise.all([
