@@ -19,6 +19,7 @@ import Index from "./pages/Index";
 import ProviderSelection from "./pages/ProviderSelection";
 import CategorySelection from "./pages/CategorySelection";
 import DataPackages from "./pages/DataPackages";
+import DiscoverPackages from "./pages/DiscoverPackages";
 import PaymentProviders from "./pages/PaymentProviders";
 import OfflineMode from "./pages/OfflineMode";
 import PaymentSuccess from "./pages/PaymentSuccess";
@@ -84,6 +85,7 @@ const AppContent = () => {
         <Route path="/offline-mode" element={<ProtectedRoute><OfflineMode /></ProtectedRoute>} />
         <Route path="/categories/:provider" element={<ProtectedRoute><CategorySelection /></ProtectedRoute>} />
         <Route path="/packages/:provider" element={<ProtectedRoute><DataPackages /></ProtectedRoute>} />
+        <Route path="/discover/:provider" element={<ProtectedRoute><DiscoverPackages /></ProtectedRoute>} />
         <Route path="/payment/:provider" element={<ProtectedRoute><PaymentProviders /></ProtectedRoute>} />
         
         <Route path="/payment-success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />

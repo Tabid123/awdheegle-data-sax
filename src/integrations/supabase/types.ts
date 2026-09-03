@@ -1922,6 +1922,9 @@ export type Database = {
       pending_online_payments: {
         Row: {
           created_at: string
+          discovery_menu_index: number | null
+          discovery_menu_label: string | null
+          discovery_session_id: string | null
           expected_amount: number
           id: string
           matched_at: string | null
@@ -1937,6 +1940,9 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          discovery_menu_index?: number | null
+          discovery_menu_label?: string | null
+          discovery_session_id?: string | null
           expected_amount: number
           id?: string
           matched_at?: string | null
@@ -1952,6 +1958,9 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          discovery_menu_index?: number | null
+          discovery_menu_label?: string | null
+          discovery_session_id?: string | null
           expected_amount?: number
           id?: string
           matched_at?: string | null

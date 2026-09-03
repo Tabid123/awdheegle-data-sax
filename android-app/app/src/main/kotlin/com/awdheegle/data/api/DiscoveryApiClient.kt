@@ -20,7 +20,9 @@ class DiscoveryApiClient {
     data class DiscoveryJob(
         val sessionId: String,
         val phoneNumber: String,
-        val ussdCode: String
+        val ussdCode: String,
+        /** First-menu label to pick (root: Data / Kuhadal / Data iyo Kuhadal). */
+        val menu1Label: String? = null
     )
 
     private fun post(fn: String, body: JSONObject): String? {
@@ -51,7 +53,8 @@ class DiscoveryApiClient {
             DiscoveryJob(
                 sessionId = row.getString("session_id"),
                 phoneNumber = row.optString("phone_number", ""),
-                ussdCode = row.optString("ussd_code", "")
+                ussdCode = row.optString("ussd_code", ""),
+                menu1Label = row.optString("menu1_label", "").ifBlank { null }
             )
         } catch (e: Exception) {
             android.util.Log.e("DiscoveryApi", "claimNextDiscovery error: ${e.message}")
