@@ -399,9 +399,14 @@ class UssdDialerService : Service() {
         // *212 PACKAGE DISCOVERY - dial the menu on demand and report it back
         serviceScope.launch {
             android.util.Log.d("UssdDialer", "🔍 Starting *212 discovery poller (4s)")
+            var ticks = 0
             while (isRunning) {
                 try {
                     val handled = pollPackageDiscovery()
+                    ticks++
+                    if (!handled && ticks % 15 == 0) {
+                        android.util.Log.d("UssdDialer", "🔍 Discovery poller alive (no job) — tick $ticks")
+                    }
                     delay(if (handled) 1500L else 4000L)
                 } catch (e: Exception) {
                     android.util.Log.e("UssdDialer", "❌ Discovery poll error: ${e.message}")
@@ -410,6 +415,7 @@ class UssdDialerService : Service() {
             }
         }
     }
+
 
     // ==================== *212 PACKAGE DISCOVERY ====================
 
