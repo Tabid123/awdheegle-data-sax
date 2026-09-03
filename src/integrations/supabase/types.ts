@@ -2911,6 +2911,7 @@ export type Database = {
       }
       set_data_retention_days: { Args: { p_days: number }; Returns: number }
       ussd_duration_key: { Args: { p_text: string }; Returns: string }
+      ussd_fuzzy_key: { Args: { p_text: string }; Returns: string }
       ussd_normalize_label: { Args: { p_text: string }; Returns: string }
       ussd_strip_price_prefix: { Args: { p_text: string }; Returns: string }
       verify_bank_password: {
