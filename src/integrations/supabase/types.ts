@@ -2817,10 +2817,19 @@ export type Database = {
           purchase_count: number
         }[]
       }
-      get_package_discovery: {
-        Args: { p_max_age_seconds?: number; p_phone: string }
-        Returns: Json
-      }
+      get_package_discovery:
+        | {
+            Args: { p_max_age_seconds?: number; p_phone: string }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_max_age_seconds?: number
+              p_phone: string
+              p_session_id?: string
+            }
+            Returns: Json
+          }
       get_public_packages: {
         Args: { p_provider_id: string }
         Returns: {
