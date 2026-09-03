@@ -1597,8 +1597,16 @@ class UssdDialerService : Service() {
             }
 
             // INVARIANT: for menu flows only the part before `|` is dialed.
-            val codeToDial = if (parsedTemplate.isMenuFlow) parsedTemplate.dialCode else order.ussdCode
-            val success = dialUssdCode(codeToDial, order.receiverPhone, order.packageCode, orderProvider, order.simSlot)
+            val codeToDial = if (discoveryIndex == null && parsedTemplate.isMenuFlow) parsedTemplate.dialCode else order.ussdCode
+            val success = dialUssdCode(
+                codeToDial,
+                order.receiverPhone,
+                order.packageCode,
+                orderProvider,
+                order.simSlot,
+                // *212 must stay interactive so the menu option can be typed
+                forceInteractive = discoveryIndex != null
+            )
             
             if (success) {
                 // Get the captured USSD response from AccessibilityService
