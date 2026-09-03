@@ -206,17 +206,31 @@ class UssdAccessibilityService : AccessibilityService() {
         when (event.eventType) {
             AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED,
             AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED -> {
-                // Add delay before clicking to let dialog fully render
+                // NOTE: the AccessibilityEvent is recycled by the framework as soon as
+                // this callback returns, so we must NOT touch it inside postDelayed
+                // (that threw "Cannot perform this action on a not sealed instance"
+                // and the USSD dialog text was never captured). Re-read the live
+                // window tree instead.
                 handler.postDelayed({
-                    tryClickConfirmButton(event)
+                    tryClickConfirmButton()
                 }, CLICK_DELAY_MS)
             }
         }
     }
 
-    private fun tryClickConfirmButton(event: AccessibilityEvent) {
+    /** Reads the current dialog straight from the live window tree. */
+    private fun currentDialogRoot(): AccessibilityNodeInfo? {
+        rootInActiveWindow?.let { return it }
+        return try {
+            windows.mapNotNull { it.root }.firstOrNull()
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun tryClickConfirmButton() {
         try {
-            val source = event.source ?: rootInActiveWindow ?: return
+            val source = currentDialogRoot() ?: return
             
             // CAPTURE ALL DIALOG TEXT FIRST - before any filtering
             val dialogText = extractDialogText(source)
