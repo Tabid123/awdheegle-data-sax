@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, Plus, RefreshCw, Save, Trash2, Search, Radio, ChevronDown, ChevronRight } from 'lucide-react';
+import { Loader2, Plus, RefreshCw, Save, Trash2, Search, Radio, ChevronDown, ChevronRight, Smartphone } from 'lucide-react';
 import { toast } from 'sonner';
 
 const DURATIONS = ['', 'hourly', 'daily', '3days', 'weekly', 'monthly'];
@@ -154,8 +154,8 @@ export const UssdDiscoveryManager: React.FC = () => {
     },
   ].filter((g) => g.items.length > 0 || g.key !== UNGROUPED);
 
-  const isOpen = (key: string) => openGroups[key] !== false;
-  const toggleGroup = (key: string) => setOpenGroups((p) => ({ ...p, [key]: isOpen(key) ? false : true }));
+  const isOpen = (key: string) => openGroups[key] === true;
+  const toggleGroup = (key: string) => setOpenGroups((p) => ({ ...p, [key]: !isOpen(key) }));
 
 
   return (
@@ -236,30 +236,34 @@ export const UssdDiscoveryManager: React.FC = () => {
           ) : filtered.length === 0 ? (
             <p className="text-center text-xs text-muted-foreground py-8">Wax xirmo ah lama helin</p>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               {groups.map((g) => (
-                <div key={g.key} className="rounded-lg border overflow-hidden">
+                <div key={g.key} className="rounded-xl border bg-card shadow-sm overflow-hidden">
                   <button
                     onClick={() => toggleGroup(g.key)}
-                    className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-muted/60 text-left"
+                    className="w-full flex items-center justify-between gap-2 px-3.5 py-3.5 text-left"
                   >
-                    <span className="flex items-center gap-2 min-w-0">
-                      {isOpen(g.key) ? <ChevronDown className="h-3.5 w-3.5 shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 shrink-0" />}
-                      <span className="text-xs font-bold truncate">{g.name}</span>
+                    <span className="flex items-center gap-3 min-w-0">
+                      <Smartphone className="h-4 w-4 shrink-0 text-primary" />
+                      <span className="text-sm font-bold truncate">{g.name}</span>
+                      <Badge variant="secondary" className="h-4 px-1.5 text-[9px] shrink-0">{g.items.length}</Badge>
                     </span>
                     <span className="flex items-center gap-1.5 shrink-0">
-                      <Badge variant="secondary" className="h-4 px-1.5 text-[9px]">{g.items.length}</Badge>
                       {g.key !== UNGROUPED && (
                         <span
                           role="button"
                           onClick={(e) => { e.stopPropagation(); setDraft(emptyRow(g.key)); }}
-                          className="inline-flex items-center justify-center h-5 w-5 rounded bg-primary text-primary-foreground"
+                          className="inline-flex items-center justify-center h-6 w-6 rounded-md bg-primary text-primary-foreground"
                         >
-                          <Plus className="h-3 w-3" />
+                          <Plus className="h-3.5 w-3.5" />
                         </span>
                       )}
+                      {isOpen(g.key)
+                        ? <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                        : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                     </span>
                   </button>
+
 
                   {isOpen(g.key) && (
                     <div className="grid gap-2 p-2">
