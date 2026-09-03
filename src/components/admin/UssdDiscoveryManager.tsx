@@ -236,26 +236,58 @@ export const UssdDiscoveryManager: React.FC = () => {
           ) : filtered.length === 0 ? (
             <p className="text-center text-xs text-muted-foreground py-8">Wax xirmo ah lama helin</p>
           ) : (
-            <div className="grid gap-2">
-              {filtered.map((r) => (
-                <Card key={r.id} className="p-3 flex items-center justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold truncate">{r.display_name || r.normalized_label}</p>
-                    <p className="text-[10px] text-muted-foreground font-mono truncate">{r.normalized_label}{r.duration_key ? ` • ${r.duration_key}` : ''}{r.data_amount ? ` • ${r.data_amount}` : ''}</p>
-                    <p className="text-[11px] mt-0.5">
-                      <span className="text-muted-foreground">Cost ${Number(r.cost_price).toFixed(2)}</span>
-                      {' → '}
-                      <span className="font-semibold text-primary">${Number(r.selling_price).toFixed(2)}</span>
-                      {!r.is_active && <Badge variant="secondary" className="ml-2 h-4 px-1 text-[9px]">off</Badge>}
-                    </p>
-                  </div>
-                  <div className="flex flex-col gap-1 shrink-0">
-                    <Button size="sm" variant="outline" className="h-7 text-[10px]" onClick={() => setDraft({ ...r, duration_key: r.duration_key || '' })}>Tafatir</Button>
-                    <Button size="sm" variant="ghost" className="h-7 text-[10px] text-destructive" onClick={() => remove(r.id)}>
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </Card>
+            <div className="space-y-3">
+              {groups.map((g) => (
+                <div key={g.key} className="rounded-lg border overflow-hidden">
+                  <button
+                    onClick={() => toggleGroup(g.key)}
+                    className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-muted/60 text-left"
+                  >
+                    <span className="flex items-center gap-2 min-w-0">
+                      {isOpen(g.key) ? <ChevronDown className="h-3.5 w-3.5 shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 shrink-0" />}
+                      <span className="text-xs font-bold truncate">{g.name}</span>
+                    </span>
+                    <span className="flex items-center gap-1.5 shrink-0">
+                      <Badge variant="secondary" className="h-4 px-1.5 text-[9px]">{g.items.length}</Badge>
+                      {g.key !== UNGROUPED && (
+                        <span
+                          role="button"
+                          onClick={(e) => { e.stopPropagation(); setDraft(emptyRow(g.key)); }}
+                          className="inline-flex items-center justify-center h-5 w-5 rounded bg-primary text-primary-foreground"
+                        >
+                          <Plus className="h-3 w-3" />
+                        </span>
+                      )}
+                    </span>
+                  </button>
+
+                  {isOpen(g.key) && (
+                    <div className="grid gap-2 p-2">
+                      {g.items.length === 0 ? (
+                        <p className="text-center text-[11px] text-muted-foreground py-3">Category-gan wax xirmo ah kuma jiro</p>
+                      ) : g.items.map((r) => (
+                        <Card key={r.id} className="p-3 flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold truncate">{r.display_name || r.normalized_label}</p>
+                            <p className="text-[10px] text-muted-foreground font-mono truncate">{r.normalized_label}{r.duration_key ? ` • ${r.duration_key}` : ''}{r.data_amount ? ` • ${r.data_amount}` : ''}</p>
+                            <p className="text-[11px] mt-0.5">
+                              <span className="text-muted-foreground">Cost ${Number(r.cost_price).toFixed(2)}</span>
+                              {' → '}
+                              <span className="font-semibold text-primary">${Number(r.selling_price).toFixed(2)}</span>
+                              {!r.is_active && <Badge variant="secondary" className="ml-2 h-4 px-1 text-[9px]">off</Badge>}
+                            </p>
+                          </div>
+                          <div className="flex flex-col gap-1 shrink-0">
+                            <Button size="sm" variant="outline" className="h-7 text-[10px]" onClick={() => setDraft({ ...r, duration_key: r.duration_key || '', root_package_id: r.root_package_id || '' })}>Tafatir</Button>
+                            <Button size="sm" variant="ghost" className="h-7 text-[10px] text-destructive" onClick={() => remove(r.id)}>
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           )}
