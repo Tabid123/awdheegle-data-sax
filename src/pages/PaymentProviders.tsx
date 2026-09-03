@@ -43,10 +43,22 @@ const PaymentProviders = () => {
     provider: string;
   }>();
   const location = useLocation();
-  const packageData = location.state?.package;
   const providerName = location.state?.providerName;
   const categoryName = location.state?.categoryName || '';
-  const discoveryData = location.state?.discovery || null;
+
+  // ---- *212 discovery mode (package is chosen after the numbers are entered) ----
+  const discoveryRoot = location.state?.discoveryRoot || null;
+  const [discoveryPkg, setDiscoveryPkg] = useState<any>(null);
+  const [discoveryData, setDiscoveryData] = useState<any>(location.state?.discovery || null);
+  const [discoveryStatus, setDiscoveryStatus] = useState<'idle' | 'queued' | 'dialing' | 'ready' | 'none'>('idle');
+  const [discoveryItems, setDiscoveryItems] = useState<any[]>([]);
+  const [discoverySessionId, setDiscoverySessionId] = useState<string | null>(null);
+  const [discoveryBusy, setDiscoveryBusy] = useState(false);
+  const discoveryPollRef = React.useRef<any>(null);
+  const discoverySessionRef = React.useRef<string | null>(null);
+
+  const packageData = discoveryPkg || location.state?.package;
+
   
   // Helper function to detect ADSL packages
   const isADSLPackage = (catName: string) => {
@@ -750,7 +762,86 @@ const PaymentProviders = () => {
       }, 100);
     }
   };
+
+
+
+  // ================= *212 discovery helpers =================
+  const digits9 = (v: string) => (v || '').replace(/\D/g, '').slice(-9);
+
+  const stopDiscoveryPolling = () => {
+    if (discoveryPollRef.current) { clearInterval(discoveryPollRef.current); discoveryPollRef.current = null; }
+  };
+
+  React.useEffect(() => { discoverySessionRef.current = discoverySessionId; }, [discoverySessionId]);
+
+  React.useEffect(() => () => {
+    stopDiscoveryPolling();
+    const sid = discoverySessionRef.current;
+    if (sid) supabase.rpc('release_discovery_session', { p_session_id: sid });
+  }, []);
+
+  const pollDiscovery = useCallback(async (p: string) => {
+    const { data, error } = await supabase.rpc('get_package_discovery', { p_phone: p, p_max_age_seconds: 1800 });
+    if (error) return;
+    const res: any = data || {};
+    if (res.session_id) setDiscoverySessionId(res.session_id);
+    setDiscoveryStatus(res.status || 'none');
+    if (res.status === 'ready') {
+      setDiscoveryItems(Array.isArray(res.items) ? res.items : []);
+      stopDiscoveryPolling();
+    }
+  }, []);
+
+  const startDiscovery = async () => {
+    // numbers must be valid before scanning
+    if (paymentNumber.length !== 9) { setPaymentNumberError('Fadlan gali lambarka oo dhan (9 digits)'); return; }
+    const p = digits9(receiverNumber);
+    if (p.length !== 9) { setReceiverNumberError('Fadlan gali lambarka oo dhan (9 digits)'); return; }
+    if (!discoveryRoot?.id) return;
+    setDiscoveryBusy(true);
+    setDiscoveryItems([]);
+    setDiscoveryPkg(null);
+    const { data, error } = await supabase.rpc('request_package_discovery', { p_root_id: discoveryRoot.id, p_phone: p });
+    setDiscoveryBusy(false);
+    if (error) {
+      toast({ title: 'Khalad', description: error.message, variant: 'destructive' as any });
+      return;
+    }
+    const res: any = data || {};
+    if (res.status === 'error') {
+      toast({ title: 'Khalad', description: res.message || 'Isku day mar kale', variant: 'destructive' as any });
+      return;
+    }
+    setDiscoverySessionId(res.session_id || null);
+    setDiscoveryStatus(res.status === 'ready' ? 'ready' : 'queued');
+    await pollDiscovery(p);
+    stopDiscoveryPolling();
+    discoveryPollRef.current = setInterval(() => pollDiscovery(p), 3000);
+  };
+
+  const chooseDiscoveryItem = (item: any) => {
+    if (!item?.sellable || item.price == null) return;
+    setDiscoveryPkg({
+      id: discoveryRoot?.id,
+      providerId: provider,
+      name: item.raw_label,
+      price: `$${Number(item.price).toFixed(2)}`,
+      data: item.data_amount || '',
+      validity: null,
+    });
+    setDiscoveryData({
+      sessionId: discoverySessionId,
+      menuLabel: item.raw_label,
+      menuIndex: item.index ?? null,
+      receiverPhone: digits9(receiverNumber),
+    });
+  };
+
+  const sellableDiscovery = discoveryItems.filter((i: any) => i.sellable && i.price != null);
+  const discoveryNeedsScan = !!discoveryRoot && !discoveryPkg;
+
 return <div className="min-h-screen bg-[#efefef] pb-24">
+
       {/* Header with safe-area padding for Android 12+ */}
       <div 
         className={`${getBrandBackgroundClass(providerName || '')} text-white py-4 px-4`}
@@ -796,7 +887,7 @@ return <div className="min-h-screen bg-[#efefef] pb-24">
 
       {/* Payment Modal */}
       {showPaymentModal && <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md space-y-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md space-y-4 max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-medium mb-4 text-center">
               {paymentProviders.find(p => p.id === selectedProvider)?.provider_name || 'Faahfaahinta lacag bixinta'}
             </h3>
@@ -895,15 +986,74 @@ return <div className="min-h-screen bg-[#efefef] pb-24">
                 </div>
               )}
             </div>
-            
+
+            {/* ---- *212 discovery: scan packages for the entered receiver number ---- */}
+            {discoveryRoot && (
+              <div className="space-y-2">
+                {discoveryPkg ? (
+                  <div className="rounded-xl border-2 border-primary bg-primary/5 p-3 flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold truncate text-foreground">{discoveryPkg.name}</p>
+                      {discoveryPkg.data && <p className="text-[11px] text-muted-foreground">{discoveryPkg.data}</p>}
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-base font-extrabold text-primary">{discoveryPkg.price}</span>
+                      <Button variant="ghost" size="sm" onClick={() => setDiscoveryPkg(null)} className="text-xs">Bedel</Button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <Button
+                      onClick={startDiscovery}
+                      disabled={discoveryBusy}
+                      className="w-full gradient-button text-white"
+                    >
+                      {discoveryBusy ? 'Waa la baarayaa...' : 'Baar xirmooyinka'}
+                    </Button>
+
+                    {(discoveryStatus === 'queued' || discoveryStatus === 'dialing') && (
+                      <p className="text-xs text-center text-muted-foreground">
+                        {discoveryStatus === 'queued' ? 'Saf ku jira — waa la sugayaa taleefan...' : 'Shirkadda ayaa la weydiinayaa...'}
+                      </p>
+                    )}
+
+                    {discoveryStatus === 'ready' && (
+                      sellableDiscovery.length === 0 ? (
+                        <p className="text-xs text-center text-muted-foreground">Xirmooyin qiimo leh lama helin. Isku day mar kale.</p>
+                      ) : (
+                        <div className="space-y-1.5 max-h-60 overflow-y-auto">
+                          <p className="text-[11px] text-muted-foreground">{sellableDiscovery.length} xirmo oo diyaar ah</p>
+                          {sellableDiscovery.map((item: any, idx: number) => (
+                            <button
+                              key={`${item.index}-${idx}`}
+                              type="button"
+                              onClick={() => chooseDiscoveryItem(item)}
+                              className="w-full flex items-center justify-between gap-2 rounded-lg border border-border bg-muted/40 hover:bg-muted px-3 py-2 text-left"
+                            >
+                              <span className="min-w-0">
+                                <span className="block text-sm font-semibold truncate text-foreground">{item.raw_label}</span>
+                                {item.data_amount && <span className="block text-[11px] text-muted-foreground">{item.data_amount}</span>}
+                              </span>
+                              <span className="text-sm font-bold text-primary shrink-0">${Number(item.price).toFixed(2)}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+
             <div className="flex gap-2 pt-4">
               <Button variant="outline" onClick={() => setShowPaymentModal(false)} className="flex-1">
                 Cancel
               </Button>
-              <Button onClick={handleShowConfirmation} className="flex-1 gradient-button text-white">
-                Pay Now
+              <Button onClick={handleShowConfirmation} disabled={discoveryNeedsScan} className="flex-1 gradient-button text-white disabled:opacity-50">
+                {discoveryPkg ? `Bixi ${discoveryPkg.price}` : 'Pay Now'}
               </Button>
             </div>
+
           </div>
         </div>}
 
@@ -1020,7 +1170,7 @@ return <div className="min-h-screen bg-[#efefef] pb-24">
       {/* Fixed Bottom Button */}
       <div className="fixed bottom-20 left-0 right-0 px-4 pt-4 pb-4 bg-[#efefef]">
         <Button onClick={handleProceedToPayment} className="w-full gradient-button text-white font-semibold py-4 rounded-2xl text-lg hover:opacity-90 transition-opacity">
-          {selectedProvider ? `Bixi Hada ${packageData?.price}` : 'Dooro habka lacag bixinta'}
+          {!selectedProvider ? 'Dooro habka lacag bixinta' : (discoveryRoot && !discoveryPkg ? 'Sii wad — gali lambarada' : `Bixi Hada ${packageData?.price}`)}
         </Button>
       </div>
 
