@@ -493,10 +493,20 @@ class UssdDialerService : Service() {
             )
 
             // 3) Second dialog = the real package list for that category.
-            var menuText = getLastUssdResponse(job.sessionId, clearAfter = true)
-            if (menuText != null && sameMenu(menuText, rootText)) {
-                android.util.Log.w("UssdDialer", "⚠️ Still on root menu — waiting for package list")
-                menuText = getLastUssdResponse(job.sessionId, clearAfter = true)
+            // Samsung reuses the same dialog window, so the submenu can land a few
+            // seconds later. Keep re-reading until the text is no longer the root menu.
+            var menuText: String? = null
+            var attempts = 0
+            while (attempts < 4) {
+                val captured = getLastUssdResponse(job.sessionId, clearAfter = true)
+                if (captured != null && !sameMenu(captured, rootText)) {
+                    menuText = captured
+                    break
+                }
+                if (captured != null) {
+                    android.util.Log.w("UssdDialer", "⚠️ Still on root menu — waiting for package list")
+                }
+                attempts++
             }
             Ussd870Flow.clearPlan(this)
 
