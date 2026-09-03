@@ -53,7 +53,8 @@ class DiscoveryApiClient {
             DiscoveryJob(
                 sessionId = row.getString("session_id"),
                 phoneNumber = row.optString("phone_number", ""),
-                ussdCode = row.optString("ussd_code", "")
+                ussdCode = row.optString("ussd_code", ""),
+                menu1Label = row.optString("menu1_label", "").ifBlank { null }
             )
         } catch (e: Exception) {
             android.util.Log.e("DiscoveryApi", "claimNextDiscovery error: ${e.message}")
