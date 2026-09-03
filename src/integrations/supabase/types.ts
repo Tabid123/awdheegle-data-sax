@@ -2549,6 +2549,7 @@ export type Database = {
           id: string
           is_active: boolean
           normalized_label: string
+          root_package_id: string | null
           selling_price: number
           updated_at: string
         }
@@ -2561,6 +2562,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           normalized_label: string
+          root_package_id?: string | null
           selling_price?: number
           updated_at?: string
         }
@@ -2573,10 +2575,19 @@ export type Database = {
           id?: string
           is_active?: boolean
           normalized_label?: string
+          root_package_id?: string | null
           selling_price?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ussd_price_catalog_root_package_id_fkey"
+            columns: ["root_package_id"]
+            isOneToOne: false
+            referencedRelation: "data_packages_config"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       verified_phones: {
         Row: {

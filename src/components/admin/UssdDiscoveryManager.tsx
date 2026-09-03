@@ -7,12 +7,12 @@ import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, Plus, RefreshCw, Save, Trash2, Search, Radio } from 'lucide-react';
+import { Loader2, Plus, RefreshCw, Save, Trash2, Search, Radio, ChevronDown, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 
 const DURATIONS = ['', 'hourly', 'daily', '3days', 'weekly', 'monthly'];
 
-const emptyRow = () => ({
+const emptyRow = (rootId = '') => ({
   id: null,
   normalized_label: '',
   duration_key: '',
@@ -21,23 +21,37 @@ const emptyRow = () => ({
   cost_price: 0,
   selling_price: 0,
   is_active: true,
+  root_package_id: rootId,
 });
+
+const UNGROUPED = '__none__';
 
 export const UssdDiscoveryManager: React.FC = () => {
   const [tab, setTab] = useState('catalog');
 
   // ---- Price catalog ----
   const [rows, setRows] = useState<any[]>([]);
+  const [roots, setRoots] = useState<any[]>([]);
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState('');
   const [draft, setDraft] = useState<any>(null);
   const [saving, setSaving] = useState(false);
 
+  const loadRoots = useCallback(async () => {
+    const { data } = await supabase
+      .from('data_packages_config')
+      .select('id, package_name, sort_order')
+      .eq('is_discovery_root', true)
+      .order('sort_order');
+    setRoots(data || []);
+  }, []);
+
   const loadCatalog = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from('ussd_price_catalog')
-      .select('id, normalized_label, duration_key, data_amount, display_name, cost_price, selling_price, is_active')
+      .select('id, normalized_label, duration_key, data_amount, display_name, cost_price, selling_price, is_active, root_package_id')
       .order('normalized_label')
       .limit(500);
     if (error) toast.error(error.message);
@@ -68,10 +82,11 @@ export const UssdDiscoveryManager: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    loadRoots();
     loadCatalog();
     loadUnmatched();
     loadSessions();
-  }, [loadCatalog, loadUnmatched, loadSessions]);
+  }, [loadRoots, loadCatalog, loadUnmatched, loadSessions]);
 
   useEffect(() => {
     if (tab !== 'sessions') return;
@@ -93,6 +108,7 @@ export const UssdDiscoveryManager: React.FC = () => {
       cost_price: Number(draft.cost_price) || 0,
       selling_price: Number(draft.selling_price) || 0,
       is_active: !!draft.is_active,
+      root_package_id: draft.root_package_id || null,
     };
     const res = draft.id
       ? await supabase.from('ussd_price_catalog').update(payload).eq('id', draft.id)
@@ -124,6 +140,24 @@ export const UssdDiscoveryManager: React.FC = () => {
     !q.trim() || `${r.normalized_label} ${r.display_name || ''}`.toLowerCase().includes(q.toLowerCase())
   );
 
+  // group the catalog by category (discovery root)
+  const groups = [
+    ...roots.map((root) => ({
+      key: root.id,
+      name: root.package_name,
+      items: filtered.filter((r) => r.root_package_id === root.id),
+    })),
+    {
+      key: UNGROUPED,
+      name: 'Category la\'aan',
+      items: filtered.filter((r) => !r.root_package_id || !roots.some((x) => x.id === r.root_package_id)),
+    },
+  ].filter((g) => g.items.length > 0 || g.key !== UNGROUPED);
+
+  const isOpen = (key: string) => openGroups[key] !== false;
+  const toggleGroup = (key: string) => setOpenGroups((p) => ({ ...p, [key]: isOpen(key) ? false : true }));
+
+
   return (
     <div className="space-y-3">
       <Tabs value={tab} onValueChange={setTab}>
@@ -150,6 +184,17 @@ export const UssdDiscoveryManager: React.FC = () => {
             <Card className="p-3 space-y-2 border-primary/40">
               <p className="text-xs font-semibold">{draft.id ? 'Tafatir xirmo' : 'Xirmo cusub'}</p>
               <div className="grid grid-cols-2 gap-2">
+                <div className="col-span-2">
+                  <label className="text-[10px] text-muted-foreground">Category (xirmada root)</label>
+                  <select
+                    value={draft.root_package_id || ''}
+                    onChange={(e) => setDraft({ ...draft, root_package_id: e.target.value })}
+                    className="w-full h-9 px-2 rounded-md border bg-background text-sm"
+                  >
+                    <option value="">— Category la'aan —</option>
+                    {roots.map((root) => <option key={root.id} value={root.id}>{root.package_name}</option>)}
+                  </select>
+                </div>
                 <div className="col-span-2">
                   <label className="text-[10px] text-muted-foreground">Label (sida menu-ga *212 ka muuqdo)</label>
                   <Input value={draft.normalized_label} onChange={(e) => setDraft({ ...draft, normalized_label: e.target.value })} placeholder="100mb maalin" className="h-9 text-sm" />
@@ -191,26 +236,58 @@ export const UssdDiscoveryManager: React.FC = () => {
           ) : filtered.length === 0 ? (
             <p className="text-center text-xs text-muted-foreground py-8">Wax xirmo ah lama helin</p>
           ) : (
-            <div className="grid gap-2">
-              {filtered.map((r) => (
-                <Card key={r.id} className="p-3 flex items-center justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold truncate">{r.display_name || r.normalized_label}</p>
-                    <p className="text-[10px] text-muted-foreground font-mono truncate">{r.normalized_label}{r.duration_key ? ` • ${r.duration_key}` : ''}{r.data_amount ? ` • ${r.data_amount}` : ''}</p>
-                    <p className="text-[11px] mt-0.5">
-                      <span className="text-muted-foreground">Cost ${Number(r.cost_price).toFixed(2)}</span>
-                      {' → '}
-                      <span className="font-semibold text-primary">${Number(r.selling_price).toFixed(2)}</span>
-                      {!r.is_active && <Badge variant="secondary" className="ml-2 h-4 px-1 text-[9px]">off</Badge>}
-                    </p>
-                  </div>
-                  <div className="flex flex-col gap-1 shrink-0">
-                    <Button size="sm" variant="outline" className="h-7 text-[10px]" onClick={() => setDraft({ ...r, duration_key: r.duration_key || '' })}>Tafatir</Button>
-                    <Button size="sm" variant="ghost" className="h-7 text-[10px] text-destructive" onClick={() => remove(r.id)}>
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </Card>
+            <div className="space-y-3">
+              {groups.map((g) => (
+                <div key={g.key} className="rounded-lg border overflow-hidden">
+                  <button
+                    onClick={() => toggleGroup(g.key)}
+                    className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-muted/60 text-left"
+                  >
+                    <span className="flex items-center gap-2 min-w-0">
+                      {isOpen(g.key) ? <ChevronDown className="h-3.5 w-3.5 shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 shrink-0" />}
+                      <span className="text-xs font-bold truncate">{g.name}</span>
+                    </span>
+                    <span className="flex items-center gap-1.5 shrink-0">
+                      <Badge variant="secondary" className="h-4 px-1.5 text-[9px]">{g.items.length}</Badge>
+                      {g.key !== UNGROUPED && (
+                        <span
+                          role="button"
+                          onClick={(e) => { e.stopPropagation(); setDraft(emptyRow(g.key)); }}
+                          className="inline-flex items-center justify-center h-5 w-5 rounded bg-primary text-primary-foreground"
+                        >
+                          <Plus className="h-3 w-3" />
+                        </span>
+                      )}
+                    </span>
+                  </button>
+
+                  {isOpen(g.key) && (
+                    <div className="grid gap-2 p-2">
+                      {g.items.length === 0 ? (
+                        <p className="text-center text-[11px] text-muted-foreground py-3">Category-gan wax xirmo ah kuma jiro</p>
+                      ) : g.items.map((r) => (
+                        <Card key={r.id} className="p-3 flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold truncate">{r.display_name || r.normalized_label}</p>
+                            <p className="text-[10px] text-muted-foreground font-mono truncate">{r.normalized_label}{r.duration_key ? ` • ${r.duration_key}` : ''}{r.data_amount ? ` • ${r.data_amount}` : ''}</p>
+                            <p className="text-[11px] mt-0.5">
+                              <span className="text-muted-foreground">Cost ${Number(r.cost_price).toFixed(2)}</span>
+                              {' → '}
+                              <span className="font-semibold text-primary">${Number(r.selling_price).toFixed(2)}</span>
+                              {!r.is_active && <Badge variant="secondary" className="ml-2 h-4 px-1 text-[9px]">off</Badge>}
+                            </p>
+                          </div>
+                          <div className="flex flex-col gap-1 shrink-0">
+                            <Button size="sm" variant="outline" className="h-7 text-[10px]" onClick={() => setDraft({ ...r, duration_key: r.duration_key || '', root_package_id: r.root_package_id || '' })}>Tafatir</Button>
+                            <Button size="sm" variant="ghost" className="h-7 text-[10px] text-destructive" onClick={() => remove(r.id)}>
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           )}
