@@ -56,7 +56,10 @@ class DeliveryApiClient {
         val attempts: Int,
         val simSlot: Int = 0,
         val provider: String = "",
-        val pinCode: String = ""
+        val pinCode: String = "",
+        /** *212 cold fallback: menu index of the package the customer paid for. */
+        val discoveryMenuIndex: Int? = null,
+        val discoveryMenuLabel: String? = null
     )
     
     // OTP Task data class - includes provider for SIM slot selection
