@@ -447,7 +447,8 @@ class UssdDialerService : Service() {
                 receiverPhone = job.phoneNumber,
                 packageCode = null,
                 provider = "hormuud",
-                simSlot = null
+                simSlot = null,
+                forceInteractive = true
             )
             if (!dialed) {
                 discoveryApi.sessionLost(job.sessionId, "Dial failed")
