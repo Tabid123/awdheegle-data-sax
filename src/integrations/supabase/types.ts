@@ -2650,6 +2650,8 @@ export type Database = {
         Args: { p_device_id: string; p_providers?: string[] }
         Returns: {
           attempts: number
+          discovery_menu_index: number
+          discovery_menu_label: string
           id: string
           order_id: string
           package_code: string
