@@ -42,7 +42,7 @@ object UssdTemplate {
         val raw = template.trim()
         if (!raw.contains('|')) return emptyList()
         return raw.substringAfter('|')
-            .split(',')
+            .split('|')
             .map { it.trim() }
             .filter { it.isNotEmpty() }
     }

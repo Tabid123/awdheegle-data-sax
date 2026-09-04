@@ -167,7 +167,7 @@ object Ussd870Flow {
             if (body.isBlank()) continue
 
             // exact-ish match wins
-            if (body == target || body.contains(target) || target.contains(body)) {
+            if (body == target || body.contains(target)) {
                 val lineDuration = durationKey(line)
                 if (targetDuration == null || lineDuration == null || targetDuration == lineDuration) {
                     return num
