@@ -7,3 +7,6 @@
 - [x] Baaris kasta *212* ka dhig session cusub oo dealer-ka mar walba garaaca; natiijada ku xir session ID-ga cusub.
 - [x] Ka qari qiimaha menu-ga shirkadda; muuji sell price-ka “Qiimaha *212*” oo keliya.
 - [ ] Xaqiiji APK-ga cusub qalabka Android-ka (waxay u baahan tahay build/install).
+- [x] Ka mamnuuc generic delivery-ga inuu mar labaad garaaco *212 session leh.
+- [x] Ilaali commas/spaces-ka Menu 1/2/3 marka Simple Admin laga save-gareeyo.
+- [x] Exact-match ka hormari partial match si `Data iyo Kuhadal` uusan u dooran `Data`.

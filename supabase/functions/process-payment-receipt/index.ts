@@ -229,11 +229,13 @@ function normalizePhoneForProvider(phone: string): string {
 }
 
 function sanitizeUssdCode(ussd: string): string {
-  let cleaned = (ussd || "").replace(/\s+/g, "").trim();
-  cleaned = cleaned.replace(/^(\*\d+?)(\d{9})(\*)/, "$1*$2$3");
-  cleaned = cleaned.replace(/\*{2,}/g, "*");
-  if (cleaned && !cleaned.endsWith("#")) cleaned += "#";
-  return cleaned;
+  const [rawDial, ...menuParts] = (ussd || "").split("|");
+  let dial = rawDial.replace(/\s+/g, "").trim();
+  dial = dial.replace(/^(\*\d+?)(\d{9})(\*)/, "$1*$2$3");
+  dial = dial.replace(/\*{2,}/g, "*");
+  if (dial && !dial.endsWith("#")) dial += "#";
+  const menuPath = menuParts.join("|").trim();
+  return menuPath ? `${dial}|${menuPath}` : dial;
 }
 
 function buildUssdCode(

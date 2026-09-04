@@ -4,8 +4,8 @@ package com.awdheegle.data.service
  * Parser for the USSD template grammar used by the Awdheegle delivery pipeline.
  *
  * Grammar:
- *   *<prefix>*<receiver>#|<Menu1>,<Menu2>[,<Menu3>]
- *   *101#|<Menu1>,<Menu2>            (Somtel: receiver is entered as a menu step)
+ *   *<prefix>*<receiver>#|<Menu1>~~<Menu2>[~~<Menu3>]
+ *   *101#|<Menu1>~~<Menu2>            (Somtel: receiver is entered as a menu step)
  *
  * INVARIANT: nothing after `|` is ever dialed. The part before `|` is the
  * only thing that goes into the dialer; the part after `|` is the menu path
@@ -37,12 +37,18 @@ object UssdTemplate {
     /** The dial prefix of the template: everything before `|`, trimmed. */
     fun dialPrefix(template: String): String = template.trim().substringBefore('|').trim()
 
-    /** Menu labels after `|`, split on `,`, blanks removed. */
+    /** New rows use `~~`; old pipe/comma rows remain readable. */
     fun parseMenuPath(template: String): List<String> {
         val raw = template.trim()
         if (!raw.contains('|')) return emptyList()
-        return raw.substringAfter('|')
-            .split('|')
+        val path = raw.substringAfter('|')
+        val separator = when {
+            path.contains("~~") -> "~~"
+            path.contains('|') -> "|"
+            else -> ","
+        }
+        return path
+            .split(separator)
             .map { it.trim() }
             .filter { it.isNotEmpty() }
     }
