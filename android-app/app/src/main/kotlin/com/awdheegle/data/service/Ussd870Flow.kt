@@ -161,7 +161,8 @@ object Ussd870Flow {
             val num = Regex("^\\s*(\\d+)\\s*[.)\\-:]?\\s+").find(trimmed)?.groupValues?.get(1)
                 ?: Regex("^\\s*(\\d+)\\s*[.)\\-:]").find(trimmed)?.groupValues?.get(1)
                 ?: return@mapNotNull null
-            val body = normalize(trimmed)
+            val optionLabel = trimmed.replace(Regex("^\\s*\\d+\\s*[.)\\-:]?\\s*"), "")
+            val body = normalize(optionLabel)
             if (body.isBlank()) null else Triple(num, body, trimmed)
         }
 

@@ -156,18 +156,28 @@ const USSD_PRESETS = [
   { label: '*212 Maamuus (discovery)', dial: '*212*{receiver_phone}#' },
 ];
 
-/** Builds `<dial>|<Menu1>|<Menu2>|<Menu3>` — labels retain commas and spaces. */
+const MENU_STEP_SEPARATOR = '~~';
+
+/** Builds `<dial>|<Menu1>~~<Menu2>~~<Menu3>` — labels retain commas, spaces and synonyms. */
 const composeUssdTemplate = (dial: string, menus: string[]) => {
   const base = (dial || '').split('|')[0].trim();
   const path = menus.map(m => (m || '').trim()).filter(Boolean);
   if (!base) return null;
-  return path.length ? `${base}|${path.join('|')}` : base;
+  return path.length ? `${base}|${path.join(MENU_STEP_SEPARATOR)}` : base;
 };
 
 const splitUssdTemplate = (template?: string | null) => {
   const raw = (template || '').trim();
   const dial = raw.split('|')[0].trim();
-  const menus = raw.includes('|') ? raw.split('|').slice(1).map(s => s.trim()) : [];
+  const path = raw.includes('|') ? raw.substring(raw.indexOf('|') + 1) : '';
+  const menus = path
+    ? (path.includes(MENU_STEP_SEPARATOR)
+        ? path.split(MENU_STEP_SEPARATOR)
+        : path.includes('|')
+          ? path.split('|')
+          : path.split(','))
+      .map(s => s.trim())
+    : [];
   return { dial, menu1: menus[0] || '', menu2: menus[1] || '', menu3: menus[2] || '' };
 };
 

@@ -7,7 +7,7 @@ class UssdTemplateTest {
     @Test
     fun parsesMenuLabelsContainingCommas() {
         val parsed = UssdTemplate.parse(
-            "*870*{receiver_phone}#|Data iyo Kuhadal|Unlimited data,voice,8 saac-",
+            "*870*{receiver_phone}#|Data iyo Kuhadal~~Unlimited data,voice,8 saac-",
             "683721522"
         )
 
