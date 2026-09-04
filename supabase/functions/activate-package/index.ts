@@ -202,13 +202,15 @@ serve(async (req) => {
       };
 
       const sanitizeUssdCode = (ussdCode: string) => {
-        let cleaned = (ussdCode || '').replace(/\s+/g, '').trim();
-        cleaned = cleaned.replace(/^(\*\d+?)(\d{9})(\*)/, '$1*$2$3');
-        cleaned = cleaned.replace(/\*{2,}/g, '*');
-        if (cleaned && !cleaned.endsWith('#')) {
-          cleaned += '#';
+        const [rawDial, ...menuParts] = (ussdCode || '').split('|');
+        let dial = rawDial.replace(/\s+/g, '').trim();
+        dial = dial.replace(/^(\*\d+?)(\d{9})(\*)/, '$1*$2$3');
+        dial = dial.replace(/\*{2,}/g, '*');
+        if (dial && !dial.endsWith('#')) {
+          dial += '#';
         }
-        return cleaned;
+        const menuPath = menuParts.join('|').trim();
+        return menuPath ? `${dial}|${menuPath}` : dial;
       };
 
       // Normalize phone to 9 digits - remove 252 prefix (ALL providers reject 252!)
@@ -451,6 +453,8 @@ serve(async (req) => {
               simSlot: order.sim_slot ?? 0,
               provider: order.provider_name,
               pinCode: order.pin_code || '',
+              discoveryMenuIndex: order.discovery_menu_index ?? null,
+              discoveryMenuLabel: order.discovery_menu_label ?? null,
             }],
             nextPollMs: 3000,
           }),
@@ -1147,6 +1151,8 @@ serve(async (req) => {
             attempts: order.attempts,
             simSlot: order.sim_slot ?? 0,
             provider: order.provider_name,
+            discoveryMenuIndex: order.discovery_menu_index ?? null,
+            discoveryMenuLabel: order.discovery_menu_label ?? null,
           };
         }
 

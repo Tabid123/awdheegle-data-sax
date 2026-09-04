@@ -156,19 +156,23 @@ object Ussd870Flow {
         val targetDuration = durationKey(label)
 
 
-        val lines = dialogText.split('\n', '\r').map { it.trim() }.filter { it.isNotEmpty() }
+        val options = dialogText.split('\n', '\r').mapNotNull { line ->
+            val trimmed = line.trim()
+            val num = Regex("^\\s*(\\d+)\\s*[.)\\-:]?\\s+").find(trimmed)?.groupValues?.get(1)
+                ?: Regex("^\\s*(\\d+)\\s*[.)\\-:]").find(trimmed)?.groupValues?.get(1)
+                ?: return@mapNotNull null
+            val body = normalize(trimmed)
+            if (body.isBlank()) null else Triple(num, body, trimmed)
+        }
+
+        // Full-label matching must win before any partial match. Otherwise
+        // "Data iyo Kuhadal" can incorrectly choose the earlier "Data" row.
+        options.firstOrNull { (_, body, _) -> body == target }?.let { return it.first }
         var fallback: String? = null
 
-        for (line in lines) {
-            val num = Regex("^\\s*(\\d+)\\s*[.)\\-:]?\\s+").find(line)?.groupValues?.get(1)
-                ?: Regex("^\\s*(\\d+)\\s*[.)\\-:]").find(line)?.groupValues?.get(1)
-                ?: continue
-            val body = normalize(line)
-            if (body.isBlank()) continue
-
-            // exact-ish match wins
-            if (body == target || body.contains(target)) {
-                val lineDuration = durationKey(line)
+        for ((num, body, originalLine) in options) {
+            if (body.contains(target)) {
+                val lineDuration = durationKey(originalLine)
                 if (targetDuration == null || lineDuration == null || targetDuration == lineDuration) {
                     return num
                 }
@@ -180,7 +184,7 @@ object Ussd870Flow {
             val targetTokens = target.split(' ').filter { it.length > 2 }.toSet()
             val bodyTokens = body.split(' ').filter { it.length > 2 }.toSet()
             val shared = targetTokens.intersect(bodyTokens)
-            if (shared.size >= 2 && (targetDuration == null || durationKey(line) == targetDuration)) {
+            if (shared.size >= 2 && (targetDuration == null || durationKey(originalLine) == targetDuration)) {
                 if (fallback == null) fallback = num
             }
         }

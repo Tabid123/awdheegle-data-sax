@@ -1496,6 +1496,19 @@ class UssdDialerService : Service() {
     }
 
     private suspend fun processOrder(order: DeliveryApiClient.DeliveryOrder, provider: String) {
+        // *212 selections must be consumed by the already-open discovery
+        // session. Never cold re-dial through this generic delivery path.
+        if (order.discoveryMenuIndex != null || UssdTemplate.isFlow212(order.ussdCode)) {
+            android.util.Log.e("UssdDialer", "🚫 Generic *212 redial blocked for ${order.id}")
+            apiClient.updateDeliveryStatus(
+                order.id,
+                "verification_required",
+                "*212 warm session is unavailable; automatic redial was blocked",
+                null
+            )
+            return
+        }
+
         // Single-flight guard
         if (isProcessingOrder) {
             android.util.Log.d("UssdDialer", "⏳ Already processing order, rejecting ${order.id}")

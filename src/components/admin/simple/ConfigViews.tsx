@@ -156,7 +156,7 @@ const USSD_PRESETS = [
   { label: '*212 Maamuus (discovery)', dial: '*212*{receiver_phone}#' },
 ];
 
-/** Builds `<dial>|<Menu1>,<Menu2>,<Menu3>` — nothing after `|` is ever dialed. */
+/** Builds `<dial>|<Menu1>|<Menu2>|<Menu3>` — labels retain commas and spaces. */
 const composeUssdTemplate = (dial: string, menus: string[]) => {
   const base = (dial || '').split('|')[0].trim();
   const path = menus.map(m => (m || '').trim()).filter(Boolean);
@@ -167,7 +167,7 @@ const composeUssdTemplate = (dial: string, menus: string[]) => {
 const splitUssdTemplate = (template?: string | null) => {
   const raw = (template || '').trim();
   const dial = raw.split('|')[0].trim();
-  const menus = raw.includes('|') ? raw.split('|')[1].split('|').map(s => s.trim()) : [];
+  const menus = raw.includes('|') ? raw.split('|').slice(1).map(s => s.trim()) : [];
   return { dial, menu1: menus[0] || '', menu2: menus[1] || '', menu3: menus[2] || '' };
 };
 
