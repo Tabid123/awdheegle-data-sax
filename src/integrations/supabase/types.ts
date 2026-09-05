@@ -2903,6 +2903,7 @@ export type Database = {
         Args: { p_phone: string; p_root_id: string }
         Returns: Json
       }
+      resolve_delivery_pin: { Args: { p_package_id: string }; Returns: string }
       retry_bulk_sms_campaign: {
         Args: { p_campaign_id: string }
         Returns: Json
