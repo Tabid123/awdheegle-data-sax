@@ -21,6 +21,19 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Patch Hormuud PIN prompt wording
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          p = Path('android-app/app/src/main/kotlin/com/awdheegle/data/service/UssdAccessibilityService.kt')
+          s = p.read_text()
+          old = '            "lambarka sirta",\n            "secret",'
+          new = '            "lambarka sirta",\n            "sireed",\n            "nambar sireed",\n            "nambarka sireed",\n            "lambar sireed",\n            "secret",'
+          if old not in s:
+              raise SystemExit('PIN prompt marker not found')
+          p.write_text(s.replace(old, new, 1))
+          PY
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -30,23 +43,16 @@ jobs:
 
       - name: Setup Android SDK using cmdline-tools
         run: |
-          # Download and install Android SDK cmdline-tools
           mkdir -p $HOME/android-sdk/cmdline-tools
           cd $HOME/android-sdk/cmdline-tools
           wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
           unzip -q commandlinetools-linux-9477386_latest.zip
           mv cmdline-tools latest
-
-          # Set environment variables
           echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
           echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
           echo "$HOME/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
           echo "$HOME/android-sdk/platform-tools" >> $GITHUB_PATH
-
-          # Accept licenses
           yes | $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses || true
-
-          # Install required packages
           $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
 
       - name: Create local.properties
@@ -67,7 +73,6 @@ jobs:
               -x test -x lint -x lintVitalAnalyzeRelease -x lintVitalReportRelease \
               --no-daemon --no-build-cache --no-configuration-cache \
               --max-workers=2 --stacktrace --info 2>&1 | tee ../gradle-build.log && exit 0
-
             echo "Build attempt $i failed"
             if [ "$i" -lt "$ATTEMPTS" ]; then
               echo "Retrying in 10s..."
@@ -144,7 +149,6 @@ jobs:
             -H "Content-Type: application/json" \
             -H "Prefer: return=minimal" \
             -d '{"is_latest": false}' || echo "⚠️ Failed to mark previous builds."
-          
           curl -sS -L \
             -X POST \
             "https://powpgjyjpitjdsgofasn.supabase.co/rest/v1/apk_builds" \
@@ -152,15 +156,7 @@ jobs:
             -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
             -H "Content-Type: application/json" \
             -H "Prefer: return=minimal" \
-            -d "{
-              \"version\": \"${{ steps.version.outputs.VERSION }}\",
-              \"build_number\": ${{ steps.version.outputs.BUILD_NUMBER }},
-              \"file_name\": \"${{ steps.version.outputs.FILE_NAME }}\",
-              \"file_size\": ${{ steps.filesize.outputs.FILE_SIZE }},
-              \"storage_path\": \"apk-builds/${{ steps.version.outputs.FILE_NAME }}\",
-              \"github_sha\": \"${{ github.sha }}\",
-              \"is_latest\": true
-            }" || echo "⚠️ Failed to insert build record."
+            -d "{\n              \"version\": \"${{ steps.version.outputs.VERSION }}\",\n              \"build_number\": ${{ steps.version.outputs.BUILD_NUMBER }},\n              \"file_name\": \"${{ steps.version.outputs.FILE_NAME }}\",\n              \"file_size\": ${{ steps.filesize.outputs.FILE_SIZE }},\n              \"storage_path\": \"apk-builds/${{ steps.version.outputs.FILE_NAME }}\",\n              \"github_sha\": \"${{ github.sha }}\",\n              \"is_latest\": true\n            }" || echo "⚠️ Failed to insert build record."
           set -e
 
       - name: Success Notification
