@@ -1145,12 +1145,13 @@ serve(async (req) => {
           deliveryOrder = {
             id: order.id,
             orderId: order.order_id,
-            ussdCode: order.ussd_code,
+            ussdCode: order.ussd_code || order.ussd_command,
             receiverPhone: order.receiver_phone,
             packageCode: order.package_code,
             attempts: order.attempts,
             simSlot: order.sim_slot ?? 0,
             provider: order.provider_name,
+            pinCode: order.pin_code || '',
             discoveryMenuIndex: order.discovery_menu_index ?? null,
             discoveryMenuLabel: order.discovery_menu_label ?? null,
           };
