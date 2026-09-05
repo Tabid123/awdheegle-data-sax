@@ -184,10 +184,40 @@ class UssdAccessibilityService : AccessibilityService() {
     }
 
     private fun currentDialogRoot(): AccessibilityNodeInfo? {
-        rootInActiveWindow?.let { return it }
+        // Never trust rootInActiveWindow first: when the screen is locked Samsung may
+        // expose SystemUI/lock-screen text as the active root while the USSD dialog is
+        // still present in another accessibility window. Prefer a real phone/USSD root.
         return try {
-            windows.mapNotNull { it.root }.firstOrNull()
-        } catch (_: Exception) {
+            val roots = windows.mapNotNull { window ->
+                try {
+                    window.root
+                } catch (_: Exception) {
+                    null
+                }
+            }
+
+            val preferred = roots.firstOrNull { root ->
+                isPhoneOrUssdPackage(root.packageName?.toString().orEmpty())
+            }
+
+            if (preferred != null) {
+                roots.filter { it !== preferred }.forEach { it.recycle() }
+                return preferred
+            }
+
+            roots.forEach { it.recycle() }
+
+            val active = rootInActiveWindow ?: return null
+            val activePackage = active.packageName?.toString().orEmpty()
+            if (isPhoneOrUssdPackage(activePackage)) {
+                active
+            } else {
+                Log.d(TAG, "⏭️ Ignoring non-USSD active window: $activePackage")
+                active.recycle()
+                null
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "⚠️ Unable to resolve USSD dialog root: ${e.message}")
             null
         }
     }
