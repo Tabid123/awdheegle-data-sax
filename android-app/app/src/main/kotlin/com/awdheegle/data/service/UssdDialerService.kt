@@ -1540,18 +1540,34 @@ class UssdDialerService : Service() {
             
             // Save PIN to SharedPreferences for AccessibilityService to use.
             // INVARIANT: the PIN always comes from server config (sim_password);
-            // never invent one on the device.
-            val pinToUse = order.pinCode.filter { it.isDigit() }.take(4)
+            // never invent one on the device. Accept 3–12 digits (carriers differ),
+            // and fall back to the last PIN the server sent for this device.
             val ussdPrefsForPin = getSharedPreferences(UssdAccessibilityService.PREFS_NAME, Context.MODE_PRIVATE)
-            if (pinToUse.length == 4) {
-                ussdPrefsForPin.edit().putString("current_pin_code", pinToUse).apply()
-                getSharedPreferences("najax_ussd_prefs", Context.MODE_PRIVATE)
-                    .edit().putString("current_pin_code", pinToUse).apply()
-                android.util.Log.d("UssdDialer", "🔐 PIN saved from config: ${pinToUse.take(2)}***")
+            val legacyPinPrefs = getSharedPreferences("najax_ussd_prefs", Context.MODE_PRIVATE)
+            val pinFromOrder = order.pinCode.filter { it.isDigit() }
+            val pinToUse = when {
+                pinFromOrder.length in 3..12 -> pinFromOrder
+                else -> ussdPrefsForPin.getString("last_known_pin_code", null)
+                    ?.filter { it.isDigit() }
+                    ?.takeIf { it.length in 3..12 }
+                    ?: ""
+            }
+            if (pinToUse.length in 3..12) {
+                ussdPrefsForPin.edit()
+                    .putString("current_pin_code", pinToUse)
+                    .putString("last_known_pin_code", pinToUse)
+                    .apply()
+                legacyPinPrefs.edit().putString("current_pin_code", pinToUse).apply()
+                android.util.Log.d(
+                    "UssdDialer",
+                    "🔐 PIN saved (len=${pinToUse.length}, source=${if (pinFromOrder.length in 3..12) "config" else "last_known"})"
+                )
             } else {
                 ussdPrefsForPin.edit().remove("current_pin_code").apply()
-                android.util.Log.w("UssdDialer", "⚠️ No valid PIN in config for queue ${order.id}")
+                legacyPinPrefs.edit().remove("current_pin_code").apply()
+                android.util.Log.w("UssdDialer", "⚠️ No valid PIN in config for queue ${order.id} (len=${pinFromOrder.length})")
             }
+
 
             // ===== MULTI-STEP MENU PLAN (*870 / *866 / *101) =====
             val parsedTemplate = UssdTemplate.parse(order.ussdCode, order.receiverPhone)
