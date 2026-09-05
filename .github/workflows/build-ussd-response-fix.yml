@@ -37,8 +37,7 @@ jobs:
               if n != 1:
                   raise SystemExit('PIN wording marker not found')
 
-          # The existing source saves provider-looking text before checking whether
-          # the dialog is still interactive. Move capture to AFTER the input check.
+          # Move capture after the input check so menu/PIN dialogs are never saved as final results.
           pattern = re.compile(
               r'\n\s*if \(isLikelyUssdResponse\(dialogText\)\) \{\s*'
               r'saveUssdResponse\(dialogText\)\s*\}\s*'
@@ -66,8 +65,7 @@ jobs:
           if n != 1:
               raise SystemExit('final capture insertion point not found')
 
-          # Save MMI complete as the actual terminal provider response. It remains
-          # ambiguous because the success classifier below does NOT include it.
+          # Save MMI complete as terminal text, but do not treat it as delivery success.
           if '"mmi complete"' not in s:
               s, n = re.subn(r'("error",\s*)("pin")', r'\1"mmi complete", \2', s, count=1)
               if n != 1:
@@ -133,3 +131,5 @@ jobs:
           name: awdheegle-ussd-response-fix-apk
           path: android-app/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 7
+
+# retry-trigger: 2026-09-05
