@@ -21,85 +21,85 @@ jobs:
         run: |
           python3 <<'PY'
           from pathlib import Path
+          import re
 
           acc = Path('android-app/app/src/main/kotlin/com/awdheegle/data/service/UssdAccessibilityService.kt')
           s = acc.read_text()
 
-          # Preserve the proven *870/*866 PIN wording fix.
-          pin_old = '            "lambarka sirta",\n            "secret",'
-          pin_new = '            "lambarka sirta",\n            "sireed",\n            "nambar sireed",\n            "nambarka sireed",\n            "lambar sireed",\n            "secret",'
-          if pin_old in s:
-              s = s.replace(pin_old, pin_new, 1)
+          # Preserve the proven PIN prompt wording support.
+          if '"sireed"' not in s:
+              s, n = re.subn(
+                  r'(\s*"lambarka sirta",\n)(\s*"secret",)',
+                  r'\1            "sireed",\n            "nambar sireed",\n            "nambarka sireed",\n            "lambar sireed",\n\2',
+                  s,
+                  count=1,
+              )
+              if n != 1:
+                  raise SystemExit('PIN wording marker not found')
 
-          # Do NOT save an interactive menu/PIN screen as the provider response.
-          early = '''            if (isLikelyUssdResponse(dialogText)) {
-                  saveUssdResponse(dialogText)
-              }
+          # The existing source saves provider-looking text before checking whether
+          # the dialog is still interactive. Move capture to AFTER the input check.
+          pattern = re.compile(
+              r'\n\s*if \(isLikelyUssdResponse\(dialogText\)\) \{\s*'
+              r'saveUssdResponse\(dialogText\)\s*\}\s*'
+              r'(// Direct PIN handling is only for non-planned flows\.)',
+              re.S,
+          )
+          s, n = pattern.subn(r'\n\n            \1', s, count=1)
+          if n != 1:
+              raise SystemExit('early capture block not found')
 
-              // Direct PIN handling is only for non-planned flows.'''
-          replacement = '''            // Direct PIN handling is only for non-planned flows.'''
-          if early not in s:
-              raise SystemExit('early response-capture marker not found')
-          s = s.replace(early, replacement, 1)
+          final_pattern = re.compile(
+              r'(if \(interactive\) \{\s*'
+              r'// Never click Send on a dialog that still expects unknown input\.\s*'
+              r'return\s*\}\s*)'
+              r'(clickKnownConfirmButton\(source\))',
+              re.S,
+          )
+          s, n = final_pattern.subn(
+              r'\1if (isLikelyUssdResponse(dialogText)) {\n'
+              r'                saveUssdResponse(dialogText)\n'
+              r'            }\n\n            \2',
+              s,
+              count=1,
+          )
+          if n != 1:
+              raise SystemExit('final capture insertion point not found')
 
-          # Save only after proving the final carrier dialog has no editable input.
-          final_old = '''            if (interactive) {
-                  // Never click Send on a dialog that still expects unknown input.
-                  return
-              }
+          # Save MMI complete as the actual terminal provider response. It remains
+          # ambiguous because the success classifier below does NOT include it.
+          if '"mmi complete"' not in s:
+              s, n = re.subn(r'("error",\s*)("pin")', r'\1"mmi complete", \2', s, count=1)
+              if n != 1:
+                  raise SystemExit('response keyword marker not found')
 
-              clickKnownConfirmButton(source)'''
-          final_new = '''            if (interactive) {
-                  // Never click Send on a dialog that still expects unknown input.
-                  return
-              }
-
-              if (isLikelyUssdResponse(dialogText)) {
-                  saveUssdResponse(dialogText)
-              }
-
-              clickKnownConfirmButton(source)'''
-          if final_old not in s:
-              raise SystemExit('final response-capture marker not found')
-          s = s.replace(final_old, final_new, 1)
-
-          # Capture Samsung's legitimate terminal MMI dialog, but classification
-          # still treats MMI as ambiguous (never as automatic success).
-          marker = '            "error", "pin", "furaha", "sirta", "hormuud", "somnet", "somtel"'
-          marker_new = '            "error", "mmi complete", "pin", "furaha", "sirta", "hormuud", "somnet", "somtel"'
-          if marker not in s:
-              raise SystemExit('response keyword marker not found')
-          s = s.replace(marker, marker_new, 1)
           acc.write_text(s)
 
           dial = Path('android-app/app/src/main/kotlin/com/awdheegle/data/service/UssdDialerService.kt')
           d = dial.read_text()
 
-          # Somtel spelling variants seen in real successful final responses.
-          success_marker = '            "waad ku guulaysatay",'
-          success_repl = '''            "waad ku guulaysatay",
-              "waad ku guuleysatay",
-              "waad ku guulaysatey",
-              "waad ku guuleysatey",
-              "ku guuleysatay",
-              "ku guulaysatay",
-              "ku guuleysatey",
-              "ku guulaysatey",'''
-          if success_marker not in d:
-              raise SystemExit('success marker not found')
-          d = d.replace(success_marker, success_repl, 1)
+          # Add Somtel success spelling variants without making MMI a success.
+          if '"waad ku guuleysatay"' not in d:
+              d, n = re.subn(
+                  r'(\s*"waad ku guulaysatay",)',
+                  r'\1\n            "waad ku guuleysatay",\n            "waad ku guulaysatey",\n            "waad ku guuleysatey",\n            "ku guuleysatay",\n            "ku guulaysatay",\n            "ku guuleysatey",\n            "ku guulaysatey",',
+                  d,
+                  count=1,
+              )
+              if n != 1:
+                  raise SystemExit('success marker not found')
 
-          # Slow USSD final responses get roughly 20 seconds instead of 10.
-          old_log = 'Waiting up to 10s for USSD response capture'
-          if old_log not in d:
+          if 'Waiting up to 10s for USSD response capture' in d:
+              d = d.replace('Waiting up to 10s for USSD response capture', 'Waiting up to 20s for USSD response capture', 1)
+          else:
               raise SystemExit('wait log marker not found')
-          d = d.replace(old_log, 'Waiting up to 20s for USSD response capture', 1)
-          if '            repeat(8) { attempt ->' not in d:
+
+          d, n = re.subn(r'repeat\(8\) \{ attempt ->', 'repeat(18) { attempt ->', d, count=1)
+          if n != 1:
               raise SystemExit('repeat marker not found')
-          d = d.replace('            repeat(8) { attempt ->', '            repeat(18) { attempt ->', 1)
-          if '                if (attempt < 7) {' not in d:
+          d, n = re.subn(r'if \(attempt < 7\) \{', 'if (attempt < 17) {', d, count=1)
+          if n != 1:
               raise SystemExit('wait tail marker not found')
-          d = d.replace('                if (attempt < 7) {', '                if (attempt < 17) {', 1)
           dial.write_text(d)
           PY
 
