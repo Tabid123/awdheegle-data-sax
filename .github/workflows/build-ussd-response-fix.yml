@@ -17,7 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Patch USSD capture and classification
+      - name: Patch USSD response capture
         run: |
           python3 <<'PY'
           from pathlib import Path
@@ -25,75 +25,57 @@ jobs:
           acc = Path('android-app/app/src/main/kotlin/com/awdheegle/data/service/UssdAccessibilityService.kt')
           s = acc.read_text()
 
-          # Keep the existing Hormuud/Somnet PIN wording fix in this build.
+          # Preserve the proven *870/*866 PIN wording fix.
           pin_old = '            "lambarka sirta",\n            "secret",'
           pin_new = '            "lambarka sirta",\n            "sireed",\n            "nambar sireed",\n            "nambarka sireed",\n            "lambar sireed",\n            "secret",'
           if pin_old in s:
               s = s.replace(pin_old, pin_new, 1)
 
-          # A completed *870/*866/*101 plan is allowed to persist the final
-          # non-interactive phone/USSD dialog even when it only says MMI complete.
-          pending_old = '''    private fun hasPendingPlan(): Boolean {
-              val plan = Ussd870Flow.loadPlan(this)
-              return plan.isNotEmpty() && Ussd870Flow.currentIndex(this) < plan.size
-          }
-          '''
-          pending_new = '''    private fun hasPendingPlan(): Boolean {
-              val plan = Ussd870Flow.loadPlan(this)
-              return plan.isNotEmpty() && Ussd870Flow.currentIndex(this) < plan.size
-          }
-
-              private fun hasCompletedPlan(): Boolean {
-                  val plan = Ussd870Flow.loadPlan(this)
-                  return plan.isNotEmpty() && Ussd870Flow.currentIndex(this) >= plan.size
+          # Do NOT save an interactive menu/PIN screen as the provider response.
+          early = '''            if (isLikelyUssdResponse(dialogText)) {
+                  saveUssdResponse(dialogText)
               }
-          '''
-          if pending_old not in s:
-              raise SystemExit('hasPendingPlan marker not found')
-          s = s.replace(pending_old, pending_new, 1)
 
-          save_old = '''    private fun saveUssdResponse(text: String) {
-              if (!isLikelyUssdResponse(text)) return
-          '''
-          save_new = '''    private fun saveUssdResponse(text: String, force: Boolean = false) {
-              if (!force && !isLikelyUssdResponse(text)) return
-          '''
-          if save_old not in s:
-              raise SystemExit('saveUssdResponse marker not found')
-          s = s.replace(save_old, save_new, 1)
+              // Direct PIN handling is only for non-planned flows.'''
+          replacement = '''            // Direct PIN handling is only for non-planned flows.'''
+          if early not in s:
+              raise SystemExit('early response-capture marker not found')
+          s = s.replace(early, replacement, 1)
 
-          interactive_old = '''            if (interactive) {
+          # Save only after proving the final carrier dialog has no editable input.
+          final_old = '''            if (interactive) {
                   // Never click Send on a dialog that still expects unknown input.
                   return
               }
 
-              clickKnownConfirmButton(source)
-          '''
-          interactive_new = '''            if (interactive) {
+              clickKnownConfirmButton(source)'''
+          final_new = '''            if (interactive) {
                   // Never click Send on a dialog that still expects unknown input.
                   return
               }
 
-              // The planned menu/PIN flow is finished and this is a verified
-              // phone/USSD window with no input. Persist exactly what the carrier
-              // displayed. This covers success, explicit failure and MMI complete
-              // without treating MMI complete itself as delivery success.
-              if (hasCompletedPlan()) {
-                  saveUssdResponse(dialogText, force = true)
+              if (isLikelyUssdResponse(dialogText)) {
+                  saveUssdResponse(dialogText)
               }
 
-              clickKnownConfirmButton(source)
-          '''
-          if interactive_old not in s:
-              raise SystemExit('final-dialog marker not found')
-          s = s.replace(interactive_old, interactive_new, 1)
+              clickKnownConfirmButton(source)'''
+          if final_old not in s:
+              raise SystemExit('final response-capture marker not found')
+          s = s.replace(final_old, final_new, 1)
+
+          # Capture Samsung's legitimate terminal MMI dialog, but classification
+          # still treats MMI as ambiguous (never as automatic success).
+          marker = '            "error", "pin", "furaha", "sirta", "hormuud", "somnet", "somtel"'
+          marker_new = '            "error", "mmi complete", "pin", "furaha", "sirta", "hormuud", "somnet", "somtel"'
+          if marker not in s:
+              raise SystemExit('response keyword marker not found')
+          s = s.replace(marker, marker_new, 1)
           acc.write_text(s)
 
           dial = Path('android-app/app/src/main/kotlin/com/awdheegle/data/service/UssdDialerService.kt')
           d = dial.read_text()
 
-          # Somtel commonly writes guuleysatay/guuleysatey while the Android
-          # classifier only knew the guulaysatay spelling.
+          # Somtel spelling variants seen in real successful final responses.
           success_marker = '            "waad ku guulaysatay",'
           success_repl = '''            "waad ku guulaysatay",
               "waad ku guuleysatay",
@@ -107,20 +89,16 @@ jobs:
               raise SystemExit('success marker not found')
           d = d.replace(success_marker, success_repl, 1)
 
-          # Give slow carrier final dialogs more time to arrive after PIN/Send.
-          wait_old = '''            android.util.Log.d("UssdDialer", "⏳ Waiting up to 10s for USSD response capture (queue=$orderQueueId)...")
-              delay(2000)
-
-              repeat(8) { attempt ->'''
-          wait_new = '''            android.util.Log.d("UssdDialer", "⏳ Waiting up to 20s for USSD response capture (queue=$orderQueueId)...")
-              delay(2000)
-
-              repeat(18) { attempt ->'''
-          if wait_old not in d:
-              raise SystemExit('response wait marker not found')
-          d = d.replace(wait_old, wait_new, 1)
+          # Slow USSD final responses get roughly 20 seconds instead of 10.
+          old_log = 'Waiting up to 10s for USSD response capture'
+          if old_log not in d:
+              raise SystemExit('wait log marker not found')
+          d = d.replace(old_log, 'Waiting up to 20s for USSD response capture', 1)
+          if '            repeat(8) { attempt ->' not in d:
+              raise SystemExit('repeat marker not found')
+          d = d.replace('            repeat(8) { attempt ->', '            repeat(18) { attempt ->', 1)
           if '                if (attempt < 7) {' not in d:
-              raise SystemExit('response wait tail marker not found')
+              raise SystemExit('wait tail marker not found')
           d = d.replace('                if (attempt < 7) {', '                if (attempt < 17) {', 1)
           dial.write_text(d)
           PY
