@@ -67,9 +67,10 @@ const PaymentProviders = () => {
   
   const isADSL = isADSLPackage(categoryName);
   const configuredPhoneLengths = packageData?.allowed_phone_lengths ?? packageData?.allowedPhoneLengths;
-  const allowedPhoneLengths = Array.isArray(configuredPhoneLengths) && configuredPhoneLengths.length
+  const parsedPhoneLengths = Array.isArray(configuredPhoneLengths)
     ? configuredPhoneLengths.map((length: unknown) => Number(length)).filter((length: number) => Number.isInteger(length) && length > 0 && length <= 15)
-    : isADSL ? [7] : [9];
+    : [];
+  const allowedPhoneLengths = parsedPhoneLengths.length ? [...new Set(parsedPhoneLengths)] : isADSL ? [7] : [9];
   const maxReceiverLength = Math.max(...allowedPhoneLengths);
   const allowedPhoneLengthLabel = allowedPhoneLengths.join(' ama ');
   const {
