@@ -1494,6 +1494,21 @@ const AdminDashboard = () => {
       return;
     }
 
+    const allowedPhoneLengths = [...new Set(
+      String(newPackage.allowed_phone_lengths || '')
+        .split(',')
+        .map((value) => Number(value.trim()))
+        .filter((value) => Number.isInteger(value) && value >= 2 && value <= 15)
+    )];
+    if (allowedPhoneLengths.length === 0) {
+      toast({
+        title: language === 'so' ? 'Khalad' : 'Error',
+        description: language === 'so' ? 'Geli ugu yaraan hal dherer lambar, sida 9 ama 7.' : 'Enter at least one phone length, such as 9 or 7.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     // Xisaabta automatic ah: selling_price + (selling_price × profit_margin%) = total_received
     // profit = total_received - cost_price
     const profitMargin = newPackage.profit_margin || 15; // Default 15%
@@ -1512,9 +1527,7 @@ const AdminDashboard = () => {
       secret_price: parseSecretPrices(packageData.secret_price as any),
       category_id: packageData.category_id || null,
       connection_type_label: packageData.connection_type_label || 'Mobile Internet',
-      allowed_phone_lengths: String(packageData.allowed_phone_lengths || '9')
-        .split(',').map((value) => Number(value.trim()))
-        .filter((value) => Number.isInteger(value) && value >= 2 && value <= 15),
+      allowed_phone_lengths: allowedPhoneLengths,
     }]).select();
 
     if (error) {
