@@ -48,6 +48,15 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 class MainActivity : ComponentActivity() {
+    companion object {
+        @Volatile
+        var loginSessionAuthorized: Boolean = false
+            private set
+
+        fun authorizeLoginSession() {
+            loginSessionAuthorized = true
+        }
+    }
     private val PERMISSION_REQUEST_CODE = 100
     private val DEVICE_PREFS_NAME = "najax_device_prefs"
     private val SERVER_DEVICE_UUID_KEY = "server_device_uuid"
@@ -57,6 +66,12 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        if (!loginSessionAuthorized) {
+            startActivity(Intent(this, DeliveryLoginActivity::class.java))
+            finish()
+            return
+        }
         
         database = DeliveryDatabase.getInstance(this)
         
