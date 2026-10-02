@@ -345,7 +345,7 @@ const DataPackages = () => {
     const allowedLengths = Array.isArray(selectedPackageData.allowed_phone_lengths) && selectedPackageData.allowed_phone_lengths.length
       ? selectedPackageData.allowed_phone_lengths.map((length: unknown) => Number(length)).filter((length: number) => Number.isInteger(length))
       : [9];
-    const cleanReceiverNumber = offlineReceiverNumber.replace(/\\D/g, '');
+    const cleanReceiverNumber = offlineReceiverNumber.replace(/\D/g, '');
     if (!allowedLengths.includes(cleanReceiverNumber.length)) {
       toast({ title: 'Lambarka khaldan', description: `Package-kan wuxuu aqbalayaa ${allowedLengths.join(' ama ')} tiro.`, variant: 'destructive' });
       return;
@@ -670,7 +670,7 @@ const DataPackages = () => {
                   inputMode="numeric"
                   aria-label="Lambarka xirmada helaayo"
                   value={offlineReceiverNumber}
-                  onChange={(e) => setOfflineReceiverNumber(e.target.value.replace(/\\D/g, '').slice(0, 15))}
+                  onChange={(e) => setOfflineReceiverNumber(e.target.value.replace(/\D/g, '').slice(0, 15))}
                   maxLength={15}
                   className="min-w-0 flex-1 bg-transparent text-lg font-bold text-foreground outline-none"
                 />
