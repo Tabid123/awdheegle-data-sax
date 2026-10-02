@@ -66,6 +66,12 @@ const PaymentProviders = () => {
   };
   
   const isADSL = isADSLPackage(categoryName);
+  const configuredPhoneLengths = packageData?.allowed_phone_lengths ?? packageData?.allowedPhoneLengths;
+  const allowedPhoneLengths = Array.isArray(configuredPhoneLengths) && configuredPhoneLengths.length
+    ? configuredPhoneLengths.map((length: unknown) => Number(length)).filter((length: number) => Number.isInteger(length) && length > 0 && length <= 15)
+    : isADSL ? [7] : [9];
+  const maxReceiverLength = Math.max(...allowedPhoneLengths);
+  const allowedPhoneLengthLabel = allowedPhoneLengths.join(' ama ');
   const {
     data: paymentProviders = [],
     isLoading
@@ -425,7 +431,7 @@ const PaymentProviders = () => {
     
     // ADSL validation: 7 digits, starts with 1-9
     if (isADSL) {
-      if (value.length <= 7) {
+      if (value.length <= maxReceiverLength) {
         setReceiverNumber(value);
         
         // Validate ADSL number (any digit 1-9 as first)
@@ -437,7 +443,7 @@ const PaymentProviders = () => {
       }
     } else {
       // Mobile validation: 9 digits with provider prefix
-      if (value.length <= 9) {
+      if (value.length <= maxReceiverLength) {
         setReceiverNumber(value);
         
         // Validate if the number starts with the correct prefix
@@ -458,7 +464,7 @@ const PaymentProviders = () => {
         }
       }
     }
-  }, [receiverProviderPrefix, providerName, isADSL]);
+  }, [receiverProviderPrefix, providerName, isADSL, maxReceiverLength]);
   const handleProceedToPayment = useCallback(() => {
     if (!selectedProvider) {
       return;
@@ -476,23 +482,19 @@ const PaymentProviders = () => {
       return;
     }
     
-    // ADSL receiver validation: 7 digits starting with 1-9
+    // Apply the length configured for this package.
+    if (!allowedPhoneLengths.includes(receiverNumber.length)) {
+      setReceiverNumberError(`Package-kan wuxuu aqbalayaa ${allowedPhoneLengthLabel} tiro.`);
+      return;
+    }
+
+    // ADSL receiver numbers must start with 1-9.
     if (isADSL) {
-      if (receiverNumber.length !== 7) {
-        setReceiverNumberError('ADSL-ka wuxuu u baahan yahay 7 lambar');
-        return;
-      }
       if (!/^[1-9]/.test(receiverNumber)) {
         setReceiverNumberError('ADSL-ka wuxuu u baahan yahay lambar bilaabanaya 1-9');
         return;
       }
     } else {
-      // Mobile receiver validation: 9 digits
-      if (receiverNumber.length !== 9) {
-        setReceiverNumberError('Fadlan gali lambarka oo dhan (9 digits)');
-        return;
-      }
-      
       // Validate receiver number prefix for mobile
       // Hormuud accepts both 61 and 77 prefixes
       const isHormuudReceiver = providerName?.toLowerCase() === 'hormuud' || providerName?.toLowerCase().includes('hormuud');
@@ -866,7 +868,7 @@ return <div className="min-h-screen bg-[#efefef] pb-24">
                   placeholder={paymentProviderPrefix ? `${paymentProviderPrefix}XXXXXXX` : 'XXXXXXXXX'}
                   value={paymentNumber} 
                   onChange={handlePaymentNumberChange} 
-                  maxLength={9} 
+                  maxLength={maxReceiverLength}
                   className={`flex-1 focus:border-[#0099ff] focus:ring-[#0099ff] ${paymentNumberError ? 'border-red-500' : ''}`}
                 />
               </div>
@@ -877,7 +879,7 @@ return <div className="min-h-screen bg-[#efefef] pb-24">
             
             <div className="space-y-2">
               <Label htmlFor="receiver-number" className="text-sm font-medium text-foreground">
-                {isADSL ? 'Gali Lambarka ADSL-ka (7 lambar bilaabanaya 1-9)' : 'Gali Lambarka xirmada lagu shubaayo'}
+                {isADSL ? 'Gali Lambarka ADSL-ka' : `Gali lambarka xirmada (${allowedPhoneLengthLabel} tiro)`}
               </Label>
               <div className="flex items-center gap-2">
                 <div className="flex items-center gap-2 px-3 py-2 border rounded-md bg-muted">
