@@ -7,19 +7,17 @@ import android.os.Looper
 import androidx.activity.ComponentActivity
 
 class SplashActivity : ComponentActivity() {
-    
+
     companion object {
-        private const val SPLASH_DELAY_MS = 2000L // 2 seconds
+        private const val SPLASH_DELAY_MS = 2000L
     }
-    
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
-        // Delay and navigate to MainActivity
+
         Handler(Looper.getMainLooper()).postDelayed({
-            startActivity(Intent(this, MainActivity::class.java))
+            startActivity(Intent(this, DeliveryLoginActivity::class.java))
             finish()
-            // Use overrideActivityTransition on Android 14+ (API 34+)
             @Suppress("DEPRECATION")
             if (android.os.Build.VERSION.SDK_INT >= 34) {
                 overrideActivityTransition(OVERRIDE_TRANSITION_CLOSE, android.R.anim.fade_in, android.R.anim.fade_out)
