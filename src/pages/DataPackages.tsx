@@ -33,6 +33,7 @@ interface DataPackage {
   connection_type_label: string;
   provider_id: string;
   ussd_code: string | null;
+  allowed_phone_lengths?: number[] | null;
 }
 
 const DataPackages = () => {
@@ -48,6 +49,7 @@ const DataPackages = () => {
   const isOffline = location.state?.isOffline || false;
   const senderPhone = location.state?.senderPhone || '';
   const receiverPhone = location.state?.receiverPhone || '';
+  const [offlineReceiverNumber, setOfflineReceiverNumber] = useState(receiverPhone);
   
   const [activeTab, setActiveTab] = useState('All');
   const packageRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
@@ -340,6 +342,15 @@ const DataPackages = () => {
 
   const handleOfflineConfirmPurchase = () => {
     if (!selectedPackageData) return;
+    const allowedLengths = Array.isArray(selectedPackageData.allowed_phone_lengths) && selectedPackageData.allowed_phone_lengths.length
+      ? selectedPackageData.allowed_phone_lengths.map((length: unknown) => Number(length)).filter((length: number) => Number.isInteger(length))
+      : [9];
+    const cleanReceiverNumber = offlineReceiverNumber.replace(/\\D/g, '');
+    if (!allowedLengths.includes(cleanReceiverNumber.length)) {
+      toast({ title: 'Lambarka khaldan', description: `Package-kan wuxuu aqbalayaa ${allowedLengths.join(' ama ')} tiro.`, variant: 'destructive' });
+      return;
+    }
+    localStorage.setItem('offlineReceiverPhone', cleanReceiverNumber);
 
     const amount = selectedPackageData.price?.replace('$', '') || '0';
     
@@ -363,7 +374,7 @@ const DataPackages = () => {
     const offlineOrderData = {
       customer_phone: customerPhone,    // app login phone
       sender_phone: senderPhone,        // phone user pays FROM
-      receiver_phone: receiverPhone,    // phone that gets data package
+      receiver_phone: cleanReceiverNumber, // phone that gets data package
       package_id: selectedPackageData.id || '',
       provider_id: provider || '',
       payment_provider_id: '',
@@ -653,8 +664,18 @@ const DataPackages = () => {
             <div className="space-y-2">
               <p className="text-xs text-muted-foreground font-medium uppercase">Lambarka xirmada helaayo</p>
               <div className="flex items-center gap-3 bg-muted rounded-lg p-3 border border-border">
-                <span className="text-lg font-bold text-foreground">+252-{receiverPhone}</span>
+                <span className="text-sm text-muted-foreground">+252</span>
+                <input
+                  type="tel"
+                  inputMode="numeric"
+                  aria-label="Lambarka xirmada helaayo"
+                  value={offlineReceiverNumber}
+                  onChange={(e) => setOfflineReceiverNumber(e.target.value.replace(/\\D/g, '').slice(0, 15))}
+                  maxLength={15}
+                  className="min-w-0 flex-1 bg-transparent text-lg font-bold text-foreground outline-none"
+                />
               </div>
+              <p className="text-xs text-muted-foreground">Lambarkan waa inuu leeyahay tirooyinka uu package-ku oggol yahay.</p>
             </div>
 
             {/* Confirmation Message - Flashing Warning */}
