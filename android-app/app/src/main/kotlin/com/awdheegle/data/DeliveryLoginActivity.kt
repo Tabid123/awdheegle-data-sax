@@ -47,18 +47,12 @@ class DeliveryLoginActivity : ComponentActivity() {
         private const val PASSWORD_SALT = "password_salt"
         private const val PASSWORD_HASH = "password_hash"
         private const val CONFIGURED = "configured"
-        private const val AUTHENTICATED = "authenticated"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         val prefs = getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        if (prefs.getBoolean(AUTHENTICATED, false)) {
-            openDashboard()
-            return
-        }
-
         setContent {
             AwdheegleDataTheme {
                 var username by remember { mutableStateOf("") }
@@ -150,7 +144,7 @@ class DeliveryLoginActivity : ComponentActivity() {
                                         secureEquals(savedPasswordHash, hashValue(passwordSalt, password))
 
                                     if (userMatches && passwordMatches) {
-                                        prefs.edit().putBoolean(AUTHENTICATED, true).apply()
+                                        MainActivity.authorizeLoginSession()
                                         openDashboard()
                                     } else {
                                         error = "Username ama password waa khaldan yahay."
@@ -164,8 +158,8 @@ class DeliveryLoginActivity : ComponentActivity() {
                                         .putString(PASSWORD_SALT, passwordSalt)
                                         .putString(PASSWORD_HASH, hashValue(passwordSalt, password))
                                         .putBoolean(CONFIGURED, true)
-                                        .putBoolean(AUTHENTICATED, true)
                                         .apply()
+                                    MainActivity.authorizeLoginSession()
                                     openDashboard()
                                 }
                             },
