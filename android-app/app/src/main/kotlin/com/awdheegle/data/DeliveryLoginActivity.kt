@@ -3,9 +3,9 @@ package com.awdheegle.data
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.util.Base64
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -18,13 +18,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,30 +35,34 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.awdheegle.data.ui.theme.AwdheegleDataTheme
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.security.MessageDigest
-import java.security.SecureRandom
-import android.util.Base64
+import javax.crypto.SecretKeyFactory
+import javax.crypto.spec.PBEKeySpec
 
 class DeliveryLoginActivity : ComponentActivity() {
     companion object {
-        private const val PREFS = "awdheegle_delivery_login"
-        private const val USER_SALT = "username_salt"
-        private const val USER_HASH = "username_hash"
-        private const val PASSWORD_SALT = "password_salt"
-        private const val PASSWORD_HASH = "password_hash"
-        private const val CONFIGURED = "configured"
+        private const val LOGIN_PREFS = "awdheegle_delivery_login"
+        private const val USERNAME_SALT = "Q38ThFYiYGGtbf8yDU9GiYpuMiMt+s0s"
+        private const val USERNAME_HASH = "R7elpAoHwBPRwm90xxFsrJiap5Rx6EGIESBEU2MQnaA="
+        private const val PASSWORD_SALT = "SKP0R57hq77d33CwcSTeYahySMRvxdrP"
+        private const val PASSWORD_HASH = "XNm6bB8+qKinrRS53c3xCu591F3HXwab7qmcvC9cQ38="
+        private const val HASH_ITERATIONS = 180000
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val prefs = getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val prefs = getSharedPreferences(LOGIN_PREFS, Context.MODE_PRIVATE)
         setContent {
             AwdheegleDataTheme {
                 var username by remember { mutableStateOf("") }
                 var password by remember { mutableStateOf("") }
                 var error by remember { mutableStateOf<String?>(null) }
-                val configured = prefs.getBoolean(CONFIGURED, false)
+                var isChecking by remember { mutableStateOf(false) }
+                val scope = rememberCoroutineScope()
 
                 Surface(
                     modifier = Modifier.fillMaxSize(),
@@ -80,17 +84,14 @@ class DeliveryLoginActivity : ComponentActivity() {
                         )
                         Spacer(modifier = Modifier.height(10.dp))
                         Text(
-                            text = if (configured) "Delivery Login" else "Samee Login-kaaga",
+                            text = "Delivery Login",
                             color = Color(0xFF172033),
                             fontSize = 22.sp,
                             fontWeight = FontWeight.SemiBold
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = if (configured)
-                                "Geli username-ka iyo password-kaaga."
-                            else
-                                "Deji username iyo password. Lambarada 0–9 oo keliya.",
+                            text = "Geli username-ka iyo password-kaaga.",
                             color = Color(0xFF687386),
                             fontSize = 14.sp
                         )
@@ -112,14 +113,14 @@ class DeliveryLoginActivity : ComponentActivity() {
                         OutlinedTextField(
                             value = password,
                             onValueChange = { value ->
-                                password = value.filter { it in '0'..'9' }
+                                password = value
                                 error = null
                             },
                             modifier = Modifier.fillMaxWidth(),
                             label = { Text("Password") },
                             singleLine = true,
                             visualTransformation = PasswordVisualTransformation(),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                             shape = RoundedCornerShape(12.dp)
                         )
 
@@ -132,45 +133,42 @@ class DeliveryLoginActivity : ComponentActivity() {
                         Button(
                             onClick = {
                                 if (username.isBlank() || password.isBlank()) {
-                                    error = "Labada meelood geli lambarro."
-                                } else if (configured) {
-                                    val savedUserHash = prefs.getString(USER_HASH, null)
-                                    val savedPasswordHash = prefs.getString(PASSWORD_HASH, null)
-                                    val userSalt = prefs.getString(USER_SALT, null)
-                                    val passwordSalt = prefs.getString(PASSWORD_SALT, null)
-                                    val userMatches = savedUserHash != null && userSalt != null &&
-                                        secureEquals(savedUserHash, hashValue(userSalt, username))
-                                    val passwordMatches = savedPasswordHash != null && passwordSalt != null &&
-                                        secureEquals(savedPasswordHash, hashValue(passwordSalt, password))
-
-                                    if (userMatches && passwordMatches) {
-                                        MainActivity.authorizeLoginSession()
-                                        openDashboard()
-                                    } else {
-                                        error = "Username ama password waa khaldan yahay."
+                                    error = "Labada meelood geli xogta login-ka."
+                                } else if (!isChecking) {
+                                    isChecking = true
+                                    error = null
+                                    scope.launch {
+                                        val valid = withContext(Dispatchers.Default) {
+                                            val usernameMatches = secureEquals(
+                                                USERNAME_HASH,
+                                                hashValue(USERNAME_SALT, username)
+                                            )
+                                            val passwordMatches = secureEquals(
+                                                PASSWORD_HASH,
+                                                hashValue(PASSWORD_SALT, password)
+                                            )
+                                            usernameMatches && passwordMatches
+                                        }
+                                        isChecking = false
+                                        if (valid) {
+                                            prefs.edit().remove("authenticated").apply()
+                                            MainActivity.authorizeLoginSession()
+                                            openDashboard()
+                                        } else {
+                                            error = "Username ama password waa khaldan yahay."
+                                        }
                                     }
-                                } else {
-                                    val userSalt = newSalt()
-                                    val passwordSalt = newSalt()
-                                    prefs.edit()
-                                        .putString(USER_SALT, userSalt)
-                                        .putString(USER_HASH, hashValue(userSalt, username))
-                                        .putString(PASSWORD_SALT, passwordSalt)
-                                        .putString(PASSWORD_HASH, hashValue(passwordSalt, password))
-                                        .putBoolean(CONFIGURED, true)
-                                        .apply()
-                                    MainActivity.authorizeLoginSession()
-                                    openDashboard()
                                 }
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(54.dp),
+                            enabled = !isChecking,
                             shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1370F0))
                         ) {
                             Text(
-                                text = if (configured) "Gal" else "Samee Login",
+                                text = if (isChecking) "Hubinaya..." else "Gal",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.SemiBold
                             )
@@ -186,16 +184,21 @@ class DeliveryLoginActivity : ComponentActivity() {
         finish()
     }
 
-    private fun newSalt(): String {
-        val bytes = ByteArray(16)
-        SecureRandom().nextBytes(bytes)
-        return Base64.encodeToString(bytes, Base64.NO_WRAP)
-    }
-
     private fun hashValue(salt: String, value: String): String {
-        val digest = MessageDigest.getInstance("SHA-256")
-            .digest("$salt:$value".toByteArray(Charsets.UTF_8))
-        return Base64.encodeToString(digest, Base64.NO_WRAP)
+        val spec = PBEKeySpec(
+            value.toCharArray(),
+            Base64.decode(salt, Base64.NO_WRAP),
+            HASH_ITERATIONS,
+            256
+        )
+        return try {
+            val derived = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
+                .generateSecret(spec)
+                .encoded
+            Base64.encodeToString(derived, Base64.NO_WRAP)
+        } finally {
+            spec.clearPassword()
+        }
     }
 
     private fun secureEquals(first: String, second: String): Boolean =
