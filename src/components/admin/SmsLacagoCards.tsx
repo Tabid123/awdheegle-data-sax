@@ -42,9 +42,9 @@ interface PaymentReceipt {
 const formatPhone = (phone: string) => {
   if (!phone) return '';
   const clean = phone.replace(/\D/g, '');
-  if (clean.length === 9) return `${clean.slice(0, 2)}-${clean.slice(2, 5)}-${clean.slice(5)}`;
-  if (clean.length === 10) return `${clean.slice(0, 3)}-${clean.slice(3, 6)}-${clean.slice(6)}`;
-  return phone;
+  if (clean.startsWith('252') && clean.length >= 12) return clean.slice(3);
+  if (clean.length === 10 && clean.startsWith('0')) return clean.slice(1);
+  return clean;
 };
 
 const PAGE_SIZE = 30;

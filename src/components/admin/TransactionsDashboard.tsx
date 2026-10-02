@@ -40,9 +40,7 @@ const calculateProfit = (sellingPrice: number, costPrice: number, evoucherRate: 
 
 const formatPhone = (phone: string) => {
   if (!phone) return '';
-  const clean = phone.replace(/\D/g, '').replace(/^252/, '');
-  if (clean.length === 9) return `${clean.slice(0, 2)}-${clean.slice(2, 5)}-${clean.slice(5)}`;
-  return clean;
+  return phone.replace(/\D/g, '').replace(/^252/, '').replace(/^0(?=\d{9}$)/, '');
 };
 
 const formatTime = (dateStr: string) => {

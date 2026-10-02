@@ -322,8 +322,8 @@ export const DailyOrdersManager = () => {
 
   const formatPhone = (phone: string) => {
     if (!phone) return '';
-    const clean = phone.replace(/^(\+?252)/, '');
-    return `+252-${clean}`;
+    const clean = phone.replace(/\D/g, '').replace(/^252/, '');
+    return `+252${clean}`;
   };
 
   const statusButtons: { value: StatusFilter; label: string; labelSo: string; count: number }[] = [
