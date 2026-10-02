@@ -45,6 +45,13 @@
             </intent-filter>
         </activity>
 
+        <!-- Numeric-only Delivery login -->
+        <activity
+            android:name="com.awdheegle.data.DeliveryLoginActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AwdheegleData"
+            android:screenOrientation="portrait" />
+
         <!-- Main Activity -->
         <activity
             android:name="com.awdheegle.data.MainActivity"
