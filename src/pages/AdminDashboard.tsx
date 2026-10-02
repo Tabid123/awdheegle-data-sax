@@ -83,6 +83,7 @@ interface DataPackage {
   is_active: boolean;
   category_id: string | null;
   connection_type_label: string;
+  allowed_phone_lengths?: number[] | null;
 }
 
 interface PaymentProvider {
@@ -604,6 +605,7 @@ const AdminDashboard = () => {
     secret_price: '' as string,
     category_id: '',
     connection_type_label: 'Mobile Internet',
+    allowed_phone_lengths: '9',
     profit_margin: 15,
   });
 
@@ -1510,6 +1512,9 @@ const AdminDashboard = () => {
       secret_price: parseSecretPrices(packageData.secret_price as any),
       category_id: packageData.category_id || null,
       connection_type_label: packageData.connection_type_label || 'Mobile Internet',
+      allowed_phone_lengths: String(packageData.allowed_phone_lengths || '9')
+        .split(',').map((value) => Number(value.trim()))
+        .filter((value) => Number.isInteger(value) && value >= 2 && value <= 15),
     }]).select();
 
     if (error) {
@@ -1535,6 +1540,7 @@ const AdminDashboard = () => {
         secret_price: '',
         category_id: '',
         connection_type_label: 'Mobile Internet',
+        allowed_phone_lengths: '9',
         profit_margin: 15,
       });
       setValidityDaysInput('30');
@@ -4737,6 +4743,19 @@ const AdminDashboard = () => {
                       onChange={(e) => setNewPackage({ ...newPackage, connection_type_label: e.target.value })}
                       placeholder="Mobile Internet"
                     />
+                  </div>
+                  <div>
+                    <Label>{language === 'so' ? 'Dhererka lambarka (tirooyinka)' : 'Allowed phone length(s)'}</Label>
+                    <Input
+                      type="text"
+                      inputMode="numeric"
+                      value={newPackage.allowed_phone_lengths}
+                      onChange={(e) => setNewPackage({ ...newPackage, allowed_phone_lengths: e.target.value.replace(/[^0-9,]/g, '') })}
+                      placeholder="9 or 7, 9"
+                    />
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      {language === 'so' ? 'Geli tirada lambarada la oggol yahay, comma ku kala saar. Tusaale: 9 ama 7, 9.' : 'Enter accepted digit counts, separated by commas. Example: 9 or 7, 9.'}
+                    </p>
                   </div>
                   <div>
                     <Label>{language === 'so' ? 'Maalmo' : 'Days'}</Label>
