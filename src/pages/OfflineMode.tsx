@@ -83,7 +83,7 @@ const OfflineMode = () => {
 
   const handleRegister = async () => {
     const isValidSender = senderPhone.length === 9 && /^\d+$/.test(senderPhone);
-    const isValidReceiver = receiverPhone.length === 9 && /^\d+$/.test(receiverPhone);
+    const isValidReceiver = [7, 9].includes(receiverPhone.length) && /^\d+$/.test(receiverPhone);
     if (!isValidSender) setSenderError(true);
     if (!isValidReceiver) setReceiverError(true);
     if (!isValidSender || !isValidReceiver) return;
@@ -238,7 +238,7 @@ const OfflineMode = () => {
               />
             </div>
           </div>
-          {senderError && <p className="text-sm text-destructive">Fadlan geli lambar saxan (9 tiro)</p>}
+          {senderError && <p className="text-sm text-destructive">Fadlan geli lambar saxan (7 ama 9 tiro)</p>}
           {isUnsupportedSenderPrefix(senderPhone) && !senderError && (
             <p className="text-sm text-destructive">Hormuud (61, 77), Somnet (68) iyo Somtel (62) kaliya ayaa la taageera</p>
           )}
