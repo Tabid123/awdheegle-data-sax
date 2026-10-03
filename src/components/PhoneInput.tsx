@@ -170,7 +170,7 @@ const PhoneInput = () => {
       });
       
       setIsVerifying(false);
-      navigate('/offline-mode');
+      navigate('/providers', { replace: true });
     } else {
       toast({
         title: "Kood khaldan",
