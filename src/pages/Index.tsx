@@ -27,15 +27,6 @@ const Index = () => {
   });
   const hasInitialized = useRef(false);
 
-  // Check if user has completed offline registration or skipped it
-  const hasOfflineRegistration = (): boolean => {
-    const hasSkipped = localStorage.getItem('hasSkippedOfflineRegistration') === 'true';
-    if (hasSkipped) return true;
-    const sender = localStorage.getItem('offlineSenderPhone');
-    const receiver = localStorage.getItem('offlineReceiverPhone');
-    return !!sender && !!receiver && sender.length === 9 && receiver.length >= 7;
-  };
-
   // Handle already initialized case - immediate navigation
   useEffect(() => {
     if (hasInitialized.current) return;
@@ -45,12 +36,7 @@ const Index = () => {
       const verifiedPhone = localStorage.getItem('verifiedPhone');
       
       if (isValidSomaliPhone(verifiedPhone)) {
-        // Check if offline registration is complete
-        if (hasOfflineRegistration()) {
-          navigate('/providers', { replace: true });
-        } else {
-          navigate('/offline-mode', { replace: true });
-        }
+        navigate('/providers', { replace: true });
       }
       return;
     }
@@ -126,12 +112,7 @@ const Index = () => {
       
       if (isValidSomaliPhone(verifiedPhone)) {
         sessionStorage.setItem('appInitialized', 'true');
-        // Check if offline registration is complete
-        if (hasOfflineRegistration()) {
-          navigate('/providers', { replace: true });
-        } else {
-          navigate('/offline-mode', { replace: true });
-        }
+        navigate('/providers', { replace: true });
       } else {
         if (verifiedPhone) localStorage.removeItem('verifiedPhone');
         sessionStorage.setItem('appInitialized', 'true');
@@ -149,12 +130,7 @@ const Index = () => {
       
       if (isValidSomaliPhone(verifiedPhone)) {
         sessionStorage.setItem('appInitialized', 'true');
-        // Check if offline registration is complete
-        if (hasOfflineRegistration()) {
-          navigate('/providers', { replace: true });
-        } else {
-          navigate('/offline-mode', { replace: true });
-        }
+        navigate('/providers', { replace: true });
       } else {
         if (verifiedPhone) localStorage.removeItem('verifiedPhone');
         sessionStorage.setItem('appInitialized', 'true');
@@ -203,3 +179,4 @@ const Index = () => {
 };
 
 export default Index;
+
