@@ -92,6 +92,6 @@ Connect this repository in Cloudflare **Workers & Pages â†’ Create application â
 
 `main` remains the Lovable/development branch. Once the repository is connected, changes to `main` create previews. Publish tested changes by merging `main` into `cloudflare-production`; pushes to that branch update the live Worker.
 
-The initial configuration and production branch are prepared in GitHub. The site becomes live only after Cloudflare imports the repository and its first production build succeeds.
+The production custom domain is `awdheegledata.com`, configured in `wrangler.jsonc`. The domain must be an active zone in the same Cloudflare account as this Worker. `wrangler deploy` creates the custom-domain mapping, DNS record, and certificate. The site is ready after a successful production build and domain activation. The `workers.dev` URL remains enabled.
 
 References: [Workers Builds configuration](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/) and [SPA routing](https://developers.cloudflare.com/workers/static-assets/routing/single-page-application/).
