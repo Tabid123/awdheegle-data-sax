@@ -143,7 +143,7 @@ export const ProvidersCustomView = ({ isSo }: { isSo: boolean }) => {
 
 // ========== PACKAGES ==========
 const EMPTY_PKG = {
-  package_name: '', data_amount: '', selling_price: '', cost_price: '', secret_price: '',
+  package_name: '', data_amount: '', selling_price: '', cost_price: '', secret_price: '', allowed_phone_lengths: '9',
   validity_days: '30', provider_id: '', category_id: '', ussd_code: '', connection_type_label: 'Data',
   menu1: '', menu2: '', menu3: '', sim_password: '', is_ussd_only: false, is_discovery_root: false,
 };
@@ -232,6 +232,16 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
 
   const savePackage = async () => {
     if (!newPkg.package_name || !newPkg.selling_price || !newPkg.provider_id) { toast.error(isSo ? 'Buuxi meelaha lagama maarmaanka ah' : 'Fill required fields'); return; }
+    const allowedPhoneLengths = [...new Set(
+      String(newPkg.allowed_phone_lengths || '')
+        .split(',')
+        .map(value => Number(value.trim()))
+        .filter(value => Number.isInteger(value) && value >= 2 && value <= 15)
+    )];
+    if (allowedPhoneLengths.length === 0) {
+      toast.error(isSo ? 'Geli dherer lambar sax ah, tusaale 9 ama 7.' : 'Enter a valid phone length, such as 9 or 7.');
+      return;
+    }
     const sellingPriceNum = Number(newPkg.selling_price);
     const secretArr = String(newPkg.secret_price || '')
       .split(/[,\s]+/).map(s => s.trim()).filter(Boolean)
@@ -252,6 +262,7 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
       is_ussd_only: !!newPkg.is_ussd_only,
       is_discovery_root: !!newPkg.is_discovery_root,
       connection_type_label: newPkg.connection_type_label,
+      allowed_phone_lengths: allowedPhoneLengths,
     };
     if (editingId) {
       const { error } = await supabase.from('data_packages_config').update(payload).eq('id', editingId);
@@ -275,6 +286,7 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
       package_name: item.package_name || '', data_amount: item.data_amount || '', selling_price: String(item.selling_price || ''),
       cost_price: String(item.cost_price || ''),
       secret_price: Array.isArray(item.secret_price) ? item.secret_price.join(', ') : (item.secret_price ?? ''),
+      allowed_phone_lengths: Array.isArray(item.allowed_phone_lengths) && item.allowed_phone_lengths.length ? item.allowed_phone_lengths.join(', ') : '9',
       validity_days: item.validity_days || '30', provider_id: item.provider_id || '',
       category_id: item.category_id || '', ussd_code: parts.dial, connection_type_label: item.connection_type_label || 'Data',
       menu1: parts.menu1, menu2: parts.menu2, menu3: parts.menu3,
@@ -414,6 +426,21 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
           <div className="grid grid-cols-2 gap-2">
             <input value={newPkg.selling_price} onChange={e => setNewPkg(p => ({...p, selling_price: e.target.value}))} placeholder="Sell Price *" type="number" className="px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none" />
             <input value={newPkg.cost_price} onChange={e => setNewPkg(p => ({...p, cost_price: e.target.value}))} placeholder="Cost Price" type="number" className="px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-[11px] font-bold text-gray-600 dark:text-gray-300">
+              {isSo ? 'Tirada lambarada la oggol yahay' : 'Allowed phone number length(s)'}
+            </label>
+            <input
+              value={newPkg.allowed_phone_lengths}
+              onChange={e => setNewPkg(p => ({...p, allowed_phone_lengths: e.target.value.replace(/[^0-9,]/g, '')}))}
+              placeholder="9 ama 7, 9"
+              inputMode="numeric"
+              className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none"
+            />
+            <p className="text-[10px] text-gray-500 dark:text-gray-400">
+              {isSo ? 'Geli 9 ama 7; haddii ay badan yihiin comma ku kala saar, tusaale 7, 9.' : 'Enter digit counts separated by commas, e.g. 7, 9.'}
+            </p>
           </div>
           {/* ---- USSD flow builder ---- */}
           <div className="rounded-lg border border-indigo-200 dark:border-indigo-800 bg-indigo-50/60 dark:bg-indigo-900/20 p-2 space-y-2">
