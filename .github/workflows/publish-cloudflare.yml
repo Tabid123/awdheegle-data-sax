@@ -1,0 +1,65 @@
+name: Publish to Cloudflare
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloudflare-production-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: write
+      checks: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_PROMPT_DISABLED: "1"
+    steps:
+      - name: Promote main to production
+        id: promote
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')"
+          gh api --method POST "repos/$GITHUB_REPOSITORY/merges" \
+            -f base=cloudflare-production \
+            -f head="$source_sha" \
+            -f commit_message="Publish main to Cloudflare ($source_sha)"
+          production_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/cloudflare-production" --jq '.object.sha')"
+          printf 'production_sha=%s\n' "$production_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for Cloudflare production deployment
+        shell: bash
+        env:
+          PRODUCTION_SHA: ${{ steps.promote.outputs.production_sha }}
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 120); do
+            check="$(gh api "repos/$GITHUB_REPOSITORY/commits/$PRODUCTION_SHA/check-runs" \
+              --jq '[.check_runs[] | select(.name == "Workers Builds: awdheegle-data-sax")] | sort_by(.id) | last // {}')"
+            status="$(jq -r '.status // "pending"' <<< "$check")"
+            conclusion="$(jq -r '.conclusion // ""' <<< "$check")"
+            if [ "$status" = "completed" ]; then
+              if [ "$conclusion" = "success" ]; then
+                {
+                  printf '### Published to Cloudflare\n\n'
+                  printf 'Website: https://awdheegledata.com\n\n'
+                  printf 'Production commit: `%s`\n' "$PRODUCTION_SHA"
+                } >> "$GITHUB_STEP_SUMMARY"
+                exit 0
+              fi
+              details="$(jq -r '.details_url // ""' <<< "$check")"
+              printf '::error::Cloudflare deployment ended with %s. Build logs: %s\n' "$conclusion" "$details"
+              exit 1
+            fi
+            sleep 10
+          done
+          printf '::error::Timed out waiting for Cloudflare. Check Workers & Pages > awdheegle-data-sax > Builds.\n'
+          exit 1

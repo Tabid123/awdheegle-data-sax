@@ -95,3 +95,11 @@ Connect this repository in Cloudflare **Workers & Pages → Create application �
 The production custom domain is `awdheegledata.com`, configured in `wrangler.jsonc`. The domain must be an active zone in the same Cloudflare account as this Worker. `wrangler deploy` creates the custom-domain mapping, DNS record, and certificate. The site is ready after a successful production build and domain activation. The `workers.dev` URL remains enabled.
 
 References: [Workers Builds configuration](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/) and [SPA routing](https://developers.cloudflare.com/workers/static-assets/routing/single-page-application/).
+
+### Publish from GitHub
+
+Open **Actions → Publish to Cloudflare → Run workflow**, select `main`, then click **Run workflow**.
+The workflow merges the latest `main` into `cloudflare-production`; Cloudflare Workers Builds deploys that branch to `https://awdheegledata.com`.
+The workflow waits for Cloudflare's production check and reports success only when deployment succeeds. A failed build keeps the workflow red and links to its logs.
+
+This button runs in GitHub. Publishing inside Lovable uses Lovable's hosting; it does not run this GitHub workflow.
