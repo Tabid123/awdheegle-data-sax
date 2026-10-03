@@ -807,11 +807,17 @@ const PaymentProviders = () => {
     if (paymentNumber.length !== 9) { setPaymentNumberError('Fadlan gali lambarka oo dhan (9 digits)'); return; }
     const p = digits9(receiverNumber);
     if (p.length !== 9) { setReceiverNumberError('Fadlan gali lambarka oo dhan (9 digits)'); return; }
+    if (packagePrefixes.length && !packagePrefixes.some(prefix => p.startsWith(prefix))) {
+      setReceiverNumberError(`Package-kan wuxuu aqbalayaa lambar ka bilaabma ${packagePrefixes.join(' ama ')}.`);
+      return;
+    }
     if (!discoveryRoot?.id) return;
     navigate(`/discover/${provider}`, {
       state: {
         rootId: discoveryRoot.id,
         rootName: discoveryRoot.name,
+        allowed_phone_prefixes: packagePrefixes,
+        allowed_phone_lengths: allowedPhoneLengths,
         providerName,
         phone: p,
         paymentNumber,

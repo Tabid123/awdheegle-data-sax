@@ -134,6 +134,11 @@ const DiscoverPackagesInner: React.FC = () => {
   const startDiscovery = useCallback(async (raw?: string) => {
     const p = digits9(raw ?? phone);
     if (p.length !== 9) { setPhoneError('Fadlan gali lambarka oo dhan'); return; }
+    const prefixes = state?.allowed_phone_prefixes;
+    if (Array.isArray(prefixes) && prefixes.length && !prefixes.some((prefix: string) => p.startsWith(prefix))) {
+      setPhoneError(`Package-kan wuxuu aqbalayaa lambar ka bilaabma ${prefixes.join(' ama ')}.`);
+      return;
+    }
     if (!rootId) { toast.error('Nooca xirmada lama helin'); return; }
     setPhoneError('');
     setBusy(true);
@@ -156,7 +161,7 @@ const DiscoverPackagesInner: React.FC = () => {
     await poll(p, newSessionId);
     stopPolling();
     pollRef.current = setInterval(() => poll(p, newSessionId), 2500);
-  }, [phone, rootId, poll]);
+  }, [phone, rootId, poll, state?.allowed_phone_prefixes]);
 
   // auto-start when the number came from the payment page
   useEffect(() => {
@@ -224,6 +229,8 @@ const DiscoverPackagesInner: React.FC = () => {
         preselectedPaymentProviderId: paymentProviderId,
         package: {
           id: rootId,
+          allowed_phone_prefixes: state?.allowed_phone_prefixes,
+          allowed_phone_lengths: state?.allowed_phone_lengths,
           providerId: provider,
            name: stripProviderPrice(item.raw_label),
           price: `$${Number(item.price).toFixed(2)}`,
@@ -373,3 +380,4 @@ const DiscoverPackages: React.FC = () => (
 );
 
 export default DiscoverPackages;
+
