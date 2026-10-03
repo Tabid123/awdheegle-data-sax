@@ -66,11 +66,14 @@ const PaymentProviders = () => {
   };
   
   const isADSL = isADSLPackage(categoryName);
-  const configuredPhoneLengths = packageData?.allowed_phone_lengths ?? packageData?.allowedPhoneLengths;
+  const configuredPhoneLengths = packageData?.allowed_phone_lengths ?? packageData?.allowedPhoneLengths ?? location.state?.package?.allowed_phone_lengths;
   const parsedPhoneLengths = Array.isArray(configuredPhoneLengths)
     ? configuredPhoneLengths.map((length: unknown) => Number(length)).filter((length: number) => Number.isInteger(length) && length > 0 && length <= 15)
     : [];
   const allowedPhoneLengths = parsedPhoneLengths.length ? [...new Set(parsedPhoneLengths)] : isADSL ? [7] : [9];
+  const configuredPrefixes = packageData?.allowed_phone_prefixes ?? location.state?.package?.allowed_phone_prefixes;
+  const packagePrefixes: string[] = React.useMemo(() => Array.isArray(configuredPrefixes)
+    ? configuredPrefixes.map(String).filter(prefix => /^\d{1,15}$/.test(prefix)) : [], [configuredPrefixes]);
   const maxReceiverLength = Math.max(...allowedPhoneLengths);
   const allowedPhoneLengthLabel = allowedPhoneLengths.join(' ama ');
   const {
@@ -335,7 +338,10 @@ const PaymentProviders = () => {
   // User must enter sender/receiver numbers manually each time.
   React.useEffect(() => {
     if (providerName) {
-      if (isADSL) {
+      if (packagePrefixes.length) {
+        setReceiverProviderPrefix(packagePrefixes[0]);
+        setReceiverNumber(packagePrefixes[0]);
+      } else if (isADSL) {
         setReceiverProviderPrefix('1');
         setReceiverNumber('1');
       } else {
@@ -344,7 +350,7 @@ const PaymentProviders = () => {
         setReceiverNumber(prefix);
       }
     }
-  }, [providerName, isADSL, getProviderPrefix]);
+  }, [providerName, isADSL, getProviderPrefix, packagePrefixes]);
 
   const offlineSenderRef = React.useRef(false);
 
@@ -430,6 +436,14 @@ const PaymentProviders = () => {
   const handleReceiverNumberChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value.replace(/\D/g, '');
     
+    if (packagePrefixes.length) {
+      if (value.length <= maxReceiverLength) {
+        setReceiverNumber(value);
+        setReceiverNumberError(!value || packagePrefixes.some(prefix => value.startsWith(prefix) || prefix.startsWith(value))
+          ? '' : `Package-kan wuxuu aqbalayaa lambar ka bilaabma ${packagePrefixes.join(' ama ')}.`);
+      }
+      return;
+    }
     // ADSL validation: 7 digits, starts with 1-9
     if (isADSL) {
       if (value.length <= maxReceiverLength) {
@@ -465,7 +479,7 @@ const PaymentProviders = () => {
         }
       }
     }
-  }, [receiverProviderPrefix, providerName, isADSL, maxReceiverLength]);
+  }, [receiverProviderPrefix, providerName, isADSL, maxReceiverLength, packagePrefixes]);
   const handleProceedToPayment = useCallback(() => {
     if (!selectedProvider) {
       return;
@@ -489,8 +503,13 @@ const PaymentProviders = () => {
       return;
     }
 
-    // ADSL receiver numbers must start with 1-9.
-    if (isADSL) {
+    // Explicit package prefixes override the default provider/ADSL rule.
+    if (packagePrefixes.length) {
+      if (!packagePrefixes.some(prefix => receiverNumber.startsWith(prefix))) {
+        setReceiverNumberError(`Package-kan wuxuu aqbalayaa lambar ka bilaabma ${packagePrefixes.join(' ama ')}.`);
+        return;
+      }
+    } else if (isADSL) {
       if (!/^[1-9]/.test(receiverNumber)) {
         setReceiverNumberError('ADSL-ka wuxuu u baahan yahay lambar bilaabanaya 1-9');
         return;
