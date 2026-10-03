@@ -143,7 +143,7 @@ export const ProvidersCustomView = ({ isSo }: { isSo: boolean }) => {
 
 // ========== PACKAGES ==========
 const EMPTY_PKG = {
-  package_name: '', data_amount: '', selling_price: '', cost_price: '', secret_price: '', allowed_phone_lengths: '9',
+  package_name: '', data_amount: '', selling_price: '', cost_price: '', secret_price: '', allowed_phone_lengths: '9', allowed_phone_prefixes: '',
   validity_days: '30', provider_id: '', category_id: '', ussd_code: '', connection_type_label: 'Data',
   menu1: '', menu2: '', menu3: '', sim_password: '', is_ussd_only: false, is_discovery_root: false,
 };
@@ -242,6 +242,11 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
       toast.error(isSo ? 'Geli dherer lambar sax ah, tusaale 9 ama 7.' : 'Enter a valid phone length, such as 9 or 7.');
       return;
     }
+    const allowedPhonePrefixes = [...new Set(String(newPkg.allowed_phone_prefixes || '').split(',').map(value => value.trim()).filter(Boolean))];
+    if (allowedPhonePrefixes.some(prefix => !/^\d{1,15}$/.test(prefix) || !allowedPhoneLengths.some(length => prefix.length <= length))) {
+      toast.error(isSo ? 'Geli prefix sax ah, tusaale 61,77 ama 1.' : 'Enter valid prefixes, such as 61,77 or 1.');
+      return;
+    }
     const sellingPriceNum = Number(newPkg.selling_price);
     const secretArr = String(newPkg.secret_price || '')
       .split(/[,\s]+/).map(s => s.trim()).filter(Boolean)
@@ -263,6 +268,7 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
       is_discovery_root: !!newPkg.is_discovery_root,
       connection_type_label: newPkg.connection_type_label,
       allowed_phone_lengths: allowedPhoneLengths,
+      allowed_phone_prefixes: allowedPhonePrefixes.length ? allowedPhonePrefixes : null,
     };
     if (editingId) {
       const { error } = await supabase.from('data_packages_config').update(payload).eq('id', editingId);
@@ -287,6 +293,7 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
       cost_price: String(item.cost_price || ''),
       secret_price: Array.isArray(item.secret_price) ? item.secret_price.join(', ') : (item.secret_price ?? ''),
       allowed_phone_lengths: Array.isArray(item.allowed_phone_lengths) && item.allowed_phone_lengths.length ? item.allowed_phone_lengths.join(', ') : '9',
+      allowed_phone_prefixes: Array.isArray(item.allowed_phone_prefixes) ? item.allowed_phone_prefixes.join(', ') : '',
       validity_days: item.validity_days || '30', provider_id: item.provider_id || '',
       category_id: item.category_id || '', ussd_code: parts.dial, connection_type_label: item.connection_type_label || 'Data',
       menu1: parts.menu1, menu2: parts.menu2, menu3: parts.menu3,
@@ -441,6 +448,11 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
             <p className="text-[10px] text-gray-500 dark:text-gray-400">
               {isSo ? 'Geli 9 ama 7; haddii ay badan yihiin comma ku kala saar, tusaale 7, 9.' : 'Enter digit counts separated by commas, e.g. 7, 9.'}
             </p>
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium">{isSo ? 'Prefix-ka lambarka qaataha' : 'Receiver phone prefixes'}</label>
+            <input type="text" value={newPkg.allowed_phone_prefixes} onChange={e => setNewPkg({ ...newPkg, allowed_phone_prefixes: e.target.value })} placeholder="61,77 ama 1" className="w-full px-3 py-2 rounded-lg border bg-background text-sm" />
+            <p className="text-[10px] text-muted-foreground">{isSo ? 'Kala saar comma: 61,77. Haddii aad bannayso, xeerka shirkadda ayaa shaqaynaya.' : 'Separate with commas: 61,77. Leave blank to use the provider rule.'}</p>
           </div>
           {/* ---- USSD flow builder ---- */}
           <div className="rounded-lg border border-indigo-200 dark:border-indigo-800 bg-indigo-50/60 dark:bg-indigo-900/20 p-2 space-y-2">
