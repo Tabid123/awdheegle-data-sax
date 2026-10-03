@@ -34,6 +34,7 @@ interface DataPackage {
   provider_id: string;
   ussd_code: string | null;
   allowed_phone_lengths?: number[] | null;
+  allowed_phone_prefixes?: string[] | null;
 }
 
 const DataPackages = () => {
@@ -314,6 +315,7 @@ const DataPackages = () => {
           providerName,
           categoryName: packageData.name,
           discoveryRoot: { id: packageData.id, name: packageData.name },
+          package: packageData,
         },
       });
       return;
@@ -348,6 +350,11 @@ const DataPackages = () => {
     const cleanReceiverNumber = offlineReceiverNumber.replace(/\D/g, '');
     if (!allowedLengths.includes(cleanReceiverNumber.length)) {
       toast({ title: 'Lambarka khaldan', description: `Package-kan wuxuu aqbalayaa ${allowedLengths.join(' ama ')} tiro.`, variant: 'destructive' });
+      return;
+    }
+    const prefixes = selectedPackageData.allowed_phone_prefixes;
+    if (Array.isArray(prefixes) && prefixes.length && !prefixes.some((prefix: string) => cleanReceiverNumber.startsWith(prefix))) {
+      toast({ title: 'Lambarka khaldan', description: `Package-kan wuxuu aqbalayaa lambar ka bilaabma ${prefixes.join(' ama ')}.`, variant: 'destructive' });
       return;
     }
     localStorage.setItem('offlineReceiverPhone', cleanReceiverNumber);
@@ -528,6 +535,7 @@ const DataPackages = () => {
                 data: pkg.data_amount,
                 validity: pkg.validity_days,
                 allowed_phone_lengths: pkg.allowed_phone_lengths,
+                allowed_phone_prefixes: pkg.allowed_phone_prefixes,
                 ussdCode: pkg.ussd_code,
               })}
               className="w-full bg-card rounded-2xl border border-border shadow-sm hover:shadow-md active:scale-[0.99] transition-all px-4 py-4 flex items-center justify-between gap-3"
@@ -572,6 +580,7 @@ const DataPackages = () => {
                 data: pkg.data_amount,
                 validity: pkg.validity_days,
                 allowed_phone_lengths: pkg.allowed_phone_lengths,
+                allowed_phone_prefixes: pkg.allowed_phone_prefixes,
                 ussdCode: pkg.ussd_code,
               })}
               className={`group text-left bg-card rounded-2xl border border-border shadow-sm hover:shadow-md active:scale-[0.98] transition-all overflow-hidden flex flex-col ${

@@ -9,6 +9,7 @@ import { formatPrice } from '@/lib/utils';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { toast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
+import { SimDeliveryToggle } from './SimDeliveryToggle';
 import { EditSimDialog } from './EditSimDialog';
 import { EditSim2Dialog } from './EditSim2Dialog';
 import { DeleteSimDialog } from './DeleteSimDialog';
@@ -67,6 +68,8 @@ interface SimDevice {
   device_name: string;
   sim_number: string;
   sim2_number: string | null;
+  sim1_delivery_enabled?: boolean;
+  sim2_delivery_enabled?: boolean;
   provider_name: string;
   sim1_provider: string | null;
   sim2_provider: string | null;
@@ -640,6 +643,7 @@ export const DeviceCard = ({ device, onUpdate }: DeviceCardProps) => {
                         )}
                       </div>
                       <div className="text-sm text-muted-foreground">{sim.sim_number}</div>
+                      <SimDeliveryToggle deviceId={sim.id} slot={1} enabled={sim.sim1_delivery_enabled !== false} isSo={language === 'so'} onUpdate={onUpdate} />
                     </div>
                     <div className="flex gap-1">
                       <Button 
@@ -743,6 +747,7 @@ export const DeviceCard = ({ device, onUpdate }: DeviceCardProps) => {
                             <div className="text-sm text-muted-foreground">
                               {sim.sim2_number || (language === 'so' ? 'Lambar la\'aan' : 'No number')}
                             </div>
+                            <SimDeliveryToggle deviceId={sim.id} slot={2} enabled={sim.sim2_delivery_enabled !== false} isSo={language === 'so'} onUpdate={onUpdate} />
                           </div>
                           <div className="flex gap-1">
                             <Button 

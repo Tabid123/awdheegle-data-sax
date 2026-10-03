@@ -160,11 +160,11 @@ const PhoneVerification = ({ isOpen, onClose, onSuccess, paymentProvider, packag
       localStorage.setItem('userPhoneNumber', phoneNumber);
       setUserPhone(phoneNumber);
 
-      toast({ title: "✅ Xaqiijin guul!", description: "Fadlan diiwaangeli lambaradaada." });
+      toast({ title: "✅ Xaqiijin guul!", description: "Dooro shirkadda internet-ka." });
       localStorage.removeItem('verificationCode');
       setIsVerifying(false);
       onClose();
-      navigate('/offline-mode');
+      navigate('/providers', { replace: true });
     } else {
       toast({ title: "Khalad", description: "Koodka aad gelisay waa mid khaldan.", variant: "destructive" });
       setIsVerifying(false);
@@ -324,3 +324,4 @@ const PhoneVerification = ({ isOpen, onClose, onSuccess, paymentProvider, packag
 };
 
 export default PhoneVerification;
+
