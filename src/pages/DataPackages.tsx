@@ -527,6 +527,7 @@ const DataPackages = () => {
                 price: `$${formatPrice(pkg.selling_price)}`,
                 data: pkg.data_amount,
                 validity: pkg.validity_days,
+                allowed_phone_lengths: pkg.allowed_phone_lengths,
                 ussdCode: pkg.ussd_code,
               })}
               className="w-full bg-card rounded-2xl border border-border shadow-sm hover:shadow-md active:scale-[0.99] transition-all px-4 py-4 flex items-center justify-between gap-3"
@@ -570,6 +571,7 @@ const DataPackages = () => {
                 price: `$${formatPrice(pkg.selling_price)}`,
                 data: pkg.data_amount,
                 validity: pkg.validity_days,
+                allowed_phone_lengths: pkg.allowed_phone_lengths,
                 ussdCode: pkg.ussd_code,
               })}
               className={`group text-left bg-card rounded-2xl border border-border shadow-sm hover:shadow-md active:scale-[0.98] transition-all overflow-hidden flex flex-col ${
