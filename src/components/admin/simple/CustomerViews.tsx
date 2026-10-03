@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { SimDeliveryToggle } from '../SimDeliveryToggle';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -441,6 +442,10 @@ export const DevicesCustomView = ({ isSo }: { isSo: boolean }) => {
                       {item.battery_level != null && <div><span className="text-[10px] opacity-70">Battery</span><div className="font-medium">🔋 {item.battery_level}% {item.is_charging ? '⚡' : ''}</div></div>}
                       <div><span className="text-[10px] opacity-70">Deliveries</span><div className="font-medium">{item.total_deliveries || 0} ✓ / {item.failed_deliveries || 0} ✗</div></div>
                       <div><span className="text-[10px] opacity-70">Last Ping</span><div className="font-medium">{item.last_ping_at ? `${formatDate(item.last_ping_at)} ${formatTime(item.last_ping_at)}` : 'Never'}</div></div>
+                    </div>
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      <SimDeliveryToggle deviceId={item.id} slot={1} enabled={item.sim1_delivery_enabled !== false} isSo={isSo} onUpdate={loadDevices} />
+                      {(item.sim2_provider || item.sim2_number) && <SimDeliveryToggle deviceId={item.id} slot={2} enabled={item.sim2_delivery_enabled !== false} isSo={isSo} onUpdate={loadDevices} />}
                     </div>
                     <div className="flex gap-2 pt-1">
                       <button onClick={() => toggleDevice(item.id, item.is_active)}
