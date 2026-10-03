@@ -71,3 +71,27 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+
+## Cloudflare Workers deployment
+
+This Vite/React app is deployed as static assets using `wrangler.jsonc`.
+Cloudflare serves `dist` and routes navigation requests back to `index.html`, including direct links to the admin and other app pages.
+
+Connect this repository in Cloudflare **Workers & Pages → Create application → Import a repository**, using the same account as Al-Islaam.
+
+| Setting | Value |
+| --- | --- |
+| Repository | `Tabid123/awdheegle-data-sax` |
+| Worker name | `awdheegle-data-sax` |
+| Production branch | `cloudflare-production` |
+| Root directory | Repository root |
+| Build command | `bun run build` |
+| Deploy command | `npx wrangler deploy` |
+| Preview command | `npx wrangler preview` |
+| Preview builds | Enabled |
+
+`main` remains the Lovable/development branch. Once the repository is connected, changes to `main` create previews. Publish tested changes by merging `main` into `cloudflare-production`; pushes to that branch update the live Worker.
+
+The initial configuration and production branch are prepared in GitHub. The site becomes live only after Cloudflare imports the repository and its first production build succeeds.
+
+References: [Workers Builds configuration](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/) and [SPA routing](https://developers.cloudflare.com/workers/static-assets/routing/single-page-application/).
