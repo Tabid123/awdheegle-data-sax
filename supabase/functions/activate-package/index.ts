@@ -104,7 +104,7 @@ serve(async (req) => {
       // 2. Get package selling_price (qiimaha iibka oo macmiilka la siiyo) & category_id
       const { data: pkg, error: pkgErr } = await supabase
         .from('data_packages_config')
-        .select('cost_price, selling_price, price, category_id')
+        .select('cost_price, selling_price, price, category_id, somlink_bundle_id')
         .eq('id', order.package_id)
         .single();
 
@@ -125,6 +125,45 @@ serve(async (req) => {
         ussdAmount,
         categoryId: pkg.category_id 
       });
+
+      // Somlink API delivery bypasses Android/USSD completely.
+      const { data: providerRow } = await supabase
+        .from('providers_config')
+        .select('provider_name')
+        .eq('id', order.provider_id)
+        .maybeSingle();
+      const providerSlugFromDb = (providerRow?.provider_name || providerName || '').toLowerCase().trim();
+      if (providerSlugFromDb.includes('somlink')) {
+        if (!Number.isInteger(Number(pkg.somlink_bundle_id)) || Number(pkg.somlink_bundle_id) <= 0 || Number(pkg.cost_price) <= 0) {
+          throw new Error('Somlink package is missing bundle id or cost price');
+        }
+
+        const { data: queueId, error: enqueueErr } = await supabase.rpc('enqueue_somlink_delivery', {
+          p_order_id: orderId,
+        });
+        if (enqueueErr) throw enqueueErr;
+
+        // Fire-and-forget dispatcher. The queue row is already durable and idempotent.
+        fetch(supabaseUrl + '/functions/v1/somlink-dispatch', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + supabaseServiceKey,
+            'apikey': supabaseServiceKey,
+          },
+          body: JSON.stringify({ queue_id: queueId }),
+        }).catch((e) => console.error('Somlink dispatch invoke failed', e));
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            queueId,
+            route: 'somlink_api',
+            estimatedTime: '5-20 seconds',
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
 
       // 3. Get delivery instruction template with priority: Package > Category > Provider default
       let instruction: { code_template: string | null; sim_password: string | null } | null = null;
