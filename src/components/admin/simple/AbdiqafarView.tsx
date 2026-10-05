@@ -11,6 +11,10 @@ interface DeliveryQueueItem {
   order_id: string;
   ussd_code: string;
   provider_response: string | null;
+  error_message?: string | null;
+  somlink_response?: any;
+  provider_name?: string | null;
+  package_code?: string | null;
   sim_slot: number | null;
   android_device_id: string | null;
   status: string;
@@ -90,10 +94,10 @@ export const AbdiqafarView = ({ isSo }: { isSo: boolean }) => {
 
       const [ordersRes, deliveryRes, providersRes, devicesRes] = await Promise.all([
         supabase.from('orders')
-          .select('id, order_number, status, delivery_status, sender_phone, receiver_phone, customer_phone, package_name, data_amount, selling_price, cost_price, provider_id, created_at, delivered_at')
+          .select('id, order_number, status, delivery_status, sender_phone, receiver_phone, customer_phone, package_name, data_amount, selling_price, cost_price, provider_id, created_at, delivered_at, data_packages_config(cost_price)')
           .gte('created_at', start.toISOString()).lte('created_at', end.toISOString())
           .order('created_at', { ascending: false }).limit(200),
-        supabase.from('delivery_queue').select('id, order_id, ussd_code, provider_response, sim_slot, android_device_id, status, created_at, dispatched_at').gte('created_at', start.toISOString()).lte('created_at', end.toISOString()),
+        supabase.from('delivery_queue').select('id, order_id, ussd_code, provider_response, error_message, somlink_response, provider_name, package_code, sim_slot, android_device_id, status, created_at, dispatched_at').gte('created_at', start.toISOString()).lte('created_at', end.toISOString()),
         supabase.from('providers_config').select('id, provider_name, evoucher_rate'),
         supabase.from('android_devices').select('id, device_id, device_name, sim_number, sim2_number'),
       ]);
@@ -174,6 +178,7 @@ export const AbdiqafarView = ({ isSo }: { isSo: boolean }) => {
         const dev = firstDq ? devices.find(d => d.device_id === firstDq.android_device_id) : null;
         return {
           ...o,
+          cost_price: o.cost_price ?? o.data_packages_config?.cost_price ?? 0,
           provider_name: prov?.provider_name || 'Unknown',
           evoucher_rate: prov?.evoucher_rate || 0,
           deliveries: orderDeliveries,
@@ -383,7 +388,11 @@ export const AbdiqafarView = ({ isSo }: { isSo: boolean }) => {
                                 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 text-gray-700 dark:text-gray-300'
                               }`}>
                                 <div className="flex justify-between items-center mb-1">
-                                  <span className="font-bold text-gray-500">USSD: {dq.ussd_code}</span>
+                                  <span className="font-bold text-gray-500">
+                                    {String(dq.provider_name || '').toLowerCase().includes('somlink')
+                                      ? `Somlink API${dq.package_code ? ` · Bundle ${dq.package_code}` : ''}`
+                                      : `USSD: ${dq.ussd_code || ''}`}
+                                  </span>
                                   <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold ${
                                     dq.status === 'completed' ? 'bg-green-500 text-white' :
                                     dq.status === 'failed' || dq.status === 'timeout' ? 'bg-red-500 text-white' :
@@ -392,6 +401,10 @@ export const AbdiqafarView = ({ isSo }: { isSo: boolean }) => {
                                 </div>
                                 {dq.provider_response ? (
                                   <span>"{dq.provider_response}"</span>
+                                ) : dq.error_message ? (
+                                  <span>"{dq.error_message}"</span>
+                                ) : dq.somlink_response?.message ? (
+                                  <span>"Somlink: {dq.somlink_response.message}"</span>
                                 ) : dq.matchedSms ? (
                                   <div className="space-y-1">
                                     <div className="flex items-center gap-1">
@@ -401,7 +414,11 @@ export const AbdiqafarView = ({ isSo }: { isSo: boolean }) => {
                                     <span>"{dq.matchedSms.message}"</span>
                                   </div>
                                 ) : (
-                                  <span className="italic text-gray-400">Jawaab lama helin</span>
+                                  <span className="italic text-gray-400">
+                                    {String(dq.provider_name || '').toLowerCase().includes('somlink')
+                                      ? 'Somlink API jawaab lama helin'
+                                      : 'Jawaab lama helin'}
+                                  </span>
                                 )}
                               </div>
                             ))}
