@@ -197,6 +197,43 @@ async function resolveProviderSlug(
   return normalizeProviderSlug(providerName);
 }
 
+async function routeSomlinkApiIfNeeded(
+  supabase: any,
+  orderId: string,
+  providerId: string | null | undefined,
+  providerName: string | null | undefined,
+): Promise<string | null> {
+  const providerSlug = await resolveProviderSlug(supabase, providerId, providerName);
+  if (providerSlug !== "somlink") return null;
+
+  const { data: queueId, error: enqueueError } = await supabase.rpc("enqueue_somlink_delivery", {
+    p_order_id: orderId,
+  });
+  if (enqueueError) throw enqueueError;
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+  try {
+    const dispatchResponse = await fetch(supabaseUrl + "/functions/v1/somlink-dispatch", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + serviceKey,
+        "apikey": serviceKey,
+      },
+      body: JSON.stringify({ queue_id: queueId }),
+      signal: AbortSignal.timeout(35000),
+    });
+    if (!dispatchResponse.ok) {
+      console.error("Somlink dispatcher returned HTTP", dispatchResponse.status);
+    }
+  } catch (error) {
+    console.error("Somlink dispatcher invoke failed; queue remains pending", error);
+  }
+
+  return String(queueId);
+}
+
 function formatAmountForUssd(amount: number): string {
   const numericAmount = Number(amount);
   if (!Number.isFinite(numericAmount)) return "0";
@@ -1102,8 +1139,23 @@ serve(async (req) => {
         })
         .eq("id", receipt.id);
 
-      // Queue delivery — check auto_topup_delivery_rules first
+      // Queue delivery — Somlink always uses API, never Android/USSD.
       const providerSlug = normalizeProviderSlug(detectedProvider.provider_name);
+      const autoSomlinkQueueId = await routeSomlinkApiIfNeeded(
+        supabase, autoOrder.id, detectedProvider.id, detectedProvider.provider_name,
+      );
+      if (autoSomlinkQueueId) {
+        return new Response(
+          JSON.stringify({
+            success: true,
+            message: "Auto top-up matched and routed through Somlink API",
+            order_id: autoOrder.id,
+            delivery_queue_id: autoSomlinkQueueId,
+            route: "auto_topup",
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
+        );
+      }
 
       const { data: chainingRules } = await supabase
         .from("auto_topup_delivery_rules")
@@ -1485,6 +1537,23 @@ serve(async (req) => {
         }
 
 
+        const onlineSomlinkQueueId = await routeSomlinkApiIfNeeded(
+          supabase, newOrder.id, pendingOnline.provider_id, providerData?.provider_name,
+        );
+        if (onlineSomlinkQueueId) {
+          return new Response(
+            JSON.stringify({
+              success: true,
+              message: "Pending online payment matched via Somlink API",
+              order_id: newOrder.id,
+              delivery_queue_id: onlineSomlinkQueueId,
+              matching_strategy: "pending_online_payment_somlink_api",
+              route,
+            }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
+          );
+        }
+
         const instruction = await getDeliveryInstruction(
           supabase,
           pendingOnline.provider_id,
@@ -1652,6 +1721,23 @@ serve(async (req) => {
                   })
                   .eq("id", receipt.id);
 
+                const secretSomlinkQueueId = await routeSomlinkApiIfNeeded(
+                  supabase, newOrder.id, pendingOnline.provider_id, providerData?.provider_name,
+                );
+                if (secretSomlinkQueueId) {
+                  return new Response(
+                    JSON.stringify({
+                      success: true,
+                      message: "Secret price matched via Somlink API",
+                      order_id: newOrder.id,
+                      delivery_queue_id: secretSomlinkQueueId,
+                      matching_strategy: "secret_price_online_somlink_api",
+                      route,
+                    }),
+                    { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
+                  );
+                }
+
                 const instruction = await getDeliveryInstruction(
                   supabase,
                   pendingOnline.provider_id,
@@ -1817,6 +1903,29 @@ serve(async (req) => {
           .select("*, category_id")
           .eq("id", pendingOrder.package_id)
           .single();
+        const { data: legacyProviderData } = await supabase
+          .from("providers_config")
+          .select("provider_name")
+          .eq("id", pendingOrder.provider_id)
+          .maybeSingle();
+
+        const legacySomlinkQueueId = await routeSomlinkApiIfNeeded(
+          supabase, pendingOrder.id, pendingOrder.provider_id, legacyProviderData?.provider_name,
+        );
+        if (legacySomlinkQueueId) {
+          return new Response(
+            JSON.stringify({
+              success: true,
+              message: "Online order matched via Somlink API",
+              order_id: pendingOrder.id,
+              delivery_queue_id: legacySomlinkQueueId,
+              matching_strategy: "online_order_somlink_api",
+              route,
+            }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
+          );
+        }
+
         const instruction = await getDeliveryInstruction(
           supabase,
           pendingOrder.provider_id,
@@ -2113,6 +2222,35 @@ serve(async (req) => {
     }
 
     console.log("📝 Order created:", order.id);
+
+    const offlineSomlinkQueueId = await routeSomlinkApiIfNeeded(
+      supabase, order.id, registration.provider_id, registration.provider_name,
+    );
+    if (offlineSomlinkQueueId) {
+      await supabase
+        .from("payment_receipts")
+        .update({
+          status: "matched",
+          matched_order_id: order.id,
+          matching_strategy: matchedViaSecretPrice ? "secret_price_offline_somlink_api" : "offline_somlink_api",
+          processed_at: new Date().toISOString(),
+          admin_notes: `Route: ${route} | Somlink API | ${selectedPackage.package_name} for ${registration.receiver_phone} | SIM: ${resolvedSimNumber}`,
+        })
+        .eq("id", receipt.id);
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: "Order created and routed through Somlink API",
+          order_id: order.id,
+          delivery_queue_id: offlineSomlinkQueueId,
+          package_name: selectedPackage.package_name,
+          receiver_phone: registration.receiver_phone,
+          route,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
+      );
+    }
 
     const instruction = await getDeliveryInstruction(
       supabase,
