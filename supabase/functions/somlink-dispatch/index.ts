@@ -42,7 +42,7 @@ async function somlinkLogin() {
 }
 
 async function sendSomlink(token: string, bundleId: number, receiver: string, amount: number) {
-  const walletPhone = cleanPhone(Deno.env.get('SOMLINK_WALLET_PHONE'));
+  const walletPhone = String(Deno.env.get('SOMLINK_WALLET_PHONE') || '').replace(/\D/g, '');
   const dataPhone = '252' + cleanPhone(receiver);
   const res = await fetch('https://api.data.somlink.net/data/send_data', {
     method: 'POST',
@@ -127,10 +127,10 @@ serve(async (req) => {
     try {
       const { data: order, error: orderError } = await admin
         .from('orders')
-        .select('id,package_id,receiver_phone,status')
+        .select('id,package_id,receiver_phone,status,payment_status')
         .eq('id', row.order_id)
         .single();
-      if (orderError || !order || !['paid','completed','payment_confirmed'].includes(String(order.status))) {
+      if (orderError || !order || !(['paid','completed','payment_confirmed'].includes(String(order.status)) || String(order.payment_status) === 'matched')) {
         throw new Error('paid_order_required');
       }
 
@@ -150,12 +150,18 @@ serve(async (req) => {
       const finished = new Date().toISOString();
 
       if (!sent.ok) {
+        const failureMessage = 'Somlink API: ' + sent.message;
         await admin.from('delivery_queue').update({
           status: 'failed',
           last_attempt_at: finished,
-          error_message: 'Somlink: ' + sent.message,
+          error_message: failureMessage,
           somlink_response: sent.payload,
         }).eq('id', row.id);
+        await admin.from('orders').update({
+          status: 'failed',
+          delivery_status: 'failed',
+          delivery_notes: failureMessage,
+        }).eq('id', row.order_id);
         results.push({ id: row.id, ok: false, message: sent.message });
         continue;
       }
