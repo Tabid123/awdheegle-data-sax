@@ -42,8 +42,15 @@ async function somlinkLogin() {
 }
 
 async function sendSomlink(token: string, bundleId: number, receiver: string, amount: number) {
-  const walletPhone = cleanPhone(Deno.env.get('SOMLINK_WALLET_PHONE'));
+  const walletPhone = String(Deno.env.get('SOMLINK_WALLET_PHONE') || '').replace(/\D/g, '');
   const dataPhone = '252' + cleanPhone(receiver);
+  console.log('Somlink send metadata', {
+    bundle_id: bundleId,
+    amount,
+    data_phone: dataPhone,
+    wallet_length: walletPhone.length,
+    wallet_tail4: walletPhone.slice(-4),
+  });
   const res = await fetch('https://api.data.somlink.net/data/send_data', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
