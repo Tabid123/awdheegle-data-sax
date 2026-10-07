@@ -54,8 +54,8 @@ class UssdDialerService : Service() {
         private const val SMS_DEFAULT_LOOKBACK_MS = 60000L // 1 minute for normal polling
         private const val SMS_COUNT_KEY = "last_sms_count" // Smart SMS polling
         private const val LAST_SMS_POLL_TIME_KEY = "last_sms_poll_time" // Track last successful poll
-        private const val DAYTIME_POLL_INTERVAL_MS = 12000L  // 05:01-23:59
-        private const val NIGHT_POLL_INTERVAL_MS = 20000L   // 00:00-05:00
+        private const val DAYTIME_POLL_INTERVAL_MS = 25000L  // Idle: reduce Edge Function quota usage; busy remains 3s
+        private const val NIGHT_POLL_INTERVAL_MS = 45000L   // Idle overnight; active jobs retain fast polling
         private const val BUSY_POLL_INTERVAL_MS = 3000L     // when orders found
         private const val JITTER_MAX_MS = 2000L             // 1-2s random jitter
         private const val API_URL = "https://xpqvfcmalgvrpoqwbqtv.supabase.co/functions/v1/process-payment-receipt"
@@ -398,7 +398,7 @@ class UssdDialerService : Service() {
 
         // *212 PACKAGE DISCOVERY - dial the menu on demand and report it back
         serviceScope.launch {
-            android.util.Log.d("UssdDialer", "🔍 Starting *212 discovery poller (4s)")
+            android.util.Log.d("UssdDialer", "🔍 Starting *212 discovery poller (10s idle; 1.5s busy)")
             var ticks = 0
             while (isRunning) {
                 try {
@@ -407,7 +407,7 @@ class UssdDialerService : Service() {
                     if (!handled && ticks % 15 == 0) {
                         android.util.Log.d("UssdDialer", "🔍 Discovery poller alive (no job) — tick $ticks")
                     }
-                    delay(if (handled) 1500L else 4000L)
+                    delay(if (handled) 1500L else 10000L)
                 } catch (e: Exception) {
                     android.util.Log.e("UssdDialer", "❌ Discovery poll error: ${e.message}")
                     delay(6000L)
