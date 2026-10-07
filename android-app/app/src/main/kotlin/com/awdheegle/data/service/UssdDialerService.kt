@@ -24,6 +24,7 @@ import com.awdheegle.data.R
 import com.awdheegle.data.receiver.HeartbeatAlarmReceiver
 import com.awdheegle.data.api.DeliveryApiClient
 import com.awdheegle.data.api.DeliveryApiClient.DeviceSimConfig
+import com.awdheegle.data.api.RealtimeWorkClient
 import com.awdheegle.data.data.DeliveryDatabase
 import com.awdheegle.data.data.DeliveryTask
 import com.awdheegle.data.util.PaymentReceiptDedup
@@ -71,6 +72,8 @@ class UssdDialerService : Service() {
     private lateinit var database: DeliveryDatabase
     private var isRunning = false
     private var lastWakeLockRenewal = 0L
+    private var realtimeWorkClient: RealtimeWorkClient? = null
+    private val discoverySelectionWake = kotlinx.coroutines.channels.Channel<Unit>(kotlinx.coroutines.channels.Channel.CONFLATED)
     
     // Device SIM configuration from server (dynamic per-device routing)
     @Volatile
@@ -300,122 +303,80 @@ class UssdDialerService : Service() {
         return interval + (Random().nextDouble() * JITTER_MAX_MS).toLong()
     }
 
+    /**
+     * Event-driven worker startup.
+     *
+     * No Supabase queue is polled on a timer. We do one catch-up at startup /
+     * Realtime reconnect, then only touch the server when device_work_signals
+     * reports actual work.
+     */
     private fun startPolling() {
-        // Main order polling loop with dynamic interval + jitter
-        serviceScope.launch {
-            while (isRunning) {
-                try {
-                    // Wake lock renewal: every 12 hours, release and re-acquire to prevent expiry
-                    if (System.currentTimeMillis() - lastWakeLockRenewal > 12 * 60 * 60 * 1000L) {
-                        try {
-                            if (wakeLock.isHeld) wakeLock.release()
-                            wakeLock.acquire(24 * 60 * 60 * 1000L)
-                            lastWakeLockRenewal = System.currentTimeMillis()
-                            android.util.Log.d("UssdDialer", "🔄 Wake lock renewed for another 24h")
-                        } catch (e: Exception) {
-                            android.util.Log.e("UssdDialer", "❌ Wake lock renewal failed: ${e.message}")
-                        }
-                    }
-                    
-                    // Sync any pending offline updates first
-                    syncOfflineQueue()
-                    
-                    // Poll for pending orders - battery info included in URL (replaces separate /ping)
-                    val battery = getBatteryLevel()
-                    val charging = isCharging()
-                    val foundOrders = pollPendingOrders(battery, charging)
-                    
-                    // Update notification with current stats when idle
-                    if (!foundOrders) {
-                        val statsPrefs = getSharedPreferences("najax_data", Context.MODE_PRIVATE)
-                        val s = statsPrefs.getInt("successful_deliveries", 0)
-                        val f = statsPrefs.getInt("failed_deliveries", 0)
-                        updateNotification("Active - $s successful, $f failed", s, f)
-                    }
-                    
-                    // Dynamic polling: 3s busy, daytime 12s, nighttime 20s + jitter
-                    val baseInterval = if (foundOrders) BUSY_POLL_INTERVAL_MS else getBaseInterval()
-                    delay(addJitter(baseInterval))
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                    delay(addJitter(getBaseInterval()))
-                }
+        realtimeWorkClient?.stop()
+        realtimeWorkClient = RealtimeWorkClient(
+            deviceId = deviceId,
+            anonKey = apiClient.getAnonKey(),
+            scope = serviceScope,
+            onConnected = {
+                catchUpRealtimeWork()
+            },
+            onSignal = { kind ->
+                handleRealtimeWorkSignal(kind)
             }
-        }
-        
-        // SMS INBOX POLLING - runs every 5 seconds, 24/7
-        // This catches ALL SMS including duplicates that BroadcastReceiver misses
+        ).also { it.start() }
+
+        // One local SMS inbox watcher remains. It reads Android's local inbox only;
+        // it does not hit Supabase unless a genuinely new payment SMS is found.
         serviceScope.launch {
-            android.util.Log.d("UssdDialer", "📨 Starting SMS inbox polling (every 5s - FAST MODE)")
+            android.util.Log.d("UssdDialer", "📨 Local SMS watcher active")
             while (isRunning) {
                 try {
-                    val foundNew = pollSmsInbox()
-                    // Fallback retry: if poll returned 0 new SMS but count changed,
-                    // wait 5s and re-poll once to catch timing-gap SMS (~1% miss rate fix)
-                    if (!foundNew) {
-                        // Check if SMS count changed since last successful poll
-                        val prefs = getSharedPreferences(SMS_PREFS_NAME, Context.MODE_PRIVATE)
-                        val countBefore = prefs.getInt(SMS_COUNT_KEY, -1)
-                        delay(5000L)
-                        val countCursor = contentResolver.query(
-                            Telephony.Sms.Inbox.CONTENT_URI,
-                            arrayOf("count(*) AS count"),
-                            null, null, null
-                        )
-                        val countAfter = countCursor?.use {
-                            if (it.moveToFirst()) it.getInt(0) else -1
-                        } ?: -1
-                        if (countAfter > countBefore && countBefore != -1) {
-                            android.util.Log.d("UssdDialer", "📨 SMS count changed ($countBefore → $countAfter), retry poll")
-                            pollSmsInbox()
-                        }
-                    }
+                    pollSmsInbox()
                 } catch (e: Exception) {
-                    android.util.Log.e("UssdDialer", "❌ SMS poll error: ${e.message}")
+                    android.util.Log.e("UssdDialer", "❌ SMS watcher error: ${e.message}")
                 }
                 delay(SMS_POLL_INTERVAL_MS)
             }
         }
-        
-        // BULK SMS - Supabase Realtime WebSocket + fallback polling
-        serviceScope.launch {
-            android.util.Log.d("UssdDialer", "📤 Starting Bulk SMS Realtime listener (WebSocket)")
-            startBulkSmsRealtimeListener()
-        }
-        
-        // Bulk SMS fallback polling (30-45s) in case WebSocket disconnects
-        serviceScope.launch {
-            android.util.Log.d("UssdDialer", "📤 Starting Bulk SMS fallback polling (30-45s)")
-            while (isRunning) {
-                delay(30000L + (Random().nextDouble() * 15000).toLong())
-                try {
-                    processPendingBulkSms()
-                } catch (e: Exception) {
-                    android.util.Log.e("UssdDialer", "❌ Bulk SMS fallback poll error: ${e.message}")
-                }
-            }
-        }
 
-        // *212 PACKAGE DISCOVERY - dial the menu on demand and report it back
+        // Wake-lock maintenance is entirely local and costs no Supabase requests.
         serviceScope.launch {
-            android.util.Log.d("UssdDialer", "🔍 Starting *212 discovery poller (10s idle; 1.5s busy)")
-            var ticks = 0
             while (isRunning) {
+                delay(12 * 60 * 60 * 1000L)
                 try {
-                    val handled = pollPackageDiscovery()
-                    ticks++
-                    if (!handled && ticks % 15 == 0) {
-                        android.util.Log.d("UssdDialer", "🔍 Discovery poller alive (no job) — tick $ticks")
-                    }
-                    delay(if (handled) 1500L else 10000L)
+                    if (wakeLock.isHeld) wakeLock.release()
+                    wakeLock.acquire(24 * 60 * 60 * 1000L)
+                    lastWakeLockRenewal = System.currentTimeMillis()
                 } catch (e: Exception) {
-                    android.util.Log.e("UssdDialer", "❌ Discovery poll error: ${e.message}")
-                    delay(6000L)
+                    android.util.Log.e("UssdDialer", "❌ Wake lock renewal failed: ${e.message}")
                 }
             }
         }
     }
 
+    private suspend fun catchUpRealtimeWork() {
+        try { syncOfflineQueue() } catch (_: Exception) {}
+        try { pollPendingOrders(getBatteryLevel(), isCharging()) } catch (_: Exception) {}
+        try { processPendingBulkSms() } catch (_: Exception) {}
+        try { pollPackageDiscovery() } catch (_: Exception) {}
+        discoverySelectionWake.trySend(Unit)
+    }
+
+    private suspend fun handleRealtimeWorkSignal(kind: String) {
+        when (kind) {
+            "delivery" -> {
+                pollPendingOrders(getBatteryLevel(), isCharging())
+            }
+            "bulk_sms" -> {
+                processPendingBulkSms()
+            }
+            "discovery" -> {
+                pollPackageDiscovery()
+            }
+            "selection" -> {
+                discoverySelectionWake.trySend(Unit)
+            }
+        }
+    }
 
     // ==================== *212 PACKAGE DISCOVERY ====================
 
@@ -611,8 +572,9 @@ class UssdDialerService : Service() {
      */
     private suspend fun holdDiscoverySession(deviceUuid: String, sessionId: String) {
         val deadline = System.currentTimeMillis() + DISCOVERY_HOLD_SECONDS * 1000L
-        var delivered = false
 
+        // Claim once immediately in case the selection arrived just before Realtime
+        // subscribed. After that we sleep locally until a Realtime selection signal.
         while (System.currentTimeMillis() < deadline && isRunning) {
             val selection = try {
                 discoveryApi.claimDiscoverySelection(deviceUuid)
@@ -621,31 +583,29 @@ class UssdDialerService : Service() {
                 null
             }
 
-            if (selection == null) {
-                delay(2500L)
-                continue
-            }
-
-            android.util.Log.d(
-                "UssdDialer",
-                "🎯 Selection ${selection.menuIndex} (${selection.menuLabel}) for queue ${selection.queueId}"
-            )
-
-            val ok = sendDiscoverySelection(selection, sessionId)
-            delivered = true
-            if (!ok) {
-                // Session no longer usable — the server falls back to a cold re-dial.
-                discoveryApi.sessionLost(sessionId, "Selection could not be entered")
+            if (selection != null) {
+                android.util.Log.d(
+                    "UssdDialer",
+                    "🎯 Selection ${selection.menuIndex} (${selection.menuLabel}) for queue ${selection.queueId}"
+                )
+                val ok = sendDiscoverySelection(selection, sessionId)
+                if (!ok) {
+                    discoveryApi.sessionLost(sessionId, "Selection could not be entered")
+                }
                 return
             }
-            // One session serves one purchase; stop holding after a successful send.
-            return
+
+            val remaining = deadline - System.currentTimeMillis()
+            if (remaining <= 0L) break
+            val woke = withTimeoutOrNull(remaining) {
+                discoverySelectionWake.receive()
+                true
+            } ?: false
+            if (!woke) break
         }
 
-        if (!delivered) {
-            android.util.Log.d("UssdDialer", "⌛ Discovery hold expired for $sessionId")
-            discoveryApi.sessionLost(sessionId, "Hold expired without selection")
-        }
+        android.util.Log.d("UssdDialer", "⌛ Discovery hold expired for $sessionId")
+        discoveryApi.sessionLost(sessionId, "Hold expired without selection")
     }
 
     /** Types the menu index (and PIN) into the held dialog via the step plan. */
