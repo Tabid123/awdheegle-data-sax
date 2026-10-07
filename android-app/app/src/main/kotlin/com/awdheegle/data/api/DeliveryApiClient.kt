@@ -179,7 +179,7 @@ class DeliveryApiClient {
             // Heartbeat is a direct PostgREST update, not an Edge Function invocation.
             // This keeps device online/battery status without consuming function quota.
             val json = JSONObject().apply {
-                put("last_ping_at", java.time.Instant.now().toString())
+                put("last_ping_at", java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.US).apply { timeZone = java.util.TimeZone.getTimeZone("UTC") }.format(java.util.Date()))
                 if (batteryLevel >= 0) put("battery_level", batteryLevel)
                 put("is_charging", isCharging)
             }
