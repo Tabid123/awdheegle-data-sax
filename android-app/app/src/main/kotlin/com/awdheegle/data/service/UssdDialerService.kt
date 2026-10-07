@@ -59,6 +59,7 @@ class UssdDialerService : Service() {
         private const val NIGHT_POLL_INTERVAL_MS = 45000L   // Idle overnight; active jobs retain fast polling
         private const val BUSY_POLL_INTERVAL_MS = 3000L     // when orders found
         private const val JITTER_MAX_MS = 2000L             // 1-2s random jitter
+        private const val DELIVERY_SAFETY_WAKE_MS = 60_000L // Backup only; Realtime remains primary
         private const val API_URL = "https://xpqvfcmalgvrpoqwbqtv.supabase.co/functions/v1/process-payment-receipt"
     }
     
@@ -73,6 +74,7 @@ class UssdDialerService : Service() {
     private var isRunning = false
     private var lastWakeLockRenewal = 0L
     private var realtimeWorkClient: RealtimeWorkClient? = null
+    private val deliveryRealtimeWake = kotlinx.coroutines.channels.Channel<Unit>(kotlinx.coroutines.channels.Channel.CONFLATED)
     private val discoverySelectionWake = kotlinx.coroutines.channels.Channel<Unit>(kotlinx.coroutines.channels.Channel.CONFLATED)
     
     // Device SIM configuration from server (dynamic per-device routing)
@@ -280,9 +282,7 @@ class UssdDialerService : Service() {
             startPolling()
         } else if (intent?.getBooleanExtra("TRIGGER_IMMEDIATE_POLL", false) == true) {
             // Force immediate poll even if already running (triggered by SMS payment)
-            serviceScope.launch {
-                pollPendingOrders()
-            }
+            deliveryRealtimeWake.trySend(Unit)
         }
         return START_STICKY
     }
@@ -311,6 +311,18 @@ class UssdDialerService : Service() {
      * reports actual work.
      */
     private fun startPolling() {
+        // One serial delivery worker consumes all Realtime/safety wake-ups.
+        // A CONFLATED channel prevents duplicate wake storms while an order is active.
+        serviceScope.launch {
+            for (wake in deliveryRealtimeWake) {
+                try {
+                    drainPendingDeliveryQueue()
+                } catch (e: Exception) {
+                    android.util.Log.e("UssdDialer", "Delivery drain failed: ${e.message}")
+                }
+            }
+        }
+
         realtimeWorkClient?.stop()
         realtimeWorkClient = RealtimeWorkClient(
             deviceId = deviceId,
@@ -324,21 +336,29 @@ class UssdDialerService : Service() {
             }
         ).also { it.start() }
 
-        // One local SMS inbox watcher remains. It reads Android's local inbox only;
-        // it does not hit Supabase unless a genuinely new payment SMS is found.
+        // Safety net only: if Android/Supabase Realtime misses an event, retry within
+        // one minute. This is ~80%+ lower than the old 12-25 second empty polling.
         serviceScope.launch {
-            android.util.Log.d("UssdDialer", "📨 Local SMS watcher active")
+            while (isRunning) {
+                delay(DELIVERY_SAFETY_WAKE_MS)
+                deliveryRealtimeWake.trySend(Unit)
+            }
+        }
+
+        // Local Android inbox watcher only. It does not poll Supabase queues.
+        serviceScope.launch {
+            android.util.Log.d("UssdDialer", "Local SMS watcher active")
             while (isRunning) {
                 try {
                     pollSmsInbox()
                 } catch (e: Exception) {
-                    android.util.Log.e("UssdDialer", "❌ SMS watcher error: ${e.message}")
+                    android.util.Log.e("UssdDialer", "SMS watcher error: ${e.message}")
                 }
                 delay(SMS_POLL_INTERVAL_MS)
             }
         }
 
-        // Wake-lock maintenance is entirely local and costs no Supabase requests.
+        // Local wake-lock maintenance; zero Supabase traffic.
         serviceScope.launch {
             while (isRunning) {
                 delay(12 * 60 * 60 * 1000L)
@@ -347,28 +367,47 @@ class UssdDialerService : Service() {
                     wakeLock.acquire(24 * 60 * 60 * 1000L)
                     lastWakeLockRenewal = System.currentTimeMillis()
                 } catch (e: Exception) {
-                    android.util.Log.e("UssdDialer", "❌ Wake lock renewal failed: ${e.message}")
+                    android.util.Log.e("UssdDialer", "Wake lock renewal failed: ${e.message}")
                 }
             }
         }
     }
 
+    /**
+     * Drain every eligible queued order for this device/provider before sleeping.
+     * This fixes the bug where one signal processed only the oldest row and left
+     * the next order pending until another customer created a new order.
+     */
+    private suspend fun drainPendingDeliveryQueue() {
+        var handledCount = 0
+        while (isRunning && handledCount < 50) {
+            // Respect carrier cooldown between USSD transactions.
+            val remainingCooldown = ORDER_COOLDOWN_MS - (System.currentTimeMillis() - lastOrderCompletedAt)
+            if (lastOrderCompletedAt > 0L && remainingCooldown > 0L) {
+                delay(remainingCooldown)
+            }
+
+            val handled = pollPendingOrders(getBatteryLevel(), isCharging())
+            if (!handled) break
+            handledCount++
+        }
+        if (handledCount > 1) {
+            android.util.Log.d("UssdDialer", "Drained $handledCount queued delivery orders")
+        }
+    }
+
     private suspend fun catchUpRealtimeWork() {
         try { syncOfflineQueue() } catch (_: Exception) {}
-        try { pollPendingOrders(getBatteryLevel(), isCharging()) } catch (_: Exception) {}
+        deliveryRealtimeWake.trySend(Unit)
         try { processPendingBulkSms() } catch (_: Exception) {}
-        // Maamuus paused: skip discovery and selection wake-ups.
+        // Maamuus remains paused; normal delivery is unaffected.
     }
 
     private suspend fun handleRealtimeWorkSignal(kind: String) {
         when (kind) {
-            "delivery" -> {
-                pollPendingOrders(getBatteryLevel(), isCharging())
-            }
-            "bulk_sms" -> {
-                processPendingBulkSms()
-            }
-            "discovery", "selection", "maamuus" -> Unit // *212 Maamuus is paused
+            "delivery" -> deliveryRealtimeWake.trySend(Unit)
+            "bulk_sms" -> processPendingBulkSms()
+            "discovery", "maamuus", "selection" -> Unit
         }
     }
 
@@ -1383,7 +1422,7 @@ class UssdDialerService : Service() {
                     setExpectingUssdDialogs()
                     
                     // Trigger immediate order poll
-                    pollPendingOrders()
+                    deliveryRealtimeWake.trySend(Unit)
                 } else {
                     android.util.Log.e("UssdDialer", "📨 API error: ${response.code} - $responseBody")
                 }
