@@ -357,8 +357,7 @@ class UssdDialerService : Service() {
         try { syncOfflineQueue() } catch (_: Exception) {}
         try { pollPendingOrders(getBatteryLevel(), isCharging()) } catch (_: Exception) {}
         try { processPendingBulkSms() } catch (_: Exception) {}
-        try { pollPackageDiscovery() } catch (_: Exception) {}
-        discoverySelectionWake.trySend(Unit)
+        // Maamuus paused: skip discovery and selection wake-ups.
     }
 
     private suspend fun handleRealtimeWorkSignal(kind: String) {
@@ -369,12 +368,7 @@ class UssdDialerService : Service() {
             "bulk_sms" -> {
                 processPendingBulkSms()
             }
-            "discovery" -> {
-                pollPackageDiscovery()
-            }
-            "selection" -> {
-                discoverySelectionWake.trySend(Unit)
-            }
+            "discovery", "selection", "maamuus" -> Unit // *212 Maamuus is paused
         }
     }
 

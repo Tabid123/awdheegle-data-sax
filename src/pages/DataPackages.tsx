@@ -29,6 +29,7 @@ interface DataPackage {
   selling_price: number;
   cost_price: number;
   is_active: boolean;
+  is_discovery_root?: boolean;
   category_id: string | null;
   connection_type_label: string;
   provider_id: string;
@@ -174,8 +175,7 @@ const DataPackages = () => {
       const { data, error } = await supabase
         .from('data_packages_config')
         .select('id')
-        .eq('is_discovery_root', true)
-        .eq('is_active', true);
+        .eq('is_discovery_root', true);
       if (error) return [];
       return (data || []).map((r: any) => r.id as string);
     },
@@ -253,17 +253,19 @@ const DataPackages = () => {
   const promotionalText = promotionalTextData || 'Awdhegle Data ka iibso Internet adigoona qof wicin, waqti kasta, xitaa offline!';
 
   const getFilteredPackages = () => {
+    // Feature pause: cached/offline Maamuus roots must never appear as purchasable packages.
+    const availablePackages = packages.filter(pkg => pkg.is_active !== false && !pkg.is_discovery_root && !discoveryRootIds.includes(pkg.id));
     // If coming from category selection, filter by that category
     if (selectedCategoryId) {
-      return packages.filter(pkg => pkg.category_id === selectedCategoryId);
+      return availablePackages.filter(pkg => pkg.category_id === selectedCategoryId);
     }
     
-    if (activeTab === 'All') return packages;
+    if (activeTab === 'All') return availablePackages;
     
     const selectedCategory = categories.find(c => c.category_name === activeTab);
     if (!selectedCategory) return packages;
     
-    return packages.filter(pkg => pkg.category_id === selectedCategory.id);
+    return availablePackages.filter(pkg => pkg.category_id === selectedCategory.id);
   };
 
   const getSelectedCategoryName = () => {
