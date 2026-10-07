@@ -25,8 +25,8 @@ class RealtimeWorkClient(
     private val deviceId: String,
     private val anonKey: String,
     private val scope: CoroutineScope,
-    private val onConnected: () -> Unit,
-    private val onSignal: (String) -> Unit
+    private val onConnected: suspend () -> Unit,
+    private val onSignal: suspend (String) -> Unit
 ) {
     private val client = OkHttpClient.Builder()
         .readTimeout(0, TimeUnit.MILLISECONDS)
