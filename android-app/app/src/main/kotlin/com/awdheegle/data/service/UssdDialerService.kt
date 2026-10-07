@@ -59,7 +59,7 @@ class UssdDialerService : Service() {
         private const val NIGHT_POLL_INTERVAL_MS = 45000L   // Idle overnight; active jobs retain fast polling
         private const val BUSY_POLL_INTERVAL_MS = 3000L     // when orders found
         private const val JITTER_MAX_MS = 2000L             // 1-2s random jitter
-        private const val DELIVERY_SAFETY_WAKE_MS = 60_000L // Backup only; Realtime remains primary
+        private const val DELIVERY_SAFETY_WAKE_MS = 3_000L // Fast backup; direct DB RPC, no Edge invocation
         private const val API_URL = "https://xpqvfcmalgvrpoqwbqtv.supabase.co/functions/v1/process-payment-receipt"
     }
     
@@ -86,7 +86,7 @@ class UssdDialerService : Service() {
     private var isProcessingOrder = false
     @Volatile
     private var activeQueueId: String? = null
-    private val ORDER_COOLDOWN_MS = 4000L // 4 seconds between orders (faster throughput)
+    private val ORDER_COOLDOWN_MS = 0L // No artificial delay: next queued order starts immediately
     @Volatile
     private var lastOrderCompletedAt = 0L
     private val recentlyProcessedIds = Collections.synchronizedSet(mutableSetOf<String>())
