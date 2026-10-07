@@ -1,5 +1,9 @@
 name: Build and Upload APK to Supabase
 
+concurrency:
+  group: build-upload-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches:
