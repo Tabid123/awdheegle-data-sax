@@ -67,19 +67,5 @@ class UssdPollingWorker(
         }
     }
     
-    private fun triggerImmediatePoll() {
-        try {
-            val intent = Intent(context, UssdDialerService::class.java).apply {
-                putExtra("TRIGGER_IMMEDIATE_POLL", true)
-            }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(intent)
-            } else {
-                context.startService(intent)
-            }
-            android.util.Log.d("UssdPollingWorker", "📡 Triggered immediate poll")
-        } catch (e: Exception) {
-            android.util.Log.e("UssdPollingWorker", "❌ Failed to trigger poll: ${e.message}")
-        }
-    }
+
 }
