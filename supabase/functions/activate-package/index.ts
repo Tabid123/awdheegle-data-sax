@@ -394,7 +394,7 @@ serve(async (req) => {
       const batteryParam = url.searchParams.get('battery');
       const chargingParam = url.searchParams.get('charging');
 
-      console.log('Fetching pending orders for deviceId:', deviceId);
+      // Keep idle polling quiet to reduce log ingestion; errors and delivery outcomes remain logged.
 
       // Update last_ping_at ALWAYS when deviceId exists (battery is optional)
       if (deviceId) {
@@ -410,7 +410,7 @@ serve(async (req) => {
           .update(pingUpdate)
           .eq('device_id', deviceId)
           .is('archived_at', null);
-        console.log(`🔋 Ping merged: device=${deviceId} battery=${batteryParam || 'N/A'}% charging=${chargingParam}`);
+        // Keep idle polling quiet to reduce log ingestion; errors and delivery outcomes remain logged.
       }
 
       // Look up device to get UUID + configured providers
@@ -443,7 +443,7 @@ serve(async (req) => {
         deviceProviders.push(device.sim2_provider.toLowerCase());
       }
 
-      console.log('Device providers:', deviceProviders, 'UUID:', device.id);
+      // Keep idle polling quiet to reduce log ingestion; errors and delivery outcomes remain logged.
 
       // If no providers configured, return empty
       if (deviceProviders.length === 0) {
