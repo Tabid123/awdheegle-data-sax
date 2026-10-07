@@ -69,54 +69,57 @@ class DeliveryApiClient {
         val provider: String = ""
     )
     
+    /**
+     * Claim exactly one eligible delivery directly through PostgREST RPC.
+     * This bypasses the activate-package /pending Edge Function, so rapid safety
+     * checks do not consume Edge Function invocation quota.
+     */
     suspend fun getPendingOrders(
         deviceId: String,
         batteryLevel: Int = -1,
         isCharging: Boolean = false
     ): PendingOrdersResponse = withContext(Dispatchers.IO) {
         try {
-            val batteryQuery = if (batteryLevel >= 0) "&battery=$batteryLevel&charging=$isCharging" else ""
+            val json = JSONObject().put("p_device_id", deviceId)
             val request = Request.Builder()
-                .url("$baseUrl/activate-package/pending?deviceId=$deviceId$batteryQuery")
-                .get()
+                .url("$supabaseRestUrl/rpc/claim_next_delivery_for_device")
+                .addHeader("apikey", anonKey)
+                .addHeader("Authorization", "Bearer $anonKey")
+                .addHeader("Content-Type", "application/json")
+                .post(json.toString().toRequestBody(JSON_MEDIA_TYPE))
                 .build()
-            
+
             sharedHttpClient.newCall(request).execute().use { response ->
-                if (response.isSuccessful) {
-                    val body = response.body?.string() ?: throw Exception("Empty response")
-                    val json = JSONObject(body)
-                    val ordersArray = json.getJSONArray("orders")
-                    
-                    val orders = mutableListOf<DeliveryOrder>()
-                    for (i in 0 until ordersArray.length()) {
-                        val orderJson = ordersArray.getJSONObject(i)
-                        orders.add(
-                            DeliveryOrder(
-                                id = orderJson.getString("id"),
-                                orderId = orderJson.getString("orderId"),
-                                ussdCode = orderJson.getString("ussdCode"),
-                                receiverPhone = orderJson.getString("receiverPhone"),
-                                packageCode = orderJson.optString("packageCode"),
-                                attempts = orderJson.getInt("attempts"),
-                                simSlot = orderJson.optInt("simSlot", 0),
-                                provider = orderJson.optString("provider", ""),
-                                pinCode = orderJson.optString("pinCode", ""),
-                                discoveryMenuIndex = if (orderJson.isNull("discoveryMenuIndex")) null else orderJson.optInt("discoveryMenuIndex"),
-                                discoveryMenuLabel = orderJson.optString("discoveryMenuLabel", "").ifBlank { null }
-                            )
-                        )
-                    }
-                    
-                    return@withContext PendingOrdersResponse(orders)
-                } else {
-                    throw Exception("Failed to fetch orders: ${response.code}")
+                if (!response.isSuccessful) {
+                    throw Exception("Direct delivery claim failed: ${response.code}")
                 }
+
+                val body = response.body?.string()?.trim().orEmpty()
+                if (body.isBlank() || body == "null") {
+                    return@withContext PendingOrdersResponse(emptyList())
+                }
+
+                val orderJson = JSONObject(body)
+                val order = DeliveryOrder(
+                    id = orderJson.getString("id"),
+                    orderId = orderJson.optString("orderId", ""),
+                    ussdCode = orderJson.optString("ussdCode", ""),
+                    receiverPhone = orderJson.optString("receiverPhone", ""),
+                    packageCode = orderJson.optString("packageCode", "").ifBlank { null },
+                    attempts = orderJson.optInt("attempts", 0),
+                    simSlot = orderJson.optInt("simSlot", 0),
+                    provider = orderJson.optString("provider", ""),
+                    pinCode = orderJson.optString("pinCode", ""),
+                        discoveryMenuIndex = if (orderJson.isNull("discoveryMenuIndex")) null else orderJson.optInt("discoveryMenuIndex"),
+                        discoveryMenuLabel = orderJson.optString("discoveryMenuLabel", "").ifBlank { null }
+                )
+                return@withContext PendingOrdersResponse(listOf(order))
             }
         } catch (e: Exception) {
-            throw Exception("Network error: ${e.message}")
+            throw Exception("Direct claim network error: ${e.message}")
         }
     }
-    
+
     suspend fun updateDeliveryStatus(
         queueId: String,
         status: String,
