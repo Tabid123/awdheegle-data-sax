@@ -9,8 +9,8 @@ import androidx.work.WorkerParameters
 import com.awdheegle.data.service.UssdDialerService
 
 /**
- * WorkManager worker that ensures UssdDialerService is running and triggers polling.
- * Runs every 15 minutes even in Doze mode, providing reliable background operation.
+ * WorkManager watchdog that only ensures UssdDialerService is running.
+ * Realtime events wake delivery work; this worker never polls Supabase queues.
  */
 class UssdPollingWorker(
     private val context: Context,
@@ -29,8 +29,7 @@ class UssdPollingWorker(
                 android.util.Log.d("UssdPollingWorker", "✅ Service already running")
             }
             
-            // 2. Trigger immediate poll by sending intent with flag
-            triggerImmediatePoll()
+            // Realtime mode: no queue poll is triggered here.
             
             android.util.Log.d("UssdPollingWorker", "✅ WorkManager task completed successfully")
             return Result.success()
