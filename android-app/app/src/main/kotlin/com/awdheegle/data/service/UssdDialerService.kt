@@ -2415,8 +2415,13 @@ class UssdDialerService : Service() {
             if (::wifiLock.isInitialized && wifiLock.isHeld) wifiLock.release()
         } catch (e: Exception) { }
         
-        // DON'T release wake lock here! Keep CPU active during restart
-        // DON'T cancel serviceScope or set isRunning = false!
+        // Stop this service instance cleanly before immediately restarting it.
+        // This prevents duplicate Realtime sockets/coroutines after Android restarts us.
+        isRunning = false
+        try { realtimeWorkClient?.stop() } catch (_: Exception) {}
+        realtimeWorkClient = null
+        try { serviceScope.cancel() } catch (_: Exception) {}
+        try { if (::wakeLock.isInitialized && wakeLock.isHeld) wakeLock.release() } catch (_: Exception) {}
         
         // Immediately restart service to keep it running
         val restartIntent = Intent(applicationContext, UssdDialerService::class.java)
