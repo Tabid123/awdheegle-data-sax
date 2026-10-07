@@ -176,18 +176,23 @@ class DeliveryApiClient {
         queueSize: Int
     ): Boolean = withContext(Dispatchers.IO) {
         try {
+            // Heartbeat is a direct PostgREST update, not an Edge Function invocation.
+            // This keeps device online/battery status without consuming function quota.
             val json = JSONObject().apply {
-                put("deviceId", deviceId)
-                put("batteryLevel", batteryLevel)
-                put("isCharging", isCharging)
-                put("queueSize", queueSize)
+                put("last_ping_at", java.time.Instant.now().toString())
+                if (batteryLevel >= 0) put("battery_level", batteryLevel)
+                put("is_charging", isCharging)
             }
-            
+            val encodedDeviceId = java.net.URLEncoder.encode(deviceId, "UTF-8")
             val request = Request.Builder()
-                .url("$baseUrl/activate-package/ping")
-                .post(json.toString().toRequestBody(JSON_MEDIA_TYPE))
+                .url("$supabaseRestUrl/android_devices?device_id=eq.$encodedDeviceId&archived_at=is.null")
+                .addHeader("apikey", anonKey)
+                .addHeader("Authorization", "Bearer $anonKey")
+                .addHeader("Content-Type", "application/json")
+                .addHeader("Prefer", "return=minimal")
+                .patch(json.toString().toRequestBody(JSON_MEDIA_TYPE))
                 .build()
-            
+
             sharedHttpClient.newCall(request).execute().use { response ->
                 return@withContext response.isSuccessful
             }
