@@ -145,9 +145,44 @@ export const OfflineRegistrationsCustomView = ({ isSo }: { isSo: boolean }) => {
   const [search, setSearch] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
-  const [newReg, setNewReg] = useState({ sender_phone: '', receiver_phone: '', provider_id: '' });
+  const [newReg, setNewReg] = useState({ sender_phone: '', receiver_phone: '', provider_id: '', preferred_category_id: '', preferred_package_id: '' });
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ sender_phone: '', receiver_phone: '', provider_id: '' });
+  const [editForm, setEditForm] = useState({ sender_phone: '', receiver_phone: '', provider_id: '', preferred_category_id: '', preferred_package_id: '' });
+
+  const [categories, setCategories] = useState<{ id: string; provider_id: string; category_name: string }[]>([]);
+  const [packages, setPackages] = useState<{ id: string; provider_id: string; category_id: string | null; package_name: string }[]>([]);
+  useEffect(() => {
+    if (!showAdd && !editingId) return;
+    let current = true;
+    Promise.all([
+      supabase.from('package_categories').select('id, provider_id, category_name').eq('is_active', true).order('category_name'),
+      supabase.from('data_packages_config').select('id, provider_id, category_id, package_name').eq('is_active', true).order('selling_price'),
+    ]).then(([cats, pkgs]) => {
+      if (!current) return;
+      if (cats.error || pkgs.error) { toast.error(isSo ? 'Xulashooyinka lama soo helin' : 'Could not load choices'); return; }
+      setCategories(cats.data || []);
+      setPackages(pkgs.data || []);
+    });
+    return () => { current = false; };
+  }, [showAdd, editingId, isSo]);
+
+  const waitingForMatcher = (form: typeof newReg) =>
+    Boolean(form.preferred_category_id || form.preferred_package_id) &&
+    import.meta.env.VITE_SCOPED_OFFLINE_MATCHING !== 'true';
+
+  const renderChoices = (form: typeof newReg, setForm: typeof setNewReg) => (
+    <>
+      <select aria-label="Category" disabled={!form.provider_id} value={form.preferred_category_id} onChange={e => setForm({ ...form, preferred_category_id: e.target.value, preferred_package_id: '' })} className="w-full px-3 py-2 rounded-lg bg-background border text-sm">
+        <option value="">{isSo ? 'Dhammaan category-yada' : 'All categories'}</option>
+        {categories.filter(c => c.provider_id === form.provider_id).map(c => <option key={c.id} value={c.id}>{c.category_name}</option>)}
+      </select>
+      <select aria-label="Package" disabled={!form.provider_id} value={form.preferred_package_id} onChange={e => setForm({ ...form, preferred_package_id: e.target.value })} className="w-full px-3 py-2 rounded-lg bg-background border text-sm">
+        <option value="">{isSo ? 'Xirmada ku dooro qiimaha' : 'Match package by price'}</option>
+        {packages.filter(p => p.provider_id === form.provider_id && (!form.preferred_category_id || p.category_id === form.preferred_category_id)).map(p => <option key={p.id} value={p.id}>{p.package_name}</option>)}
+      </select>
+      {waitingForMatcher(form) && <p className="text-sm text-muted-foreground">{isSo ? 'Kaydinta doorashadan waxay sugaysaa cusboonaysiinta adeegga lacagaha.' : 'Saving a preference is waiting for the payment service update.'}</p>}
+    </>
+  );
 
   const loadRegs = useCallback(async () => {
     setLoading(true);
@@ -196,6 +231,8 @@ export const OfflineRegistrationsCustomView = ({ isSo }: { isSo: boolean }) => {
       sender_phone: item.sender_phone || '',
       receiver_phone: item.receiver_phone || '',
       provider_id: item.provider_id || '',
+      preferred_category_id: item.preferred_category_id || '',
+      preferred_package_id: item.preferred_package_id || '',
     });
   };
 
@@ -210,6 +247,8 @@ export const OfflineRegistrationsCustomView = ({ isSo }: { isSo: boolean }) => {
         sender_phone: editForm.sender_phone,
         receiver_phone: editForm.receiver_phone,
         provider_id: editForm.provider_id || null,
+        preferred_category_id: editForm.preferred_category_id || null,
+        preferred_package_id: editForm.preferred_package_id || null,
       })
       .eq('id', id)
       .select()
@@ -226,10 +265,12 @@ export const OfflineRegistrationsCustomView = ({ isSo }: { isSo: boolean }) => {
       sender_phone: newReg.sender_phone,
       receiver_phone: newReg.receiver_phone,
       provider_id: newReg.provider_id || null,
+        preferred_category_id: newReg.preferred_category_id || null,
+        preferred_package_id: newReg.preferred_package_id || null,
     }).select().single();
     if (error) { toast.error('Error: ' + error.message); return; }
     setRegs(prev => [data, ...prev]);
-    setNewReg({ sender_phone: '', receiver_phone: '', provider_id: '' });
+    setNewReg({ sender_phone: '', receiver_phone: '', provider_id: '', preferred_category_id: '', preferred_package_id: '' });
     setShowAdd(false);
     toast.success(isSo ? 'Waa lagu daray' : 'Added');
   };
@@ -258,11 +299,13 @@ export const OfflineRegistrationsCustomView = ({ isSo }: { isSo: boolean }) => {
         <div className="bg-white dark:bg-gray-800 rounded-xl border p-3 space-y-2 animate-in slide-in-from-top-2">
           <input value={newReg.sender_phone} onChange={e => setNewReg(p => ({...p, sender_phone: e.target.value}))} placeholder={isSo ? 'Lambarka Diraha' : 'Sender Phone'} className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none" />
           <input value={newReg.receiver_phone} onChange={e => setNewReg(p => ({...p, receiver_phone: e.target.value}))} placeholder={isSo ? 'Lambarka Qaataha' : 'Receiver Phone'} className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none" />
-          <select value={newReg.provider_id} onChange={e => setNewReg(p => ({...p, provider_id: e.target.value}))} className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none">
+          <select value={newReg.provider_id} onChange={e => setNewReg(p => ({...p, provider_id: e.target.value, preferred_category_id: '', preferred_package_id: ''}))} className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none">
             <option value="">{isSo ? 'Shirkadda (optional)' : 'Provider (optional)'}</option>
             {providers.map(p => <option key={p.id} value={p.id}>{p.display_name || p.provider_name}</option>)}
           </select>
-          <button onClick={addReg} className="w-full py-2 bg-green-500 text-white rounded-lg text-sm font-medium active:bg-green-600">
+          {renderChoices(newReg, setNewReg)}
+
+          <button disabled={waitingForMatcher(newReg)} onClick={addReg} className="w-full py-2 bg-green-500 text-white rounded-lg text-sm font-medium active:bg-green-600">
             <Plus className="w-3.5 h-3.5 inline mr-1" /> {isSo ? 'Ku Dar' : 'Add'}
           </button>
         </div>
@@ -303,14 +346,16 @@ export const OfflineRegistrationsCustomView = ({ isSo }: { isSo: boolean }) => {
                       />
                       <select
                         value={editForm.provider_id}
-                        onChange={e => setEditForm(p => ({ ...p, provider_id: e.target.value }))}
+                        onChange={e => setEditForm(p => ({ ...p, provider_id: e.target.value, preferred_category_id: '', preferred_package_id: '' }))}
                         className="w-full px-3 py-2 rounded-lg bg-white dark:bg-gray-700 border text-sm outline-none"
                       >
                         <option value="">{isSo ? 'Shirkadda (optional)' : 'Provider (optional)'}</option>
                         {providers.map(p => <option key={p.id} value={p.id}>{p.display_name || p.provider_name}</option>)}
                       </select>
+          {renderChoices(editForm, setEditForm)}
+
                       <div className="flex gap-2">
-                        <button onClick={() => saveEdit(item.id)} className="flex-1 py-2 bg-green-500 text-white rounded-lg text-sm font-medium active:bg-green-600">
+                        <button disabled={waitingForMatcher(editForm)} onClick={() => saveEdit(item.id)} className="flex-1 py-2 bg-green-500 text-white rounded-lg text-sm font-medium active:bg-green-600">
                           {isSo ? 'Kaydi' : 'Save'}
                         </button>
                         <button onClick={() => setEditingId(null)} className="flex-1 py-2 bg-gray-300 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg text-sm font-medium">
