@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query';
 // @ts-nocheck
 import { useState, useEffect } from 'react';
 import najaxLogo from '@/assets/awdhegle-logo-new.png';
@@ -81,6 +82,28 @@ const OfflineMode = () => {
     if (senderPhone.length > 0) setSenderError(false);
   }, [senderPhone]);
 
+  const [categoryId, setCategoryId] = useState('');
+  const [packageId, setPackageId] = useState('');
+  const network = detectReceiverProvider(receiverPhone)?.name;
+  const catalog = useQuery({
+    queryKey: ['offline-registration-catalog', network],
+    enabled: Boolean(network),
+    queryFn: async () => {
+      const providers = await supabase.rpc('get_active_providers');
+      if (providers.error) throw providers.error;
+      const provider = providers.data.find(p => p.provider_name.toLowerCase() === network?.toLowerCase());
+      if (!provider) throw new Error('Provider unavailable');
+      const args = { p_provider_id: provider.id };
+      const [categories, packages] = await Promise.all([
+        supabase.rpc('get_active_categories', args),
+        supabase.rpc('get_public_packages', args)
+      ]);
+      if (categories.error) throw categories.error;
+      if (packages.error) throw packages.error;
+      return { provider, categories: categories.data, packages: packages.data };
+    }
+  });
+
   const handleRegister = async () => {
     const isValidSender = senderPhone.length === 9 && /^\d+$/.test(senderPhone);
     const isValidReceiver = [7, 9].includes(receiverPhone.length) && /^\d+$/.test(receiverPhone);
@@ -105,49 +128,29 @@ const OfflineMode = () => {
     }
     
     try {
+      const provider = catalog.data?.provider;
+      if (!provider) throw new Error('Provider unavailable');
+      const { error } = await supabase.from('offline_registrations').upsert({
+        sender_phone: senderPhone,
+        receiver_phone: receiverPhone,
+        provider_id: provider.id,
+        provider_name: provider.provider_name,
+        preferred_category_id: categoryId || null,
+        preferred_package_id: packageId || null,
+        is_active: true
+      }, { onConflict: 'sender_phone' });
+      if (error) throw error;
       localStorage.setItem('offlineSenderPhone', senderPhone);
       localStorage.setItem('offlineReceiverPhone', receiverPhone);
-      if (navigator.onLine) {
-        // Try to find provider by name first, fallback to saving without provider_id
-        let providerDbId: string | null = null;
-        const { data: providerData } = await supabase
-          .from('providers_config')
-          .select('id')
-          .ilike('provider_name', detectedProvider.name)
-          .maybeSingle();
-        
-        if (providerData) {
-          providerDbId = providerData.id;
-        }
-
-        const { error: upsertError } = await supabase
-          .from('offline_registrations')
-          .upsert({
-            sender_phone: senderPhone,
-            receiver_phone: receiverPhone,
-            provider_id: providerDbId,
-            provider_name: detectedProvider.name,
-            is_active: true
-          }, { onConflict: 'sender_phone' });
-        if (upsertError) {
-          console.error('Registration error:', upsertError);
-        } else {
-          toast({
-            title: "Lagu guuleystay",
-            description: "Lambarada ayaa database-ka lagu kaydiyey",
-            duration: 2000
-          });
-        }
-      }
+      toast({ title: 'Diiwaangelinta waa la kaydiyey' });
       navigate('/providers');
     } catch (error) {
       console.error('Registration error:', error);
       toast({
         title: "Digniinta",
-        description: "Registration ma keydsamo lakin wuu socon doonaa",
+        description: "Diiwaangelinta lama kaydin. Fadlan mar kale isku day.",
         variant: "default"
       });
-      navigate('/providers');
     } finally {
       setIsRegistering(false);
     }
@@ -264,6 +267,10 @@ const OfflineMode = () => {
                 value={receiverPhone}
                 onChange={e => {
                   const value = e.target.value.replace(/\D/g, '').slice(0, 9);
+                  if (detectReceiverProvider(value)?.name !== network) {
+                    setCategoryId('');
+                    setPackageId('');
+                  }
                   setReceiverPhone(value);
                 }}
                 maxLength={9}
@@ -281,11 +288,30 @@ const OfflineMode = () => {
         </div>
       </div>
 
+      {network && <div className="w-full max-w-sm space-y-3 mb-5">
+        {catalog.isError && <button type="button" onClick={() => catalog.refetch()}>Xulashooyinka lama soo helin. Mar kale isku day</button>}
+        {catalog.isLoading && <p>Sug inta xulashooyinka la soo helayo…</p>}
+        {catalog.data && <>
+          <label className="block">Category
+            <select className="block w-full rounded-lg border bg-background p-2" value={categoryId} onChange={e => { setCategoryId(e.target.value); setPackageId(''); }}>
+              <option value="">Dhammaan category-yada</option>
+              {catalog.data.categories.map(c => <option key={c.id} value={c.id}>{c.category_name}</option>)}
+            </select>
+          </label>
+          <label className="block">Xirmada
+            <select className="block w-full rounded-lg border bg-background p-2" value={packageId} onChange={e => setPackageId(e.target.value)}>
+              <option value="">Ku dooro qiimaha lacagta</option>
+              {catalog.data.packages.filter(p => !categoryId || p.category_id === categoryId).map(p => <option key={p.id} value={p.id}>{p.package_name} — ${p.selling_price}</option>)}
+            </select>
+          </label>
+        </>}
+      </div>}
+
       {/* Buttons */}
       <div className="w-full max-w-sm space-y-3">
         <button
           onClick={handleRegister}
-          disabled={isRegistering || !senderPhone || !receiverPhone}
+          disabled={isRegistering || !catalog.data || !senderPhone || !receiverPhone}
           className="w-full rounded-xl bg-primary text-primary-foreground font-semibold text-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.98] py-3"
         >
           {isRegistering ? (
