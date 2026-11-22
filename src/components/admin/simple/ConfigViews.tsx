@@ -143,6 +143,7 @@ export const ProvidersCustomView = ({ isSo }: { isSo: boolean }) => {
 
 // ========== PACKAGES ==========
 const EMPTY_PKG = {
+  description: '',
   package_name: '', data_amount: '', selling_price: '', cost_price: '', secret_price: '', allowed_phone_lengths: '9', allowed_phone_prefixes: '',
   validity_days: '30', provider_id: '', category_id: '', ussd_code: '', connection_type_label: 'Data',
   menu1: '', menu2: '', menu3: '', sim_password: '', is_ussd_only: false, is_discovery_root: false,
@@ -258,6 +259,7 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
       selling_price: sellingPriceNum,
       cost_price: Number(newPkg.cost_price || 0),
       secret_price: secretArr.length > 0 ? secretArr : null,
+      description: newPkg.description.trim() || null,
       validity_days: newPkg.validity_days ? parseInt(String(newPkg.validity_days), 10) : null,
       provider_id: newPkg.provider_id,
       category_id: newPkg.category_id || null,
@@ -294,6 +296,7 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
       secret_price: Array.isArray(item.secret_price) ? item.secret_price.join(', ') : (item.secret_price ?? ''),
       allowed_phone_lengths: Array.isArray(item.allowed_phone_lengths) && item.allowed_phone_lengths.length ? item.allowed_phone_lengths.join(', ') : '9',
       allowed_phone_prefixes: Array.isArray(item.allowed_phone_prefixes) ? item.allowed_phone_prefixes.join(', ') : '',
+      description: item.description ?? '',
       validity_days: item.validity_days || '30', provider_id: item.provider_id || '',
       category_id: item.category_id || '', ussd_code: parts.dial, connection_type_label: item.connection_type_label || 'Data',
       menu1: parts.menu1, menu2: parts.menu2, menu3: parts.menu3,
@@ -430,6 +433,9 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
             <input value={newPkg.data_amount} onChange={e => setNewPkg(p => ({...p, data_amount: e.target.value}))} placeholder="Data Amount" className="px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none" />
             <input value={newPkg.validity_days} onChange={e => setNewPkg(p => ({...p, validity_days: e.target.value}))} placeholder="Days" className="px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none" />
           </div>
+          <label className="block text-sm">{isSo ? "Qoraalka dhinaca Valid (ikhtiyaari)" : "Text beside Valid (optional)"}
+            <input value={newPkg.description} onChange={e => setNewPkg(p => ({ ...p, description: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm" />
+          </label>
           <div className="grid grid-cols-2 gap-2">
             <input value={newPkg.selling_price} onChange={e => setNewPkg(p => ({...p, selling_price: e.target.value}))} placeholder="Sell Price *" type="number" className="px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none" />
             <input value={newPkg.cost_price} onChange={e => setNewPkg(p => ({...p, cost_price: e.target.value}))} placeholder="Cost Price" type="number" className="px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none" />
