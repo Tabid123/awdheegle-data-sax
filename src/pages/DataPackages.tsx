@@ -25,6 +25,7 @@ interface DataPackage {
   id: string;
   package_name: string;
   data_amount: string;
+  description?: string | null;
   validity_days: string;
   selling_price: number;
   cost_price: number;
@@ -607,10 +608,11 @@ const DataPackages = () => {
               </div>
 
               {/* Validity */}
-              <div className="px-3 pt-2 pb-3 text-center">
+              <div className="flex items-start justify-between gap-2 px-3 pt-2 pb-3">
                 <span className="text-xs text-muted-foreground">
                   Valid: {pkg.validity_days}
                 </span>
+                {pkg.description?.trim() && <span className="min-w-0 flex-1 break-words text-right text-xs text-muted-foreground">{pkg.description}</span>}
               </div>
 
               {/* Bottom meta icons */}
