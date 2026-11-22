@@ -76,6 +76,7 @@ interface DataPackage {
   provider_id: string;
   package_name: string;
   data_amount: string;
+  description?: string | null;
   validity_days: string;
   cost_price: number;
   selling_price: number;
@@ -599,6 +600,7 @@ const AdminDashboard = () => {
     provider_id: '',
     package_name: '',
     data_amount: '',
+    description: '',
     validity_days: 30,
     cost_price: 0,
     selling_price: 0,
@@ -1521,6 +1523,7 @@ const AdminDashboard = () => {
       provider_id: packageData.provider_id,
       package_name: packageData.package_name,
       data_amount: packageData.data_amount,
+      description: packageData.description.trim() || null,
       validity_days: parseInt(String(validityDaysInput).replace(/\D/g, ''), 10) || null,
       cost_price: packageData.cost_price,
       selling_price: packageData.selling_price,
@@ -1547,6 +1550,7 @@ const AdminDashboard = () => {
         provider_id: '',
         package_name: '',
         data_amount: '',
+        description: '',
         validity_days: 30,
         cost_price: 0,
         selling_price: 0,
@@ -2430,6 +2434,7 @@ const AdminDashboard = () => {
       .update({
         package_name: editingPackage.package_name,
         data_amount: editingPackage.data_amount,
+        description: editingPackage.description?.trim() || null,
         validity_days: parseInt(String(editValidityDaysInput).replace(/\D/g, ''), 10) || null,
         cost_price: editingPackage.cost_price,
         selling_price: editingPackage.selling_price,
@@ -4779,6 +4784,10 @@ const AdminDashboard = () => {
                     />
                   </div>
                   <div>
+                    <Label htmlFor="newPackage-description">{language === 'so' ? 'Qoraalka kaarka (ikhtiyaari)' : 'Card text (optional)'}</Label>
+                    <Input id="newPackage-description" value={newPackage.description ?? ''} onChange={e => setNewPackage({ ...newPackage, description: e.target.value })} />
+                  </div>
+                  <div>
                     <Label>{language === 'so' ? 'Cost Price' : 'Cost'}</Label>
                     <Input
                       type="number"
@@ -6120,6 +6129,10 @@ const AdminDashboard = () => {
                       onChange={(e) => setEditValidityDaysInput(e.target.value)}
                       placeholder={language === 'so' ? 'Geli maalmo' : 'Enter days'}
                     />
+                  </div>
+                  <div>
+                    <Label htmlFor="editingPackage-description">{language === 'so' ? 'Qoraalka kaarka (ikhtiyaari)' : 'Card text (optional)'}</Label>
+                    <Input id="editingPackage-description" value={editingPackage.description ?? ''} onChange={e => setEditingPackage({ ...editingPackage, description: e.target.value })} />
                   </div>
                   <div>
                     <Label>{language === 'so' ? 'Cost Price' : 'Cost'}</Label>
