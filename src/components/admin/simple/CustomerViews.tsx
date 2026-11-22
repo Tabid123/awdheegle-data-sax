@@ -166,6 +166,10 @@ export const OfflineRegistrationsCustomView = ({ isSo }: { isSo: boolean }) => {
     return () => { current = false; };
   }, [showAdd, editingId, isSo]);
 
+  const waitingForMatcher = (form: typeof newReg) =>
+    Boolean(form.preferred_category_id || form.preferred_package_id) &&
+    import.meta.env.VITE_SCOPED_OFFLINE_MATCHING !== 'true';
+
   const renderChoices = (form: typeof newReg, setForm: typeof setNewReg) => (
     <>
       <select aria-label="Category" disabled={!form.provider_id} value={form.preferred_category_id} onChange={e => setForm({ ...form, preferred_category_id: e.target.value, preferred_package_id: '' })} className="w-full px-3 py-2 rounded-lg bg-background border text-sm">
@@ -176,6 +180,7 @@ export const OfflineRegistrationsCustomView = ({ isSo }: { isSo: boolean }) => {
         <option value="">{isSo ? 'Xirmada ku dooro qiimaha' : 'Match package by price'}</option>
         {packages.filter(p => p.provider_id === form.provider_id && (!form.preferred_category_id || p.category_id === form.preferred_category_id)).map(p => <option key={p.id} value={p.id}>{p.package_name}</option>)}
       </select>
+      {waitingForMatcher(form) && <p className="text-sm text-muted-foreground">{isSo ? 'Kaydinta doorashadan waxay sugaysaa cusboonaysiinta adeegga lacagaha.' : 'Saving a preference is waiting for the payment service update.'}</p>}
     </>
   );
 
@@ -300,7 +305,7 @@ export const OfflineRegistrationsCustomView = ({ isSo }: { isSo: boolean }) => {
           </select>
           {renderChoices(newReg, setNewReg)}
 
-          <button onClick={addReg} className="w-full py-2 bg-green-500 text-white rounded-lg text-sm font-medium active:bg-green-600">
+          <button disabled={waitingForMatcher(newReg)} onClick={addReg} className="w-full py-2 bg-green-500 text-white rounded-lg text-sm font-medium active:bg-green-600">
             <Plus className="w-3.5 h-3.5 inline mr-1" /> {isSo ? 'Ku Dar' : 'Add'}
           </button>
         </div>
@@ -350,7 +355,7 @@ export const OfflineRegistrationsCustomView = ({ isSo }: { isSo: boolean }) => {
           {renderChoices(editForm, setEditForm)}
 
                       <div className="flex gap-2">
-                        <button onClick={() => saveEdit(item.id)} className="flex-1 py-2 bg-green-500 text-white rounded-lg text-sm font-medium active:bg-green-600">
+                        <button disabled={waitingForMatcher(editForm)} onClick={() => saveEdit(item.id)} className="flex-1 py-2 bg-green-500 text-white rounded-lg text-sm font-medium active:bg-green-600">
                           {isSo ? 'Kaydi' : 'Save'}
                         </button>
                         <button onClick={() => setEditingId(null)} className="flex-1 py-2 bg-gray-300 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg text-sm font-medium">
