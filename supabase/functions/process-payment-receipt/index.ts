@@ -2071,18 +2071,19 @@ serve(async (req) => {
     const max = Number((price + 0.005).toFixed(3));
     let matchedViaSecretPrice = false;
 
-    let { data: packages } = await supabase
-      .from("data_packages_config")
-      .select("*")
-      .eq("provider_id", registration.provider_id)
+    const registeredPackages = () => {
+      let query = supabase.from('data_packages_config').select('*').eq('provider_id', registration.provider_id);
+      if (registration.preferred_category_id) query = query.eq('category_id', registration.preferred_category_id);
+      if (registration.preferred_package_id) query = query.eq('id', registration.preferred_package_id);
+      return query;
+    };
+
+    let { data: packages } = await registeredPackages()
       .eq("selling_price", price)
       .eq("is_active", true);
 
     if (!packages || packages.length === 0) {
-      const rangeRes = await supabase
-        .from("data_packages_config")
-        .select("*")
-        .eq("provider_id", registration.provider_id)
+      const rangeRes = await registeredPackages()
         .eq("is_active", true)
         .gte("selling_price", min)
         .lte("selling_price", max)
@@ -2092,10 +2093,7 @@ serve(async (req) => {
 
     // 🔒 SECRET PRICE fallback for offline auto-match (supports numeric[] arrays)
     if (!packages || packages.length === 0) {
-      const { data: allActivePkgs } = await supabase
-        .from("data_packages_config")
-        .select("*")
-        .eq("provider_id", registration.provider_id)
+      const { data: allActivePkgs } = await registeredPackages()
         .eq("is_active", true)
         .not("secret_price", "is", null);
       const secretPkgs = (allActivePkgs || []).filter((pkg: any) => {
