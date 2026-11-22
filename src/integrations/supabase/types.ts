@@ -1373,6 +1373,8 @@ export type Database = {
           id: string
           is_active: boolean
           notes: string | null
+          preferred_category_id: string | null
+          preferred_package_id: string | null
           provider_id: string | null
           provider_name: string | null
           receiver_phone: string | null
@@ -1384,6 +1386,8 @@ export type Database = {
           id?: string
           is_active?: boolean
           notes?: string | null
+          preferred_category_id?: string | null
+          preferred_package_id?: string | null
           provider_id?: string | null
           provider_name?: string | null
           receiver_phone?: string | null
@@ -1395,6 +1399,8 @@ export type Database = {
           id?: string
           is_active?: boolean
           notes?: string | null
+          preferred_category_id?: string | null
+          preferred_package_id?: string | null
           provider_id?: string | null
           provider_name?: string | null
           receiver_phone?: string | null
