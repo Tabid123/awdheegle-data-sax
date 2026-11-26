@@ -61,13 +61,13 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
+    if (req.method !== 'POST') return json({ status: false, error: 'method_not_allowed' }, 405);
 
-    const authHeader = req.headers.get('Authorization') || req.headers.get('authorization');
-    if (!authHeader?.toLowerCase().startsWith('bearer ')) {
-      return json({ error: 'unauthorized' }, 401);
+    const authHeader = req.headers.get('Authorization') || '';
+    const token = /^Bearer\s+(\S+)\s*$/i.exec(authHeader.trim())?.[1];
+    if (!token) {
+      return json({ error: 'unauthorized', message: 'Unauthorized', status: false }, 401);
     }
-    const token = authHeader.slice(7).trim();
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
@@ -94,11 +94,11 @@ Deno.serve(async (req) => {
       }
     }
 
-    if (!authed) return json({ error: 'unauthorized' }, 401);
+    if (!authed) return json({ error: 'unauthorized', message: 'Unauthorized', status: false }, 401);
 
     const raw = await req.json().catch(() => null);
     const parsed = TxSchema.safeParse(raw);
-    if (!parsed.success) return json({ error: 'invalid_body', details: parsed.error.flatten() }, 400);
+    if (!parsed.success) return json({ status: false, error: 'invalid_body', details: parsed.error.flatten() }, 400);
     const p = parsed.data;
 
     const drCr = (p.dr_cr || '').toString().toLowerCase();
@@ -135,7 +135,7 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (existing) {
-      return json({ ok: true, tran_no: p.tran_no, match_status: existing.match_status, duplicate: true });
+      return json({ status: true, message: 'Success', ok: true, tran_no: p.tran_no, match_status: existing.match_status, duplicate: true });
     }
 
     const { data: inserted, error: insErr } = await supabase
@@ -146,12 +146,12 @@ Deno.serve(async (req) => {
 
     if (insErr) {
       console.error('insert bank_transactions failed', insErr);
-      return json({ error: 'insert_failed' }, 500);
+      return json({ status: false, error: 'insert_failed' }, 500);
     }
 
     // For debits, done here
     if (drCr === 'dr') {
-      return json({ ok: true, tran_no: p.tran_no, match_status: 'ignored_debit' });
+      return json({ status: true, message: 'Success', ok: true, tran_no: p.tran_no, match_status: 'ignored_debit' });
     }
 
     // Auto-match for credits
@@ -198,9 +198,9 @@ Deno.serve(async (req) => {
       }
     }
 
-    return json({ ok: true, tran_no: p.tran_no, match_status: finalStatus });
+    return json({ status: true, message: 'Success', ok: true, tran_no: p.tran_no, match_status: finalStatus });
   } catch (e) {
     console.error('bank-push-transaction error', e);
-    return json({ error: 'internal_error' }, 500);
+    return json({ status: false, error: 'internal_error' }, 500);
   }
 });
