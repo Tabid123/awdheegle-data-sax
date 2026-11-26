@@ -5,7 +5,7 @@ import { z } from 'npm:zod@3.23.8';
 
 const TxSchema = z.object({
   tran_no: z.string().min(1),
-  tran_amt: z.union([z.number(), z.string()]).transform((v) => Number(v)),
+  tran_amt: z.union([z.number(), z.string().trim().min(1)]).transform((v) => Number(v)).pipe(z.number().finite().positive()),
   tran_date: z.string().optional().nullable(),
   tran_date_time: z.string().optional().nullable(),
   acc_no: z.string().optional().nullable(),
@@ -22,6 +22,33 @@ const TxSchema = z.object({
     v === null || v === undefined || v === '' ? null : Number(v)
   ),
 }).passthrough();
+
+const fieldAliases = {
+  TranNo: 'tran_no', TranAmt: 'tran_amt', TranDate: 'tran_date',
+  TranDateTime: 'tran_date_time', AccNo: 'acc_no', CustomerName: 'customer_name',
+  Narration: 'narration', DrCr: 'dr_cr', UTI: 'uti', CurrencyCode: 'currency_code',
+  RrpNo: 'rrp_no', TranDesc: 'tran_desc', TranType: 'tran_type',
+  UserId: 'user_id_field', ChargeAmt: 'charge_amt',
+} as const;
+
+function normalizeBankPayload(raw: unknown) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return raw;
+  const source = raw as Record<string, unknown>;
+  const result = { ...source };
+  for (const [external, internal] of Object.entries(fieldAliases)) {
+    if (Object.hasOwn(source, external)) {
+      if (Object.hasOwn(source, internal) && String(source[internal]) !== String(source[external])) {
+        throw new Error('Conflicting transaction fields');
+      }
+      result[internal] = source[external];
+    }
+  }
+  for (const key of ['tran_no', 'acc_no', 'uti', 'rrp_no', 'user_id_field']) {
+    if (typeof result[key] === 'number' && Number.isSafeInteger(result[key])) result[key] = String(result[key]);
+  }
+  if (typeof result.tran_no === 'string') result.tran_no = result.tran_no.trim();
+  return result;
+}
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -51,6 +78,12 @@ function last9(phone: string | null | undefined): string | null {
 
 function parsePhones(narration: string | null | undefined): { sender: string | null; receiver: string | null } {
   if (!narration) return { sender: null, receiver: null };
+  // Salaam Bank: the sender is explicitly identified after By:, not the reference number.
+  if (/\bBy\s*:/i.test(narration)) {
+    const sender = narration.match(/\bBy\s*:\s*(\+?\d{9,15})(?!\d)/i)?.[1] ?? null;
+    const receiver = narration.split('#').map(v => v.trim()).find(v => /^\+?\d{9,15}$/.test(v)) ?? null;
+    return { sender, receiver };
+  }
   const re = /(?:\+?252)?[0-9]{9,12}/g;
   const matches = narration.match(re) || [];
   const cleaned = matches.map((m) => m.replace(/^\+?252/, '')).filter((d) => d.length >= 9);
@@ -101,12 +134,28 @@ Deno.serve(async (req) => {
     if (!authed) return json({ error: 'unauthorized', message: 'Unauthorized', status: false }, 401);
 
     const raw = await req.json().catch(() => null);
-    const parsed = TxSchema.safeParse(raw);
-    if (!parsed.success) return json({ status: false, error: 'invalid_body', details: parsed.error.flatten() }, 400);
+    const bankFormat = !!raw && typeof raw === 'object' && Object.keys(fieldAliases).some(k => Object.hasOwn(raw, k));
+    let normalized: unknown;
+    try {
+      normalized = normalizeBankPayload(raw);
+    } catch {
+      return json({ message: 'Conflicting transaction fields', status: false }, 400);
+    }
+    const parsed = TxSchema.safeParse(normalized);
+    if (!parsed.success) {
+      const details = parsed.error.flatten();
+      const message = details.fieldErrors.tran_no ? 'TranNo required' : 'Invalid transaction body';
+      return json({ message, status: false, error: 'invalid_body', details }, 400);
+    }
     const p = parsed.data;
 
-    const drCr = (p.dr_cr || '').toString().toLowerCase();
+    const drCr = (p.dr_cr || '').trim().toLowerCase();
+    const currency = (p.currency_code || '').trim().toUpperCase();
+    const ignored = (drCr !== '' && drCr !== 'cr') || (currency !== '' && currency !== 'USD') || (bankFormat && (drCr !== 'cr' || currency !== 'USD'));
     const { sender, receiver } = parsePhones(p.narration);
+    const success = (extra: Record<string, unknown>) => json(bankFormat
+      ? { message: 'Success', status: true }
+      : { status: true, message: 'Success', ok: true, tran_no: p.tran_no, ...extra });
 
     // Common row payload
     const row: Record<string, unknown> = {
@@ -128,18 +177,19 @@ Deno.serve(async (req) => {
       raw_payload: raw,
       parsed_sender_phone: sender,
       parsed_receiver_phone: receiver,
-      match_status: drCr === 'dr' ? 'ignored_debit' : 'unmatched',
+      match_status: ignored ? 'ignored_debit' : 'unmatched',
     };
 
     // Idempotent upsert on tran_no. Only insert if it doesn't exist.
-    const { data: existing } = await supabase
+    const { data: existing, error: lookupError } = await supabase
       .from('bank_transactions')
       .select('id, match_status')
       .eq('tran_no', p.tran_no)
       .maybeSingle();
 
+    if (lookupError) return json({ message: 'Server error', status: false }, 500);
     if (existing) {
-      return json({ status: true, message: 'Success', ok: true, tran_no: p.tran_no, match_status: existing.match_status, duplicate: true });
+      return success({ match_status: existing.match_status, duplicate: true });
     }
 
     const { data: inserted, error: insErr } = await supabase
@@ -149,18 +199,23 @@ Deno.serve(async (req) => {
       .single();
 
     if (insErr) {
+      if (insErr.code === '23505') {
+        const { data: duplicate } = await supabase.from('bank_transactions')
+          .select('id, match_status').eq('tran_no', p.tran_no).maybeSingle();
+        if (duplicate) return success({ match_status: duplicate.match_status, duplicate: true });
+      }
       console.error('insert bank_transactions failed', insErr);
       return json({ status: false, error: 'insert_failed' }, 500);
     }
 
     // For debits, done here
-    if (drCr === 'dr') {
-      return json({ status: true, message: 'Success', ok: true, tran_no: p.tran_no, match_status: 'ignored_debit' });
+    if (ignored) {
+      return success({ match_status: 'ignored_debit' });
     }
 
     // Auto-match for credits
     let finalStatus = 'unmatched';
-    if (sender) {
+    if (sender && last9(sender)) {
       const senderLast9 = last9(sender);
       const since = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
       const { data: pendings } = await supabase
@@ -202,7 +257,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    return json({ status: true, message: 'Success', ok: true, tran_no: p.tran_no, match_status: finalStatus });
+    return success({ match_status: finalStatus });
   } catch (e) {
     console.error('bank-push-transaction error', e);
     return json({ status: false, error: 'internal_error' }, 500);
