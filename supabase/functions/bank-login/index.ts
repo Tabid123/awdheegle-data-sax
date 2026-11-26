@@ -31,11 +31,11 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
+    if (req.method !== 'POST') return json({ token: 'Method not allowed', status: false }, 405);
 
     const body = await req.json().catch(() => null);
     const parsed = LoginSchema.safeParse(body);
-    if (!parsed.success) return json({ error: 'invalid_body' }, 400);
+    if (!parsed.success) return json({ token: 'Invalid body', status: false }, 400);
 
     const { username, password } = parsed.data;
 
@@ -48,8 +48,8 @@ Deno.serve(async (req) => {
       p_username: username,
       p_password: password,
     });
-    if (vErr) return json({ error: 'verification_failed' }, 500);
-    if (!ok) return json({ error: 'invalid_credentials' }, 401);
+    if (vErr) return json({ token: 'Server error', status: false }, 500);
+    if (!ok) return json({ token: 'un authorized', status: false }, 401);
 
     const { data: cred } = await supabase
       .from('bank_credentials')
@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
       .eq('username', username)
       .eq('is_active', true)
       .maybeSingle();
-    if (!cred) return json({ error: 'invalid_credentials' }, 401);
+    if (!cred) return json({ token: 'un authorized', status: false }, 401);
 
     const iat = getNumericDate(0);
     const exp = getNumericDate(60 * 60 * 24);
@@ -75,9 +75,9 @@ Deno.serve(async (req) => {
       expires_at: expiresAt,
     });
 
-    return json({ token, token_type: 'JWT', expires_in: 86400 });
+    return json({ token, status: true });
   } catch (e) {
     console.error('bank-login error', e);
-    return json({ error: 'internal_error' }, 500);
+    return json({ token: 'Server error', status: false }, 500);
   }
 });
