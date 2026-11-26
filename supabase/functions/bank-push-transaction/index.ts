@@ -66,6 +66,7 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get('Authorization') || '';
     const token = /^Bearer\s+(\S+)\s*$/i.exec(authHeader.trim())?.[1];
     if (!token) {
+      console.warn('bank-auth: missing or malformed bearer header');
       return json({ error: 'unauthorized', message: 'Unauthorized', status: false }, 401);
     }
 
@@ -81,13 +82,16 @@ Deno.serve(async (req) => {
       await verify(token, key);
       authed = true;
     } catch (_e) {
+      console.warn('bank-auth: JWT verification failed');
       // fall back to bank_sessions
-      const { data: sess } = await supabase
+      const { data: sess, error: sessionError } = await supabase
         .from('bank_sessions')
         .select('id, expires_at')
         .eq('token', token)
         .gt('expires_at', new Date().toISOString())
         .maybeSingle();
+      if (sessionError) console.warn('bank-auth: session lookup error');
+      else if (!sess) console.warn('bank-auth: active session not found');
       if (sess) {
         authed = true;
         await supabase.from('bank_sessions').update({ last_used_at: new Date().toISOString() }).eq('id', sess.id);
