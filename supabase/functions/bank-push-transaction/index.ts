@@ -63,8 +63,8 @@ Deno.serve(async (req) => {
   try {
     if (req.method !== 'POST') return json({ status: false, error: 'method_not_allowed' }, 405);
 
-    const authHeader = req.headers.get('Authorization') || '';
-    const token = /^Bearer\s+(\S+)\s*$/i.exec(authHeader.trim())?.[1];
+    const auth = req.headers.get('Authorization') || req.headers.get('authorization') || '';
+    const token = auth.replace(/^Bearer\s+/i, '').trim();
     if (!token) {
       console.warn('bank-auth: missing or malformed bearer header');
       return json({ error: 'unauthorized', message: 'Unauthorized', status: false }, 401);
