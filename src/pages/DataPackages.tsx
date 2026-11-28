@@ -1,3 +1,4 @@
+import { withPackageRewardPoints } from '@/lib/rewardPreview';
 import { rewardAccountPhone } from '@/lib/rewardAccountPhone';
 // @ts-nocheck
 import React, { useState, useEffect, useRef } from 'react';
@@ -209,7 +210,7 @@ const DataPackages = () => {
           if (prov) {
             const { data, error } = await supabase.rpc('get_public_packages', { p_provider_id: prov.id });
             if (error) return cachedPackages;
-            return data || [];
+            return withPackageRewardPoints(data || [], prov.id);
           }
         }
         return cachedPackages;
@@ -217,7 +218,7 @@ const DataPackages = () => {
       
       const { data, error } = await supabase.rpc('get_public_packages', { p_provider_id: provider });
       if (error) return cachedPackages;
-      return data || [];
+      return withPackageRewardPoints(data || [], provider);
     },
     enabled: !!provider,
     staleTime: 60 * 1000,
@@ -612,7 +613,7 @@ const DataPackages = () => {
                 )}
               </div>
 
-              {Number(pkg.reward_points || 0) > 0 && <span className="px-3 pt-2 text-xs font-semibold text-amber-600">{pkg.reward_points} Reward Points (coming soon)</span>}
+              {Number(pkg.reward_points || 0) > 0 && <span className="px-3 pt-2 text-xs font-semibold text-amber-600">+{pkg.reward_points} Points (sugaya xaqiijin)</span>}
               {/* Validity */}
               <div className="flex flex-col gap-2 px-3 pt-2 pb-3">
                 <span className="text-xs text-muted-foreground">
