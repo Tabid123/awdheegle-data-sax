@@ -259,11 +259,6 @@ const ProviderSelection = () => {
 
         <RewardLaunchBanner onOpen={() => navigate('/rewards')} />
 
-        {/* Banner */}
-        <div className="px-4 pt-1 pb-2 sm:pt-2 sm:pb-3">
-          <RotatingBanner />
-        </div>
-
         {/* Offline Warning */}
         {showOfflineToast && (
           <div className="mx-4 mb-3 p-3 bg-amber-100 dark:bg-amber-900/30 border border-amber-500 rounded-2xl flex items-start gap-2 animate-in slide-in-from-top">
@@ -278,7 +273,7 @@ const ProviderSelection = () => {
         )}
 
         {/* Providers Section */}
-        <div className="px-4 space-y-3 sm:space-y-4">
+        <div className="px-4 pt-1 pb-3 space-y-3 sm:space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm sm:text-base font-bold text-foreground">Dooro Shirkada</h2>
             <span className="text-xs text-muted-foreground">{providers.length} shirkadood</span>
@@ -312,6 +307,11 @@ const ProviderSelection = () => {
               <span className="text-[#FFFFFF] font-semibold text-xs sm:text-sm">Offline</span>
             </button>
           </div>
+        </div>
+
+        {/* Banner */}
+        <div className="px-4 pt-1 pb-2 sm:pt-2 sm:pb-3">
+          <RotatingBanner />
         </div>
 
         {/* Popular Packages */}
