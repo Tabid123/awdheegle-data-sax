@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Gift } from 'lucide-react';
 import { RewardPreviewCard } from '@/components/RewardPreviewCard';
+import { CustomerRewardHistory } from '@/components/CustomerRewardHistory';
 import { BottomNavigation } from '@/components/BottomNavigation';
 import whatsappIcon from '@/assets/whatsapp-icon.png';
 
@@ -19,6 +20,7 @@ export default function Rewards() {
         <p className="text-sm text-white/85 mt-1">Iibso Xirmo oo hel points kuu noqonaayo lacag ama internet. Maamulka ayaa abaalmarinta kuu bixinaya kadib xaqiijinta.</p>
       </section>
       <RewardPreviewCard phone={phone}/>
+      <CustomerRewardHistory key={phone||'guest'} phone={phone}/>
       <a href={contact} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 rounded-xl bg-[#128C4A] text-white font-semibold py-3 px-4"><img src={whatsappIcon} alt="" className="w-5 h-5 object-contain"/> Nala soo xiriir WhatsApp</a>
     </main>
     <BottomNavigation/>
