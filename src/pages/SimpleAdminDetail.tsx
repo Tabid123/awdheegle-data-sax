@@ -14,6 +14,7 @@ const DailyOrdersCustomView = lazy(() => import('@/components/admin/simple/Order
 const OrdersListView = lazy(() => import('@/components/admin/simple/OrderViews').then(m => ({ default: m.OrdersListView })));
 const AutoTopUpCustomView = lazy(() => import('@/components/admin/simple/OrderViews').then(m => ({ default: m.AutoTopUpCustomView })));
 const AbdiqafarView = lazy(() => import('@/components/admin/simple/AbdiqafarView').then(m => ({ default: m.AbdiqafarView })));
+const RewardPointsView = lazy(() => import('@/components/admin/simple/RewardPointsView'));
 const CustomersCustomView = lazy(() => import('@/components/admin/simple/CustomerViews').then(m => ({ default: m.CustomersCustomView })));
 const OfflineRegistrationsCustomView = lazy(() => import('@/components/admin/simple/CustomerViews').then(m => ({ default: m.OfflineRegistrationsCustomView })));
 const DevicesCustomView = lazy(() => import('@/components/admin/simple/CustomerViews').then(m => ({ default: m.DevicesCustomView })));
@@ -60,6 +61,7 @@ interface DetailConfig {
 }
 
 const DETAIL_CONFIGS: Record<string, DetailConfig> = {
+  'reward-points': { title: 'Reward Points', titleSo: 'Reward Points', headerBg: 'from-amber-500 to-amber-700' },
   customers: { title: 'Customers', titleSo: 'Macaamiisha', headerBg: 'from-teal-500 to-teal-700' },
   'offline-registrations': { title: 'Offline Registrations', titleSo: 'Offline Reg', headerBg: 'from-orange-500 to-orange-700' },
   'auto-topup': { title: 'Auto Top-Up', titleSo: 'Auto Top-Up', headerBg: 'from-lime-500 to-lime-700' },
@@ -130,6 +132,7 @@ const SimpleAdminDetail = () => {
     switch (type) {
       // Custom views (lazy-loaded)
       case 'daily-orders': return <DailyOrdersCustomView isSo={isSo} />;
+      case 'reward-points': return <RewardPointsView isSo={isSo} />;
       case 'customers': return <CustomersCustomView isSo={isSo} />;
       case 'offline-registrations': return <OfflineRegistrationsCustomView isSo={isSo} />;
       case 'auto-topup': return <AutoTopUpCustomView isSo={isSo} />;

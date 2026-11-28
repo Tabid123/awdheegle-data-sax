@@ -33,6 +33,7 @@ interface MenuItem {
 
 const menuGroups: MenuItem[] = [
   { label: 'Dashboard', labelSo: 'Dashboard', icon: LayoutDashboard, path: '/simple-admin' },
+  { label: 'Reward Points', labelSo: 'Reward Points', icon: Star, path: '/simple-admin/reward-points' },
   {
     label: 'Payments & Analytics', labelSo: 'Lacagaha & Falanqayn', icon: BarChart3,
     children: [
