@@ -147,7 +147,6 @@ const EMPTY_PKG = {
   reward_points: '0',
   reward_value: '0',
   reward_value_unit: 'USD',
-  redemption_points: '0',
   package_name: '', data_amount: '', selling_price: '', cost_price: '', secret_price: '', allowed_phone_lengths: '9', allowed_phone_prefixes: '',
   validity_days: '30', provider_id: '', category_id: '', ussd_code: '', connection_type_label: 'Data',
   menu1: '', menu2: '', menu3: '', sim_password: '', is_ussd_only: false, is_discovery_root: false,
@@ -257,14 +256,9 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
       toast.error(isSo ? 'Geli points tiro dhan oo u dhaxaysa 0 iyo 1000000.' : 'Enter whole reward points between 0 and 1000000.');
       return;
     }
-    const rewardValue = Number(newPkg.reward_value);
-    if (!/^\d+(\.\d{1,4})?$/.test(newPkg.reward_value.trim()) || !Number.isFinite(rewardValue) || rewardValue > 1000000 || (rewardValue > 0 && rewardPoints === 0) || !['USD','GB'].includes(newPkg.reward_value_unit)) {
-      toast.error(isSo ? 'Geli qiime sax ah iyo points ka badan 0.' : 'Enter a valid reward value and positive points.');
-      return;
-    }
-    const redemptionPoints = Number(newPkg.redemption_points);
-    if (!/^\d+$/.test(newPkg.redemption_points.trim()) || !Number.isInteger(redemptionPoints) || redemptionPoints < 0 || redemptionPoints > 1000000) {
-      toast.error(isSo ? 'Geli points sax ah oo u dhexeeya 0 iyo 1000000.' : 'Enter whole redemption points between 0 and 1000000.');
+    const rewardValue = Number(newPkg.reward_value.trim() || '0');
+    if (!/^(?:\d+(?:\.\d{1,4})?|\.\d{1,4})$/.test(newPkg.reward_value.trim() || '0') || !Number.isFinite(rewardValue) || rewardValue > 1000000 || !['USD','GB'].includes(newPkg.reward_value_unit)) {
+      toast.error(isSo ? 'Geli qiime sax ah, tusaale 0.01.' : 'Enter a valid value, e.g. 0.01.');
       return;
     }
     const sellingPriceNum = Number(newPkg.selling_price);
@@ -276,7 +270,6 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
       reward_points: rewardPoints,
       reward_value: rewardValue,
       reward_value_unit: newPkg.reward_value_unit,
-      redemption_points: redemptionPoints,
       data_amount: newPkg.data_amount,
       price: sellingPriceNum,
       selling_price: sellingPriceNum,
@@ -317,7 +310,6 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
       reward_points: String(item.reward_points ?? 0),
       reward_value: String(item.reward_value ?? 0),
       reward_value_unit: item.reward_value_unit === 'GB' ? 'GB' : 'USD',
-      redemption_points: String(item.redemption_points ?? 0),
       package_name: item.package_name || '', data_amount: item.data_amount || '', selling_price: String(item.selling_price || ''),
       cost_price: String(item.cost_price || ''),
       secret_price: Array.isArray(item.secret_price) ? item.secret_price.join(', ') : (item.secret_price ?? ''),
@@ -367,7 +359,7 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
             { icon: Package, label: 'Package', value: item.package_name, color: 'text-purple-500' },
             { icon: Hash, label: 'Data', value: item.data_amount, color: 'text-cyan-500' },
             { icon: Hash, label: 'Reward Points', value: String(item.reward_points ?? 0), color: 'text-amber-500' },
-            { icon: Hash, label: 'Points Value', value: Number(item.reward_value || 0) > 0 ? (item.reward_value_unit === 'GB' ? `${item.reward_value} GB` : `${item.reward_value}`) : '—', color: 'text-amber-500' },
+            { icon: Hash, label: 'Points Value', value: Number(item.reward_value || 0) > 0 ? (item.reward_value_unit === 'GB' ? `${item.reward_value} GB` : '$' + Number(item.reward_value).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:4})) : '—', color: 'text-amber-500' },
             { icon: Calendar, label: 'Validity', value: `${item.validity_days} days`, color: 'text-blue-500' },
             { icon: DollarSign, label: isSo ? 'Iibka' : 'Sell Price', value: `$${Number(item.selling_price).toFixed(2)}`, color: 'text-emerald-500' },
             { icon: DollarSign, label: isSo ? 'Kharash' : 'Cost', value: `$${Number(item.cost_price || 0).toFixed(2)}`, color: 'text-red-500' },
@@ -482,7 +474,7 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
                 <option value="USD">USD ($)</option><option value="GB">Internet (GB)</option>
               </select>
             </div>
-            <span className="block text-xs text-gray-500">{isSo ? 'Qiimaha dhammaan points-ka hal iib; tusaale 10 Points = $0.10 ama 1 GB. Qiime tilmaam ah.' : 'Equivalent of all points from one purchase; e.g. 10 points = $0.10 or 1 GB. Display only.'}</span>
+            <span className="block text-xs text-gray-500">{isSo ? 'Tusaale: 10 Points = $0.01 ama 1 GB.' : 'Example: 10 Points = $0.01 or 1 GB.'}</span>
             {Number(newPkg.reward_points) > 0 && Number(newPkg.reward_value) > 0 && <div className="text-xs font-semibold text-amber-600">{newPkg.reward_points} Points = {newPkg.reward_value_unit === 'GB' ? newPkg.reward_value + ' GB' : '$' + newPkg.reward_value}</div>}
           </div>
           <div className="space-y-1">

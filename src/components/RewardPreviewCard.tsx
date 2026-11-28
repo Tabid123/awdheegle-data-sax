@@ -22,7 +22,7 @@ export function RewardPreviewCard({ phone, compact = false }: {phone: string | n
       <button type="button" aria-label="Refresh points" onClick={() => query.refetch()} disabled={query.isFetching}><RefreshCw className={`h-4 w-4 ${query.isFetching ? 'animate-spin' : ''}`} /></button>
     </div>
     <div className="text-2xl font-bold text-amber-600">{query.isError || !query.data ? '—' : query.data.points.toLocaleString()} Points</div>
-    <p className="text-xs text-muted-foreground">Points sugaya xaqiijin — weli laguma beddelan karo abaalmarin.</p>
+    <p className="text-xs text-muted-foreground">Abaalmarinta waxaa gacanta ku bixiya maamulka kadib xaqiijinta points-ka.</p>
     {query.isError && <p className="text-xs text-destructive">Points-ka lama soo heli karin. Mar kale isku day.</p>}
     {!compact && !!query.data?.history.length && <div className="border-t pt-2 space-y-2">
       <div className="text-sm font-semibold">Points History</div>
