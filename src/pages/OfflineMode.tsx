@@ -1,3 +1,4 @@
+import { rewardAccountPhone } from '@/lib/rewardAccountPhone';
 // @ts-nocheck
 import { useState, useEffect } from 'react';
 import najaxLogo from '@/assets/awdhegle-logo-new.png';
@@ -123,6 +124,7 @@ const OfflineMode = () => {
         const { error: upsertError } = await supabase
           .from('offline_registrations')
           .upsert({
+            reward_account_phone: rewardAccountPhone(localStorage.getItem('verifiedPhone')),
             sender_phone: senderPhone,
             receiver_phone: receiverPhone,
             provider_id: providerDbId,

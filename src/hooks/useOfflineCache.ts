@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { useEffect, useRef } from 'react';
+import { withPackageRewardPoints } from '@/lib/rewardPreview';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useConnectivity } from '@/contexts/ConnectivityContext';
@@ -72,8 +73,9 @@ export const useOfflineCache = () => {
             p_provider_id: provider.id 
           });
           if (packages) {
-            allPackages[provider.id] = packages;
-            queryClient.setQueryData(['packages', provider.id], packages);
+            const enriched = await withPackageRewardPoints(packages, provider.id);
+            allPackages[provider.id] = enriched;
+            queryClient.setQueryData(['packages', provider.id], enriched);
           }
         }
         localStorage.setItem(CACHE_KEYS.packages, JSON.stringify(allPackages));
