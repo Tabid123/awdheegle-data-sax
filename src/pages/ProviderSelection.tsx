@@ -235,6 +235,8 @@ const ProviderSelection = () => {
         </div>
       </div>
 
+      <RewardLaunchBanner onOpen={() => navigate('/rewards')} />
+
       {/* Scrollable Content */}
       <div 
         ref={contentRef}
@@ -293,7 +295,6 @@ const ProviderSelection = () => {
                 />
               </div>
             ))}
-            <RewardLaunchBanner onOpen={() => navigate('/rewards')} />
             
             {/* Offline Mode Card */}
             <button 
