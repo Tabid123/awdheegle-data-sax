@@ -35,7 +35,9 @@ export async function loadRewardPreview(rawPhone: string) {
     }
     if (!data || data.length < pageSize) break;
   }
-  return { points, usd: usdUnits / 10000, gb: gbUnits / 10000, history };
+  const {data:paid,error:paidError}=await (supabase as any).rpc('reward_paid_totals',{p_phone:phone});
+  if(paidError) throw paidError;
+  return { points:Math.max(0,points-Number(paid?.points||0)), usd:Math.max(0,usdUnits-Math.round(Number(paid?.usd||0)*10000))/10000, gb:Math.max(0,gbUnits-Math.round(Number(paid?.gb||0)*10000))/10000, history };
 }
 
 // Public package configuration only; do not read sensitive fields.
