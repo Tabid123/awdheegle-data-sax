@@ -5,7 +5,7 @@ import RotatingBanner from '@/components/RotatingBanner';
 import ProviderCard from '@/components/ProviderCard';
 import PopularPackages from '@/components/PopularPackages';
 import SellSimCard from '@/components/SellSimCard';
-import { Phone, MessageCircle, WifiOff, X, RefreshCw, Headphones } from 'lucide-react';
+import { Phone, MessageCircle, WifiOff, X, RefreshCw, Headphones, Gift } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient, useQuery, QueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
@@ -14,6 +14,7 @@ import { showBannerAd, hideBannerAd } from '@/services/admob';
 import { logScreenView } from '@/services/firebase';
 import { useConnectivity } from '@/contexts/ConnectivityContext';
 import najaxLogo from '@/assets/awdhegle-logo-new.png';
+import RewardLaunchBanner from '@/components/RewardLaunchBanner';
 
 interface Provider {
   id: string;
@@ -206,7 +207,7 @@ const ProviderSelection = () => {
           boxSizing: 'border-box' as const
         }}
       >
-        <div className="p-4 flex items-center justify-between">
+        <div className="px-3 py-4 sm:px-4 flex items-center justify-between gap-2">
           <div className="flex items-center gap-3">
             <img src={najaxLogo} alt="Awdhegle Data" className="w-9 h-9 rounded-xl" />
             <div>
@@ -214,7 +215,10 @@ const ProviderSelection = () => {
               <p className="text-[10px] text-white/50 font-medium">Internet Marketplace</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+            <button type="button" aria-label="Reward Points" onClick={() => navigate('/rewards')} className="relative w-9 h-9 rounded-full bg-amber-400/20 flex items-center justify-center hover:bg-amber-400/30 transition-colors">
+              <Gift className="w-5 h-5 text-amber-300" />
+            </button>
             <button 
               onClick={() => window.open('tel:+252615555495', '_self')}
               className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
@@ -252,6 +256,8 @@ const ProviderSelection = () => {
             style={{ transform: `rotate(${pullDistance * 2}deg)` }}
           />
         </div>
+
+        <RewardLaunchBanner onOpen={() => navigate('/rewards')} />
 
         {/* Banner */}
         <div className="px-4 pt-1 pb-2 sm:pt-2 sm:pb-3">

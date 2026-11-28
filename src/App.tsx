@@ -25,6 +25,7 @@ import OfflineMode from "./pages/OfflineMode";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import OrderHistory from "./pages/OrderHistory";
 import Profile from "./pages/Profile";
+import Rewards from "./pages/Rewards";
 import Notifications from "./pages/Notifications";
 import SimCards from "./pages/SimCards";
 import SimCardRegistration from "./pages/SimCardRegistration";
@@ -91,6 +92,7 @@ const AppContent = () => {
         <Route path="/payment-success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
         <Route path="/history" element={<ProtectedRoute><OrderHistory /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+        <Route path="/rewards" element={<ProtectedRoute><Rewards /></ProtectedRoute>} />
         <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
         <Route path="/sim-cards" element={<ProtectedRoute><SimCards /></ProtectedRoute>} />
         <Route path="/sim-cards/register" element={<ProtectedRoute><SimCardRegistration /></ProtectedRoute>} />
