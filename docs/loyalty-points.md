@@ -9,3 +9,6 @@ This phase only configures reward values per package. It does not award, show a 
 
 ## Verification
 Production migration applied and checked: 108 existing package records had zero reward points. Admin UI build and integration tests still required.
+
+## Phase 2: isolated ledger
+Production migration 20261128103333 applied. RLS enabled; anonymous read and authenticated insert denied; service role insert allowed; primary key and payment-source/reference unique constraint verified. Ledger starts empty. No award writers have been enabled. The current SMS receipt function accepts request body data without device authentication, and the Android delivery client uses the anonymous key. Existing customer verification cannot establish server-trusted identity. Do not hook the ledger to these legacy flows; migrate device authentication and server-issued customer sessions before enabling earnings or redemption. Keep existing purchase flows untouched until compatibility tests pass.
