@@ -850,6 +850,8 @@ export type Database = {
           provider_id: string
           purchase_count: number
           reward_points: number
+          reward_value: number
+          reward_value_unit: string
           redemption_points: number
           secret_price: number[] | null
           selling_price: number | null
@@ -880,6 +882,8 @@ export type Database = {
           provider_id: string
           purchase_count?: number
           reward_points?: number
+          reward_value?: number
+          reward_value_unit?: string
           redemption_points?: number
           secret_price?: number[] | null
           selling_price?: number | null
@@ -910,6 +914,8 @@ export type Database = {
           provider_id?: string
           purchase_count?: number
           reward_points?: number
+          reward_value?: number
+          reward_value_unit?: string
           redemption_points?: number
           secret_price?: number[] | null
           selling_price?: number | null

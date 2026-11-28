@@ -24,3 +24,6 @@ Admin can set a separate redemption_points price per package (0 = unavailable). 
 
 ## Admin-confirmed redemption
 Admin verifies independent payment and delivery evidence, enters the matching transaction reference and a verification note, and approves an eligible order. The admin can reserve confirmed points against a package, manually fulfill after successful delivery, or cancel an undelivered reservation to restore points. Database serializes account changes, enforces reference uniqueness, blocks insufficient balances, and denies anonymous/direct writes. This is manual fulfillment, not automatic USSD. Customer points preview remains unverified and not spendable. Do not enable automatic awards or self-service fulfillment on the current untrusted purchase/authentication paths. No production delivery has been initiated.
+
+## Package point equivalence
+The package editor shows reward points per purchase and display-only equivalent value (USD or GB). Existing redemption costs are preserved but hidden from the package editor. Equivalences are package-specific, not an account-wide exchange rate; no payout or new entitlement is created.

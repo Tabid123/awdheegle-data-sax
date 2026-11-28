@@ -25,6 +25,8 @@ interface Category {
 
 interface DataPackage {
   reward_points?: number;
+  reward_value?: number;
+  reward_value_unit?: string;
   id: string;
   package_name: string;
   data_amount: string;
@@ -611,7 +613,176 @@ const DataPackages = () => {
                 )}
               </div>
 
-              {Number(pkg.reward_points || 0) > 0 && <span className="px-3 pt-2 text-xs font-semibold text-amber-600">+{pkg.reward_points} Points (sugaya xaqiijin)</span>}
+              {Number(pkg.reward_points || 0) > 0 && <span className="px-3 pt-2 text-xs font-semibold text-amber-600">+{pkg.reward_points} Points{Number(pkg.reward_value) > 0 ? (pkg.reward_value_unit === 'GB' ? ' = ' + pkg.reward_value + ' GB' : ' = </span>}
+              {/* Validity */}
+              <div className="flex flex-col gap-2 px-3 pt-2 pb-3">
+                <span className="text-xs text-muted-foreground">
+                  Valid: {pkg.validity_days}
+                </span>
+                {pkg.description?.trim() && (
+                  <span className={`break-words text-center text-2xl font-extrabold tracking-tight ${dataAmountTextClass}`}>
+                    {pkg.description}
+                  </span>
+                )}
+              </div>
+
+              {/* Bottom meta icons */}
+              <div className="mt-auto border-t border-border/60 px-3 py-2 flex items-center justify-between text-[11px] text-muted-foreground">
+                <div className="flex items-center gap-1">
+                  <Smartphone className={`w-3.5 h-3.5 ${brandText}`} />
+                  <span className="truncate">{pkg.connection_type_label || 'Mobile'}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Clock className={`w-3.5 h-3.5 ${brandText}`} />
+                  <span className="truncate">{pkg.validity_days}</span>
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Offline Confirmation Screen */}
+      {showConfirmationScreen && isOffline && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-card rounded-2xl p-6 w-full max-w-md space-y-4 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold text-center text-foreground">XAQIIJIN IIBSI</h2>
+            
+            {/* Package Details Card */}
+            <div className="bg-card rounded-lg border border-border shadow-sm p-4">
+              <div className="flex justify-between items-start mb-2">
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-foreground">{selectedPackageData?.name || 'Package'}</h3>
+                </div>
+                <div className="text-right">
+                  <span className={`text-2xl font-bold ${getBrandColor(providerName)}`}>{selectedPackageData?.price}</span>
+                </div>
+              </div>
+              <div className={`h-0.5 mb-3 ${getBrandColor(providerName).replace('text-', 'bg-')}`} style={{ width: '100%' }}></div>
+
+              <div className="space-y-2 mb-4">
+                <div className="flex items-center gap-2">
+                  <Zap className={`w-4 h-4 ${getBrandColor(providerName)}`} />
+                  <span className="text-sm text-muted-foreground">{selectedPackageData?.data || 'Data'}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Smartphone className={`w-4 h-4 ${getBrandColor(providerName)}`} />
+                  <span className="text-sm text-muted-foreground">Mobile Internet</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Clock className={`w-4 h-4 ${getBrandColor(providerName)}`} />
+                  <span className="text-sm text-muted-foreground">{selectedPackageData?.validity || 'Validity'}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Sender Number */}
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground font-medium uppercase">Lambarka lacagta diraayo</p>
+              <div className="flex items-center gap-3 bg-muted rounded-lg p-3 border border-border">
+                <span className="text-lg font-bold text-foreground">+252-{senderPhone}</span>
+              </div>
+            </div>
+
+            {/* Receiver Number */}
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground font-medium uppercase">Lambarka xirmada helaayo</p>
+              <div className="flex items-center gap-3 bg-muted rounded-lg p-3 border border-border">
+                <span className="text-sm text-muted-foreground">+252</span>
+                <input
+                  type="tel"
+                  inputMode="numeric"
+                  aria-label="Lambarka xirmada helaayo"
+                  value={offlineReceiverNumber}
+                  onChange={(e) => setOfflineReceiverNumber(e.target.value.replace(/\D/g, '').slice(0, 15))}
+                  maxLength={15}
+                  className="min-w-0 flex-1 bg-transparent text-lg font-bold text-foreground outline-none"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">Lambarkan waa inuu leeyahay tirooyinka uu package-ku oggol yahay.</p>
+            </div>
+
+            {/* Confirmation Message - Flashing Warning */}
+            <div className="bg-destructive text-destructive-foreground p-3 rounded-lg text-center animate-pulse">
+              <p className="font-semibold text-sm">
+                Ma hubtaa inaad {selectedPackageData?.price} ka dirtid {senderPhone}?
+              </p>
+            </div>
+
+            {/* USSD Code with Copy Button */}
+            {(() => {
+              const amount = selectedPackageData?.price?.replace('$', '') || '0';
+              const sp = senderPhone?.substring(0, 2) || '';
+              const isSn = sp === '68';
+              const cachedPP = localStorage.getItem('offline_payment_providers');
+              const ppList = cachedPP ? JSON.parse(cachedPP) : [];
+              let paymentNumber = ppList[0]?.payment_number || '';
+              let paymentPrefix = isSn ? '*812*' : '*712*';
+              
+              const amountFormatted = amount.replace('.', '*');
+              const ussdCode = `${paymentPrefix}${paymentNumber}*${amountFormatted}#`;
+              
+              const handleCopyUssd = async () => {
+                try {
+                  await navigator.clipboard.writeText(ussdCode);
+                  setUssdCopied(true);
+                  toast({
+                    title: "La koobiyeeyey!",
+                    description: "USSD code-ka waa la koobiyeeyey",
+                    duration: 2000
+                  });
+                  setTimeout(() => setUssdCopied(false), 2000);
+                } catch (e) {
+                  toast({
+                    title: "Khalad",
+                    description: "Ma koobiyeyn karin",
+                    variant: "destructive"
+                  });
+                }
+              };
+              
+              return (
+                <div 
+                  onClick={handleCopyUssd}
+                  className="flex items-center justify-between bg-muted rounded-lg p-3 border border-border cursor-pointer hover:bg-muted/80 transition-colors"
+                >
+                  <span className="text-lg font-bold text-accent-foreground">{ussdCode}</span>
+                  <button className="p-2 hover:bg-background rounded-lg transition-colors">
+                    {ussdCopied ? (
+                      <Check className="w-5 h-5 text-accent-foreground" />
+                    ) : (
+                      <Copy className="w-5 h-5 text-muted-foreground" />
+                    )}
+                  </button>
+                </div>
+              );
+            })()}
+
+            {/* Action Buttons */}
+            <div className="flex gap-3 pt-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowConfirmationScreen(false)} 
+                className="flex-1 py-5 text-base font-bold border-2"
+              >
+                MAYA
+              </Button>
+              <Button 
+                onClick={handleOfflineConfirmPurchase} 
+                className="flex-1 py-5 text-base font-bold bg-accent text-accent-foreground hover:bg-accent/90"
+              >
+                HADA IIBSO
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default DataPackages;
+ + Number(pkg.reward_value).toFixed(2)) : ''} (sugaya xaqiijin)</span>}
               {/* Validity */}
               <div className="flex flex-col gap-2 px-3 pt-2 pb-3">
                 <span className="text-xs text-muted-foreground">

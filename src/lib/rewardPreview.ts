@@ -34,11 +34,11 @@ export async function loadRewardPreview(rawPhone: string) {
 }
 
 // Public package configuration only; do not read sensitive fields.
-export async function withPackageRewardPoints<T extends {id: string}>(packages: T[], providerId: string): Promise<(T & {reward_points?: number})[]> {
+export async function withPackageRewardPoints<T extends {id: string}>(packages: T[], providerId: string): Promise<(T & {reward_points?: number; reward_value?: number; reward_value_unit?: string})[]> {
   if (!packages.length) return packages;
   const { data, error } = await supabase.from('data_packages_config')
-    .select('id, reward_points').eq('provider_id', providerId).eq('is_active', true);
+    .select('id, reward_points, reward_value, reward_value_unit').eq('provider_id', providerId).eq('is_active', true);
   if (error) return packages;
-  const byId = new Map((data || []).map(p => [p.id, p.reward_points]));
-  return packages.map(p => ({ ...p, reward_points: byId.get(p.id) ?? 0 }));
+  const byId = new Map((data || []).map(p => [p.id, p]));
+  return packages.map(p => ({ ...p, reward_points: byId.get(p.id)?.reward_points ?? 0, reward_value: byId.get(p.id)?.reward_value ?? 0, reward_value_unit: byId.get(p.id)?.reward_value_unit ?? 'USD' }));
 }

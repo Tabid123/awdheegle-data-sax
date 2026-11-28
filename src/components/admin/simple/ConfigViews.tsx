@@ -145,6 +145,8 @@ export const ProvidersCustomView = ({ isSo }: { isSo: boolean }) => {
 const EMPTY_PKG = {
   description: '',
   reward_points: '0',
+  reward_value: '0',
+  reward_value_unit: 'USD',
   redemption_points: '0',
   package_name: '', data_amount: '', selling_price: '', cost_price: '', secret_price: '', allowed_phone_lengths: '9', allowed_phone_prefixes: '',
   validity_days: '30', provider_id: '', category_id: '', ussd_code: '', connection_type_label: 'Data',
@@ -255,6 +257,11 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
       toast.error(isSo ? 'Geli points tiro dhan oo u dhaxaysa 0 iyo 1000000.' : 'Enter whole reward points between 0 and 1000000.');
       return;
     }
+    const rewardValue = Number(newPkg.reward_value);
+    if (!/^\d+(\.\d{1,4})?$/.test(newPkg.reward_value.trim()) || !Number.isFinite(rewardValue) || rewardValue > 1000000 || (rewardValue > 0 && rewardPoints === 0) || !['USD','GB'].includes(newPkg.reward_value_unit)) {
+      toast.error(isSo ? 'Geli qiime sax ah iyo points ka badan 0.' : 'Enter a valid reward value and positive points.');
+      return;
+    }
     const redemptionPoints = Number(newPkg.redemption_points);
     if (!/^\d+$/.test(newPkg.redemption_points.trim()) || !Number.isInteger(redemptionPoints) || redemptionPoints < 0 || redemptionPoints > 1000000) {
       toast.error(isSo ? 'Geli points sax ah oo u dhexeeya 0 iyo 1000000.' : 'Enter whole redemption points between 0 and 1000000.');
@@ -267,6 +274,8 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
     const payload: any = {
       package_name: newPkg.package_name,
       reward_points: rewardPoints,
+      reward_value: rewardValue,
+      reward_value_unit: newPkg.reward_value_unit,
       redemption_points: redemptionPoints,
       data_amount: newPkg.data_amount,
       price: sellingPriceNum,
@@ -306,6 +315,8 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
     const parts = splitUssdTemplate(item.ussd_code || item.ussd_template);
     setNewPkg({
       reward_points: String(item.reward_points ?? 0),
+      reward_value: String(item.reward_value ?? 0),
+      reward_value_unit: item.reward_value_unit === 'GB' ? 'GB' : 'USD',
       redemption_points: String(item.redemption_points ?? 0),
       package_name: item.package_name || '', data_amount: item.data_amount || '', selling_price: String(item.selling_price || ''),
       cost_price: String(item.cost_price || ''),
@@ -356,7 +367,7 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
             { icon: Package, label: 'Package', value: item.package_name, color: 'text-purple-500' },
             { icon: Hash, label: 'Data', value: item.data_amount, color: 'text-cyan-500' },
             { icon: Hash, label: 'Reward Points', value: String(item.reward_points ?? 0), color: 'text-amber-500' },
-            { icon: Hash, label: 'Redeem Points', value: Number(item.redemption_points) > 0 ? String(item.redemption_points) : (isSo ? 'Dansan' : 'Disabled'), color: 'text-amber-500' },
+            { icon: Hash, label: 'Points Value', value: Number(item.reward_value || 0) > 0 ? (item.reward_value_unit === 'GB' ? `${item.reward_value} GB` : `${item.reward_value}`) : '—', color: 'text-amber-500' },
             { icon: Calendar, label: 'Validity', value: `${item.validity_days} days`, color: 'text-blue-500' },
             { icon: DollarSign, label: isSo ? 'Iibka' : 'Sell Price', value: `$${Number(item.selling_price).toFixed(2)}`, color: 'text-emerald-500' },
             { icon: DollarSign, label: isSo ? 'Kharash' : 'Cost', value: `$${Number(item.cost_price || 0).toFixed(2)}`, color: 'text-red-500' },
@@ -461,13 +472,19 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
           <label className="block text-sm font-medium">
             {isSo ? 'Reward Points (Dhibcaha)' : 'Reward Points'}
             <input aria-label="Reward Points" type="number" min="0" max="1000000" step="1" inputMode="numeric" value={newPkg.reward_points} onChange={e => setNewPkg(p => ({ ...p, reward_points: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none" />
-            <span className="text-xs text-gray-500">{isSo ? '0 = points ma laha. Abaalmarintu weli ma shaqaynayso.' : '0 = no points. Earning and redemption are not enabled yet.'}</span>
+            <span className="text-xs text-gray-500">{isSo ? '0 = points ma laha. Tirada laga helo hal iib.' : '0 = no points. Points earned per purchase.'}</span>
           </label>
-          <label className="block text-sm font-medium">
-            {isSo ? 'Points lagu helayo xirmadan (Redeem)' : 'Redeem Points'}
-            <input aria-label="Redeem Points" type="number" min="0" max="1000000" step="1" inputMode="numeric" value={newPkg.redemption_points} onChange={e => setNewPkg(p => ({ ...p, redemption_points: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none" />
-            <span className="text-xs text-gray-500">{isSo ? '0 = xirmadan abaalmarin ma aha. Redeem weli ma furmin.' : '0 = not a reward. Redemption is not enabled yet.'}</span>
-          </label>
+          <div className="space-y-1">
+            <label htmlFor="reward-value" className="block text-sm font-medium">{isSo ? 'Qiimaha ay points-ku u dhigmaan' : 'Points Value'}</label>
+            <div className="flex gap-2">
+              <input id="reward-value" aria-label="Points Value" type="number" min="0" max="1000000" step="0.0001" inputMode="decimal" value={newPkg.reward_value} onChange={e => setNewPkg(p => ({ ...p, reward_value: e.target.value }))} className="min-w-0 flex-1 px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none" />
+              <select aria-label="Reward Value Unit" value={newPkg.reward_value_unit} onChange={e => setNewPkg(p => ({ ...p, reward_value_unit: e.target.value }))} className="px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm">
+                <option value="USD">USD ($)</option><option value="GB">Internet (GB)</option>
+              </select>
+            </div>
+            <span className="block text-xs text-gray-500">{isSo ? 'Qiimaha dhammaan points-ka hal iib; tusaale 10 Points = $0.10 ama 1 GB. Qiime tilmaam ah.' : 'Equivalent of all points from one purchase; e.g. 10 points = $0.10 or 1 GB. Display only.'}</span>
+            {Number(newPkg.reward_points) > 0 && Number(newPkg.reward_value) > 0 && <div className="text-xs font-semibold text-amber-600">{newPkg.reward_points} Points = {newPkg.reward_value_unit === 'GB' ? newPkg.reward_value + ' GB' : '$' + newPkg.reward_value}</div>}
+          </div>
           <div className="space-y-1">
             <label className="text-[11px] font-bold text-gray-600 dark:text-gray-300">
               {isSo ? 'Tirada lambarada la oggol yahay' : 'Allowed phone number length(s)'}
