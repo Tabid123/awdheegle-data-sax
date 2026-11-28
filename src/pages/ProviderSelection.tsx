@@ -243,7 +243,7 @@ const ProviderSelection = () => {
         className="flex-1 overflow-y-auto"
         style={{ 
           paddingTop: 'calc(5rem + var(--effective-safe-area-top, 0px))',
-          paddingBottom: 'calc(6.5rem + env(safe-area-inset-bottom, 0px))' 
+          paddingBottom: 'calc(7rem + env(safe-area-inset-bottom, 0px))' 
         }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
@@ -326,10 +326,10 @@ const ProviderSelection = () => {
       {/* Support FAB */}
       <button
         onClick={() => setShowContactSheet(!showContactSheet)}
-        className={`fixed bottom-20 sm:bottom-24 right-4 z-50 w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-all duration-300 ${
+        className={`fixed right-4 z-[55] w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-all duration-300 ${
           showContactSheet ? 'bg-destructive' : ''
         }`}
-        style={!showContactSheet ? { background: 'linear-gradient(135deg, #1236C0, #1236C0)' } : {}}
+        style={{ bottom: 'calc(6.75rem + env(safe-area-inset-bottom, 0px))', ...(!showContactSheet ? { background: 'linear-gradient(135deg, #1236C0, #1236C0)' } : {}) }}
       >
         {showContactSheet ? (
           <X className="w-7 h-7 text-white" />
@@ -345,7 +345,7 @@ const ProviderSelection = () => {
 
       {/* Contact Popup */}
       {showContactSheet && (
-        <div className="fixed bottom-40 right-4 z-40 flex flex-col items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-200">
+        <div style={{ bottom: 'calc(10.75rem + env(safe-area-inset-bottom, 0px))' }} className="fixed right-4 z-[54] flex flex-col items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-200">
           <a 
             href="tel:+252615555495"
             onClick={() => setShowContactSheet(false)}

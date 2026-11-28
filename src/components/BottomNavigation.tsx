@@ -26,10 +26,10 @@ export function BottomNavigation({ onNotificationsClick }: BottomNavigationProps
   };
 
   const navItems = [
-    { icon: Home, path: '/providers', onClick: () => navigate('/providers') },
-    { icon: BarChart3, path: '/history', onClick: () => navigate('/history') },
-    { icon: Bell, path: '/notifications', onClick: handleNotificationsClick, badge: unreadCount },
-    { icon: User, path: '/profile', onClick: () => navigate('/profile') },
+    { icon: Home, label: 'Home', path: '/providers', onClick: () => navigate('/providers') },
+    { icon: BarChart3, label: 'History', path: '/history', onClick: () => navigate('/history') },
+    { icon: Bell, label: 'Notifications', path: '/notifications', onClick: handleNotificationsClick, badge: unreadCount },
+    { icon: User, label: 'Profile', path: '/profile', onClick: () => navigate('/profile') },
   ];
 
   return (
@@ -41,25 +41,25 @@ export function BottomNavigation({ onNotificationsClick }: BottomNavigationProps
       }}
     >
       <div className="mx-3 mb-2 rounded-2xl bg-background/95 backdrop-blur-lg border border-border shadow-[0_-4px_24px_hsl(var(--primary)/0.15)]">
-        <div className="flex justify-around items-center py-2 px-2">
-          {navItems.map(({ icon: Icon, path, onClick, badge }) => {
+        <div className="grid grid-cols-4 items-stretch gap-1 py-1.5 px-2">
+          {navItems.map(({ icon: Icon, label, path, onClick, badge }) => {
             const active = isActive(path);
             return (
               <button
                 key={path}
                 onClick={onClick}
-                className={`relative flex flex-col items-center justify-center rounded-xl px-5 py-2 transition-all duration-300 ${
+                aria-label={label}
+                aria-current={active ? 'page' : undefined}
+                className={`relative min-w-0 flex flex-col items-center justify-center gap-1 rounded-xl px-1 py-1.5 min-h-[52px] transition-all duration-300 ${
                   active
-                    ? 'bg-primary shadow-md scale-105'
+                    ? 'bg-primary shadow-md'
                     : 'hover:bg-muted'
                 }`}
               >
                 <Icon className={`w-6 h-6 transition-colors duration-300 ${
                   active ? 'text-primary-foreground' : 'text-muted-foreground'
                 }`} />
-                {active && (
-                  <div className="w-1 h-1 rounded-full bg-primary-foreground mt-1" />
-                )}
+                <span className={`text-[9px] sm:text-[11px] leading-tight font-semibold whitespace-nowrap ${active ? 'text-primary-foreground' : 'text-muted-foreground'}`}>{label}</span>
                 {badge != null && badge > 0 && (
                   <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
                     {badge > 99 ? '99+' : badge}
