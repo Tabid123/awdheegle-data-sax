@@ -1,3 +1,4 @@
+import { rewardAccountPhone } from '@/lib/rewardAccountPhone';
 // @ts-nocheck
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
@@ -22,6 +23,7 @@ interface Category {
 }
 
 interface DataPackage {
+  reward_points?: number;
   id: string;
   package_name: string;
   data_amount: string;
@@ -382,6 +384,7 @@ const DataPackages = () => {
     const customerPhone = verifiedPhone.startsWith('+252') ? verifiedPhone.substring(4) : (verifiedPhone || senderPhone);
     
     const offlineOrderData = {
+      reward_account_phone: rewardAccountPhone(verifiedPhone),
       customer_phone: customerPhone,    // app login phone
       sender_phone: senderPhone,        // phone user pays FROM
       receiver_phone: cleanReceiverNumber, // phone that gets data package
@@ -609,6 +612,7 @@ const DataPackages = () => {
                 )}
               </div>
 
+              {Number(pkg.reward_points || 0) > 0 && <span className="px-3 pt-2 text-xs font-semibold text-amber-600">{pkg.reward_points} Reward Points (coming soon)</span>}
               {/* Validity */}
               <div className="flex flex-col gap-2 px-3 pt-2 pb-3">
                 <span className="text-xs text-muted-foreground">

@@ -1,3 +1,4 @@
+import { rewardAccountPhone } from '@/lib/rewardAccountPhone';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -116,7 +117,8 @@ const OfflinePhoneInputSheet = ({ open, onOpenChange }: OfflinePhoneInputSheetPr
             .from('offline_registrations')
             .upsert([
               {
-                sender_phone: senderPhone,
+                reward_account_phone: rewardAccountPhone(localStorage.getItem('verifiedPhone')),
+            sender_phone: senderPhone,
                 receiver_phone: receiverPhone,
                 provider_id: providerDbId,
                 notes: provider.name,

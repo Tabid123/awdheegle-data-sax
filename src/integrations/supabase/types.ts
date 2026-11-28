@@ -1372,6 +1372,7 @@ export type Database = {
       }
       offline_registrations: {
         Row: {
+          reward_account_phone: string | null
           created_at: string
           id: string
           is_active: boolean
@@ -1385,6 +1386,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          reward_account_phone?: string | null
           created_at?: string
           id?: string
           is_active?: boolean
@@ -1398,6 +1400,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          reward_account_phone?: string | null
           created_at?: string
           id?: string
           is_active?: boolean
@@ -1467,6 +1470,8 @@ export type Database = {
       }
       orders: {
         Row: {
+          reward_account_phone: string | null
+          reward_points_snapshot: number
           amount: number
           cancelled_at: string | null
           cancelled_by: string | null
@@ -1500,6 +1505,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          reward_account_phone?: string | null
+          reward_points_snapshot?: number
           amount: number
           cancelled_at?: string | null
           cancelled_by?: string | null
@@ -1533,6 +1540,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          reward_account_phone?: string | null
+          reward_points_snapshot?: number
           amount?: number
           cancelled_at?: string | null
           cancelled_by?: string | null

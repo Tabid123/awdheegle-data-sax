@@ -1,3 +1,4 @@
+import { rewardAccountPhone } from '@/lib/rewardAccountPhone';
 // @ts-nocheck
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
@@ -617,6 +618,7 @@ const PaymentProviders = () => {
         const userSenderPhone = paymentNumber; // state variable - user's entered payment phone
         
         const offlineOrderData = {
+            reward_account_phone: rewardAccountPhone(verifiedPhone),
             customer_phone: customerPhone || userSenderPhone, // app login phone, fallback to sender
             sender_phone: userSenderPhone,       // phone user pays FROM
             receiver_phone: receiverNumber,       // phone that gets the data package
