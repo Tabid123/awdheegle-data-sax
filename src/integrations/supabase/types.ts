@@ -849,6 +849,7 @@ export type Database = {
           profit_margin: number
           provider_id: string
           purchase_count: number
+          reward_points: number
           secret_price: number[] | null
           selling_price: number | null
           sim_password: string | null
@@ -877,6 +878,7 @@ export type Database = {
           profit_margin?: number
           provider_id: string
           purchase_count?: number
+          reward_points?: number
           secret_price?: number[] | null
           selling_price?: number | null
           sim_password?: string | null
@@ -905,6 +907,7 @@ export type Database = {
           profit_margin?: number
           provider_id?: string
           purchase_count?: number
+          reward_points?: number
           secret_price?: number[] | null
           selling_price?: number | null
           sim_password?: string | null
