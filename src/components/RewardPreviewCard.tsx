@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { RewardCatalog } from '@/components/RewardCatalog';
 import { Gift, RefreshCw } from 'lucide-react';
 import { rewardAccountPhone } from '@/lib/rewardAccountPhone';
 import { loadRewardPreview } from '@/lib/rewardPreview';
@@ -30,5 +31,6 @@ export function RewardPreviewCard({ phone, compact = false }: {phone: string | n
         <span className="shrink-0 font-semibold text-amber-600">+{row.reward_points_snapshot}</span>
       </div>)}
     </div>}
+    {!compact && <RewardCatalog />}
   </section>;
 }

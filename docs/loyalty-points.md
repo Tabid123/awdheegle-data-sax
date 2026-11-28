@@ -18,3 +18,6 @@ Rewards belong exclusively to the app login phone, never to the payer or receive
 
 ## Delivered-order preview
 Customer Profile and expanded Admin Customers now show provisional points from the existing orders read path. Only completed/delivered online or offline orders with explicit reward_account_phone, positive snapshot, and nonblank transaction ID are included. The production orders table already has a unique tx_id index. The preview is not a verified balance, is not spendable, and uses the legacy account identifier; it grants no new database privileges. No confirmed ledger writer is enabled. Public package points are fetched with a narrow column selection and included in the existing offline package cache. No build/deploy or live delivery test performed.
+
+## Redemption catalog
+Admin can set a separate redemption_points price per package (0 = unavailable). Existing packages are disabled by default. The customer profile shows active configured rewards only, excludes discovery roots, and does not submit or execute redemptions. Earned-point preview is not a spendable balance. Real redemption requires trusted earned credits and an atomic debit/delivery workflow. No package prices or existing order paths changed.
