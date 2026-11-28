@@ -11,6 +11,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -25,3 +27,14 @@ jobs:
       - run: npm ci --legacy-peer-deps
       - run: npm run build
       - run: node --experimental-strip-types --test tests/reward-account-phone.test.mjs
+      - name: Save verified lockfile on feature branch
+        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/loyalty-points'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- package-lock.json; then exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json
+          git commit -m "Sync npm lockfile after successful loyalty build"
+          git push origin HEAD:refs/heads/feature/loyalty-points
