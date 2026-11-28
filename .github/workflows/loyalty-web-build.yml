@@ -17,6 +17,11 @@ jobs:
         with:
           node-version: '22'
           cache: npm
+      - run: npm install --package-lock-only --legacy-peer-deps --ignore-scripts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: updated-package-lock
+          path: package-lock.json
       - run: npm ci --legacy-peer-deps
       - run: npm run build
       - run: node --experimental-strip-types --test tests/reward-account-phone.test.mjs
