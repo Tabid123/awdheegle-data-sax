@@ -21,3 +21,6 @@ Customer Profile and expanded Admin Customers now show provisional points from t
 
 ## Redemption catalog
 Admin can set a separate redemption_points price per package (0 = unavailable). Existing packages are disabled by default. The customer profile shows active configured rewards only, excludes discovery roots, and does not submit or execute redemptions. Earned-point preview is not a spendable balance. Real redemption requires trusted earned credits and an atomic debit/delivery workflow. No package prices or existing order paths changed.
+
+## Admin-confirmed redemption
+Admin verifies independent payment and delivery evidence, enters the matching transaction reference and a verification note, and approves an eligible order. The admin can reserve confirmed points against a package, manually fulfill after successful delivery, or cancel an undelivered reservation to restore points. Database serializes account changes, enforces reference uniqueness, blocks insufficient balances, and denies anonymous/direct writes. This is manual fulfillment, not automatic USSD. Customer points preview remains unverified and not spendable. Do not enable automatic awards or self-service fulfillment on the current untrusted purchase/authentication paths. No production delivery has been initiated.
