@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Gift, X, ChevronRight } from 'lucide-react';
+import { X, ChevronRight } from 'lucide-react';
 
 const key='awdhegle-rewards-announcement-v1';
 export default function RewardLaunchBanner({onOpen}:{onOpen:()=>void}) {
@@ -11,7 +11,7 @@ export default function RewardLaunchBanner({onOpen}:{onOpen:()=>void}) {
     return ()=>window.clearTimeout(timer);
   },[visible]);
   if(!visible)return null;
-  return <aside aria-label="Awdhegle Rewards announcement" className="relative isolate mx-4 mb-2 overflow-hidden rounded-2xl bg-gradient-to-br from-[#102B9B] via-[#1236C0] to-[#254FD1] p-3.5 shadow-lg text-white">
+  return <aside aria-label="Awdhegle Rewards announcement" style={{ top: 'calc(5rem + var(--effective-safe-area-top, 0px))' }} className="fixed z-[60] left-4 right-4 mx-auto max-w-lg isolate overflow-hidden rounded-2xl bg-gradient-to-br from-[#102B9B] via-[#1236C0] to-[#254FD1] p-3.5 shadow-2xl ring-1 ring-white/15 text-white">
     <div aria-hidden="true" className="absolute -right-12 -top-16 h-48 w-48 rounded-full border-[24px] border-white/5"/>
     <div aria-hidden="true" className="absolute -right-6 -bottom-16 h-40 w-40 rounded-full bg-cyan-300/10"/>
     <button type="button" aria-label="Xir banner-ka" onClick={close} className="absolute z-10 top-2 right-2 rounded-full bg-white/15 p-1.5 text-white hover:bg-white/25"><X className="w-4 h-4"/></button>
