@@ -36,7 +36,7 @@ export function ManualRewardPayout({phone,available,order,onClose}:{phone:string
    if(kind==='internet'){
     const {error}=await (supabase as any).rpc('reward_queue_delivery',{p_phone:phone,p_request:id,p_package:packageId,p_points:n,p_order:order?.id??null});
     if(error)throw error;
-    toast.success('Xirmada waxaa loo diray delivery queue. Xaqiiji marka ay gaarto macmiilka.');
+    toast.success('Xirmada waa la dirayaa. Marka ay gaarto macmiilka, points-ka si automatic ah ayaa looga jarayaa.');
    }else{
    if(order){
     const {error}=await (supabase as any).rpc('reward_admin_action',{p_action:'approve',p_phone:phone,p_order:order.id,p_reference:order.tx_id,p_note:'Admin confirmed independent payment and delivery review before reward payout.'});
@@ -58,7 +58,7 @@ export function ManualRewardPayout({phone,available,order,onClose}:{phone:string
   <DialogDescription>+252{phone} · {max} Points</DialogDescription>
   {review?<div className="space-y-3">
     <div className="rounded-xl bg-muted p-3 text-sm space-y-1"><div className="font-bold">{description}</div><div>Points laga jarayo: <b>{n}</b></div>{kind==='internet'&&<div>Qiimaha xirmada: ${a}</div>}</div>
-    <p className="text-sm">{kind==='internet'?'Ma hubtaa inaad xirmadan u dirto macmiilka? Points-ka waa la haynayaa ilaa delivery-ga la xaqiijiyo.':'Ma hubtaa inaad macmiilkan siisay lacagtaan? Marka aad OK dhahdo points-ka ayaa laga jarayaa.'}</p>
+    <p className="text-sm">{kind==='internet'?'Ma hubtaa inaad xirmadan u dirto macmiilka? Points-ka si automatic ah ayaa loo jarayaa marka delivery-gu guuleysto.':'Ma hubtaa inaad macmiilkan siisay lacagtaan? Marka aad OK dhahdo points-ka ayaa laga jarayaa.'}</p>
     {request.current&&<p className="text-xs text-muted-foreground">Haddii xaqiijintu fashilantay, isla codsigan ku celi OK; mar kale ha bixin.</p>}
     <div className="grid grid-cols-2 gap-2"><button disabled={busy||!!request.current} onClick={()=>setReview(false)} className="border rounded-lg p-2">Ka noqo</button><button disabled={busy||!valid} onClick={()=>void submit()} className="bg-green-600 text-white rounded-lg p-2 font-bold disabled:opacity-50">{busy?'Sugaya...':kind==='internet'?'OK, Dir Xirmada':'OK, Xaqiiji'}</button></div>
   </div>:<div className="space-y-3">
@@ -69,7 +69,7 @@ export function ManualRewardPayout({phone,available,order,onClose}:{phone:string
       {provider&&<label className="block text-sm">Category<select className={inputClass} value={category} onChange={e=>{setCategory(e.target.value);setPackageId('');}}><option value="">Dooro category</option>{categories.data?.map(c=><option key={c.id} value={c.id}>{c.category_name}</option>)}</select></label>}
       {category&&<label className="block text-sm">Package<select className={inputClass} value={packageId} onChange={e=>setPackageId(e.target.value)}><option value="">Dooro xirmada</option>{packages.data?.map(p=><option key={p.id} value={p.id}>{p.data_amount||p.package_name} · ${p.selling_price??p.price}</option>)}</select></label>}
       {(providers.isError||categories.isError||packages.isError)&&<p className="text-sm text-red-600">Xogta xirmooyinka lama helin.</p>}
-      <p className="text-xs text-muted-foreground">Xirmada si automatic ah ayaa loo dirayaa lambarka kore. Points-ka lama jarayo ilaa delivery-ga la xaqiijiyo.</p>
+      <p className="text-xs text-muted-foreground">Xirmada si automatic ah ayaa loo dirayaa lambarka kore. Points-ka si automatic ah ayaa loo jarayaa marka delivery-gu guuleysto.</p>
     </>}
     {order&&<label className="flex gap-2 text-xs"><input type="checkbox" checked={verified} onChange={e=>setVerified(e.target.checked)}/> Waxaan hubiyay lacagtii iibka iyo in xirmadii hore si sax ah loo gaarsiiyay.</label>}
     <button disabled={!valid} onClick={()=>setReview(true)} className="w-full bg-blue-600 text-white rounded-xl p-3 font-semibold disabled:opacity-50">{kind==='internet'?'Dir Xirmada':'Xaqiiji Bixinta'}</button>
