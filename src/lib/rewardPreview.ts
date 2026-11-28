@@ -1,17 +1,19 @@
 import { supabase } from '@/integrations/supabase/client';
 import { rewardAccountPhone } from '@/lib/rewardAccountPhone';
 
-export type RewardPreviewRow = { id: string; package_name: string | null; reward_points_snapshot: number; created_at: string; tx_id: string | null };
+export type RewardPreviewRow = { id: string; package_name: string | null; reward_points_snapshot: number; reward_value_snapshot: number; reward_value_unit_snapshot: string; created_at: string; tx_id: string | null };
 export async function loadRewardPreview(rawPhone: string) {
   const phone = rewardAccountPhone(rawPhone);
-  if (!phone) return { points: 0, history: [] as RewardPreviewRow[] };
+  if (!phone) return { points: 0, usd: 0, gb: 0, history: [] as RewardPreviewRow[] };
   const seen = new Set<string>();
   const history: RewardPreviewRow[] = [];
   let points = 0;
+  let usdUnits = 0;
+  let gbUnits = 0;
   const pageSize = 250;
   for (let offset = 0; ; offset += pageSize) {
     const { data, error } = await supabase.from('orders')
-      .select('id, package_name, reward_points_snapshot, created_at, tx_id')
+      .select('id, package_name, reward_points_snapshot, reward_value_snapshot, reward_value_unit_snapshot, created_at, tx_id')
       .eq('reward_account_phone', phone)
       .eq('status', 'completed')
       .eq('delivery_status', 'delivered')
@@ -26,11 +28,14 @@ export async function loadRewardPreview(rawPhone: string) {
       if (!key || seen.has(key)) continue;
       seen.add(key);
       points += row.reward_points_snapshot;
+      const units = Math.round(Number(row.reward_value_snapshot || 0) * 10000);
+      if (row.reward_value_unit_snapshot === 'USD') usdUnits += units;
+      else if (row.reward_value_unit_snapshot === 'GB') gbUnits += units;
       if (history.length < 20) history.push(row);
     }
     if (!data || data.length < pageSize) break;
   }
-  return { points, history };
+  return { points, usd: usdUnits / 10000, gb: gbUnits / 10000, history };
 }
 
 // Public package configuration only; do not read sensitive fields.

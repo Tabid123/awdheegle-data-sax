@@ -1481,6 +1481,8 @@ export type Database = {
         Row: {
           reward_account_phone: string | null
           reward_points_snapshot: number
+          reward_value_snapshot: number
+          reward_value_unit_snapshot: string
           amount: number
           cancelled_at: string | null
           cancelled_by: string | null
@@ -1516,6 +1518,8 @@ export type Database = {
         Insert: {
           reward_account_phone?: string | null
           reward_points_snapshot?: number
+          reward_value_snapshot?: number
+          reward_value_unit_snapshot?: string
           amount: number
           cancelled_at?: string | null
           cancelled_by?: string | null
@@ -1551,6 +1555,8 @@ export type Database = {
         Update: {
           reward_account_phone?: string | null
           reward_points_snapshot?: number
+          reward_value_snapshot?: number
+          reward_value_unit_snapshot?: string
           amount?: number
           cancelled_at?: string | null
           cancelled_by?: string | null
