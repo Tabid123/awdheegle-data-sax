@@ -16,7 +16,7 @@ export default function Rewards() {
       <section className="rounded-2xl bg-gradient-to-br from-[#1236C0] to-blue-700 text-white p-5">
         <div className="flex items-center gap-2 text-amber-300 font-bold"><Gift className="w-6 h-6"/> Awdhegle Rewards</div>
         <h2 className="text-xl font-bold mt-2">Iibso, ururso, abaalmarin hel!</h2>
-        <p className="text-sm text-white/85 mt-1">Markaad iibsato xirmo points leh, waxaad urursanaysaa points. Maamulka ayaa abaalmarinta kuu bixinaya kadib xaqiijinta.</p>
+        <p className="text-sm text-white/85 mt-1">Iibso Xirmo oo hel points kuu noqonaayo lacag ama internet. Maamulka ayaa abaalmarinta kuu bixinaya kadib xaqiijinta.</p>
       </section>
       <RewardPreviewCard phone={phone}/>
       <a href={contact} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 rounded-xl bg-[#128C4A] text-white font-semibold py-3 px-4"><img src={whatsappIcon} alt="" className="w-5 h-5 object-contain"/> Nala soo xiriir WhatsApp</a>
