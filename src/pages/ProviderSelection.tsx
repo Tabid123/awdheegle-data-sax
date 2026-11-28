@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { Fragment, useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import RotatingBanner from '@/components/RotatingBanner';
 import ProviderCard from '@/components/ProviderCard';
@@ -282,10 +282,9 @@ const ProviderSelection = () => {
             <span className="text-xs text-muted-foreground">{providers.length} shirkadood</span>
           </div>
           
-          <div className="grid grid-cols-3 gap-2 sm:gap-3">
-            {providers.map((provider: Provider, index: number) => (
-              <Fragment key={provider.id}>
-              <div className={isReallyOnline === false ? 'opacity-60' : ''}>
+          <div className="relative grid grid-cols-3 gap-2 sm:gap-3">
+            {providers.map((provider: Provider) => (
+              <div key={provider.id} className={isReallyOnline === false ? 'opacity-60' : ''}>
                 <ProviderCard 
                   name={provider.display_name || provider.provider_name} 
                   logo={provider.provider_logo || ''} 
@@ -293,10 +292,8 @@ const ProviderSelection = () => {
                   disabled={isReallyOnline === false}
                 />
               </div>
-              {index === 2 && <RewardLaunchBanner onOpen={() => navigate('/rewards')} />}
-              </Fragment>
             ))}
-            {providers.length < 3 && <RewardLaunchBanner onOpen={() => navigate('/rewards')} />}
+            <RewardLaunchBanner onOpen={() => navigate('/rewards')} />
             
             {/* Offline Mode Card */}
             <button 

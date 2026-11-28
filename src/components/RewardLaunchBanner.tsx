@@ -11,7 +11,7 @@ export default function RewardLaunchBanner({onOpen}:{onOpen:()=>void}) {
     return ()=>window.clearTimeout(timer);
   },[visible]);
   if(!visible)return null;
-  return <aside aria-label="Awdhegle Rewards announcement" className="relative col-span-full isolate overflow-hidden rounded-xl bg-gradient-to-br from-[#102B9B] via-[#1236C0] to-[#254FD1] px-3 py-2 shadow-xl ring-1 ring-white/15 text-white">
+  return <aside aria-label="Awdhegle Rewards announcement" className="absolute z-30 left-0 right-0 top-1/2 -translate-y-1/2 isolate overflow-hidden rounded-xl bg-gradient-to-br from-[#102B9B] via-[#1236C0] to-[#254FD1] px-3 py-2 shadow-xl ring-1 ring-white/15 text-white">
     <div aria-hidden="true" className="absolute -right-8 -top-12 h-32 w-32 rounded-full border-[18px] border-white/5"/>
     <button type="button" aria-label="Xir banner-ka" onClick={close} className="absolute z-10 top-1 right-1 rounded-full bg-white/15 p-1 text-white hover:bg-white/25"><X className="w-4 h-4"/></button>
     <div className="relative flex items-center gap-2 pr-4">
