@@ -595,7 +595,12 @@ const DataPackages = () => {
               }`}
             >
               {/* Tinted top band with data amount */}
-              <div className={`${brandTint} px-3 py-5 flex items-center justify-center`}>
+              <div className={`relative ${brandTint} px-3 py-5 flex items-center justify-center`}>
+                {Number(pkg.reward_points || 0) > 0 && (
+                  <span className="absolute top-1 right-1.5 rounded-full bg-amber-100 text-amber-800 px-1.5 py-0.5 text-[9px] leading-3 font-bold whitespace-nowrap">
+                    +{pkg.reward_points} Points
+                  </span>
+                )}
                 <span className={`text-2xl font-extrabold tracking-tight ${dataAmountTextClass}`}>
                   {pkg.data_amount}
                 </span>
@@ -613,7 +618,6 @@ const DataPackages = () => {
                 )}
               </div>
 
-              {Number(pkg.reward_points || 0) > 0 && <span className="px-3 pt-2 text-xs font-semibold text-amber-600">+{pkg.reward_points} Points{Number(pkg.reward_value) > 0 ? (pkg.reward_value_unit === 'GB' ? ' = ' + pkg.reward_value + ' GB' : ' = $' + Number(pkg.reward_value).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:4})) : ''}</span>}
               {/* Validity */}
               <div className="flex flex-col gap-2 px-3 pt-2 pb-3">
                 <span className="text-xs text-muted-foreground">
