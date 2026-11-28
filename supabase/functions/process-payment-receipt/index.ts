@@ -1,3 +1,8 @@
+function rewardAccountPhone(raw: string | null | undefined): string | null {
+  const digits = (raw || '').replace(/[^0-9]/g, '');
+  const local = digits.length === 12 && digits.startsWith('252') ? digits.slice(3) : digits;
+  return /^\d{9}$/.test(local) ? local : null;
+}
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -1430,6 +1435,7 @@ serve(async (req) => {
         const { data: newOrder, error: orderError } = await supabase
           .from("orders")
           .insert({
+            reward_account_phone: rewardAccountPhone(pendingOnline.verified_phone),
             customer_phone: normalizeSomaliPhone(pendingOnline.verified_phone || pendingOnline.sender_phone),
             sender_phone: normalizeSomaliPhone(pendingOnline.sender_phone || pendingOnline.verified_phone),
             receiver_phone: pendingOnline.receiver_phone,
@@ -1690,7 +1696,8 @@ serve(async (req) => {
               const { data: newOrder, error: orderError } = await supabase
                 .from("orders")
                 .insert({
-                  customer_phone: normalizeSomaliPhone(pendingOnline.verified_phone || pendingOnline.sender_phone),
+                  reward_account_phone: rewardAccountPhone(pendingOnline.verified_phone),
+            customer_phone: normalizeSomaliPhone(pendingOnline.verified_phone || pendingOnline.sender_phone),
                   sender_phone: normalizeSomaliPhone(pendingOnline.sender_phone || pendingOnline.verified_phone),
                   receiver_phone: pendingOnline.receiver_phone,
                   provider_id: pendingOnline.provider_id,
@@ -2169,6 +2176,7 @@ serve(async (req) => {
     const { data: order, error: orderError } = await supabase
       .from("orders")
       .insert({
+        reward_account_phone: rewardAccountPhone(registration.reward_account_phone),
         customer_phone: verifiedPhone,
         sender_phone: normalizeSomaliPhone(registration.sender_phone),
         receiver_phone: registration.receiver_phone,

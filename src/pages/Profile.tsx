@@ -1,3 +1,4 @@
+import { RewardPreviewCard } from '@/components/RewardPreviewCard';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, MessageCircle, Phone, ChevronRight, LogOut, Star, Share2, Trash2 } from 'lucide-react';
@@ -128,6 +129,7 @@ const Profile = () => {
       </div>
 
       <div className="p-4 space-y-2 mt-4">
+        <RewardPreviewCard phone={verifiedPhone} />
         {profileOptions.map((option, index) => (
           <div
             key={index}

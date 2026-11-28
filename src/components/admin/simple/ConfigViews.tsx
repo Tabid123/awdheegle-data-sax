@@ -144,6 +144,8 @@ export const ProvidersCustomView = ({ isSo }: { isSo: boolean }) => {
 // ========== PACKAGES ==========
 const EMPTY_PKG = {
   description: '',
+  reward_points: '0',
+  redemption_points: '0',
   package_name: '', data_amount: '', selling_price: '', cost_price: '', secret_price: '', allowed_phone_lengths: '9', allowed_phone_prefixes: '',
   validity_days: '30', provider_id: '', category_id: '', ussd_code: '', connection_type_label: 'Data',
   menu1: '', menu2: '', menu3: '', sim_password: '', is_ussd_only: false, is_discovery_root: false,
@@ -248,12 +250,24 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
       toast.error(isSo ? 'Geli prefix sax ah, tusaale 61,77 ama 1.' : 'Enter valid prefixes, such as 61,77 or 1.');
       return;
     }
+    const rewardPoints = Number(newPkg.reward_points);
+    if (!/^\d+$/.test(newPkg.reward_points.trim()) || !Number.isInteger(rewardPoints) || rewardPoints < 0 || rewardPoints > 1000000) {
+      toast.error(isSo ? 'Geli points tiro dhan oo u dhaxaysa 0 iyo 1000000.' : 'Enter whole reward points between 0 and 1000000.');
+      return;
+    }
+    const redemptionPoints = Number(newPkg.redemption_points);
+    if (!/^\d+$/.test(newPkg.redemption_points.trim()) || !Number.isInteger(redemptionPoints) || redemptionPoints < 0 || redemptionPoints > 1000000) {
+      toast.error(isSo ? 'Geli points sax ah oo u dhexeeya 0 iyo 1000000.' : 'Enter whole redemption points between 0 and 1000000.');
+      return;
+    }
     const sellingPriceNum = Number(newPkg.selling_price);
     const secretArr = String(newPkg.secret_price || '')
       .split(/[,\s]+/).map(s => s.trim()).filter(Boolean)
       .map(Number).filter(n => !isNaN(n) && n > 0);
     const payload: any = {
       package_name: newPkg.package_name,
+      reward_points: rewardPoints,
+      redemption_points: redemptionPoints,
       data_amount: newPkg.data_amount,
       price: sellingPriceNum,
       selling_price: sellingPriceNum,
@@ -291,6 +305,8 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
     setEditingId(item.id);
     const parts = splitUssdTemplate(item.ussd_code || item.ussd_template);
     setNewPkg({
+      reward_points: String(item.reward_points ?? 0),
+      redemption_points: String(item.redemption_points ?? 0),
       package_name: item.package_name || '', data_amount: item.data_amount || '', selling_price: String(item.selling_price || ''),
       cost_price: String(item.cost_price || ''),
       secret_price: Array.isArray(item.secret_price) ? item.secret_price.join(', ') : (item.secret_price ?? ''),
@@ -339,6 +355,8 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
             { icon: Package, label: 'Category', value: getCategoryName(item.category_id), color: 'text-emerald-500' },
             { icon: Package, label: 'Package', value: item.package_name, color: 'text-purple-500' },
             { icon: Hash, label: 'Data', value: item.data_amount, color: 'text-cyan-500' },
+            { icon: Hash, label: 'Reward Points', value: String(item.reward_points ?? 0), color: 'text-amber-500' },
+            { icon: Hash, label: 'Redeem Points', value: Number(item.redemption_points) > 0 ? String(item.redemption_points) : (isSo ? 'Dansan' : 'Disabled'), color: 'text-amber-500' },
             { icon: Calendar, label: 'Validity', value: `${item.validity_days} days`, color: 'text-blue-500' },
             { icon: DollarSign, label: isSo ? 'Iibka' : 'Sell Price', value: `$${Number(item.selling_price).toFixed(2)}`, color: 'text-emerald-500' },
             { icon: DollarSign, label: isSo ? 'Kharash' : 'Cost', value: `$${Number(item.cost_price || 0).toFixed(2)}`, color: 'text-red-500' },
@@ -440,6 +458,16 @@ export const PackagesCustomView = ({ isSo }: { isSo: boolean }) => {
             <input value={newPkg.selling_price} onChange={e => setNewPkg(p => ({...p, selling_price: e.target.value}))} placeholder="Sell Price *" type="number" className="px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none" />
             <input value={newPkg.cost_price} onChange={e => setNewPkg(p => ({...p, cost_price: e.target.value}))} placeholder="Cost Price" type="number" className="px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none" />
           </div>
+          <label className="block text-sm font-medium">
+            {isSo ? 'Reward Points (Dhibcaha)' : 'Reward Points'}
+            <input aria-label="Reward Points" type="number" min="0" max="1000000" step="1" inputMode="numeric" value={newPkg.reward_points} onChange={e => setNewPkg(p => ({ ...p, reward_points: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none" />
+            <span className="text-xs text-gray-500">{isSo ? '0 = points ma laha. Abaalmarintu weli ma shaqaynayso.' : '0 = no points. Earning and redemption are not enabled yet.'}</span>
+          </label>
+          <label className="block text-sm font-medium">
+            {isSo ? 'Points lagu helayo xirmadan (Redeem)' : 'Redeem Points'}
+            <input aria-label="Redeem Points" type="number" min="0" max="1000000" step="1" inputMode="numeric" value={newPkg.redemption_points} onChange={e => setNewPkg(p => ({ ...p, redemption_points: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border text-sm outline-none" />
+            <span className="text-xs text-gray-500">{isSo ? '0 = xirmadan abaalmarin ma aha. Redeem weli ma furmin.' : '0 = not a reward. Redemption is not enabled yet.'}</span>
+          </label>
           <div className="space-y-1">
             <label className="text-[11px] font-bold text-gray-600 dark:text-gray-300">
               {isSo ? 'Tirada lambarada la oggol yahay' : 'Allowed phone number length(s)'}

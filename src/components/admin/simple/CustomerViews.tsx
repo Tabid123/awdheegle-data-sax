@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { SimDeliveryToggle } from '../SimDeliveryToggle';
+import { RewardAdminCard } from '@/components/RewardAdminCard';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -116,6 +117,7 @@ export const CustomersCustomView = ({ isSo }: { isSo: boolean }) => {
                     <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                   </div>
                 </button>
+                {isExpanded && <div className="px-3 pb-2"><RewardAdminCard phone={item.phone_number} /></div>}
                 {isExpanded && (
                   <InvoiceAccordionContent isSo={isSo} id={item.id} rows={[
                     { icon: Phone, label: isSo ? 'Lambarka' : 'Phone', value: `+252${item.phone_number}`, color: 'text-purple-500' },
